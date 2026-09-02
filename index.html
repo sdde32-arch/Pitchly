@@ -1,0 +1,317 @@
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0D0D0D" />
+    <meta name="description" content="Pitchly — Book football pitches and manage your sports facility in Uganda. Real-time booking, AI-powered management, mobile payments." />
+    <meta name="keywords" content="football pitch booking Uganda, turf booking, sports facility management" />
+    <meta property="og:title" content="Pitchly — Book Football Pitches in Uganda" />
+    <meta property="og:description" content="Book and manage football pitches with real-time availability, AI insights, and mobile money payments." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/logo.svg" />
+    <link rel="canonical" href="https://pitchly.app" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Pitchly - The Ultimate Football Ecosystem</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        // Core Surfaces & Architecture
+                        'app-base': 'var(--app-base)',
+                        'surface-card': 'var(--surface-card)',
+                        'surface-raised': 'var(--surface-raised)',
+                        'border-subtle': 'var(--border-subtle)',
+                        'border-prominent': 'var(--border-prominent)',
+
+                        // Brand & Interactive
+                        'primary-lime': 'var(--primary-lime)',
+                        'primary-lime-hover': 'var(--primary-lime-hover)',
+                        'primary-lime-dim': 'var(--primary-lime-dim)',
+                        'primary-lime-glow': 'var(--primary-lime-glow)',
+
+                        // Typography
+                        'text-primary': 'var(--text-primary)',
+                        'text-secondary': 'var(--text-secondary)',
+                        'text-tertiary': 'var(--text-tertiary)',
+                        'text-disabled': 'var(--text-disabled)',
+                        'text-on-lime': 'var(--accent-text)',
+
+                        // Distinct Portal Accents
+                        'portal-player': '#16A34A',
+                        'portal-owner': '#0284C7',
+                        'portal-admin': '#7C3AED',
+
+                        // Semantic Status Colors
+                        'status-success': '#16A34A',
+                        'status-warning': '#D97706',
+                        'status-error': '#DC2626',
+                        'status-info': '#0284C7',
+
+                        // Backward Compatibility Aliases
+                        'deep-black': 'var(--app-base)',
+                        'charcoal': 'var(--surface-card)',
+                        'slate': 'var(--surface-raised)',
+                        'dark-divider': 'var(--border-subtle)',
+                        'accent': 'var(--primary-lime)',
+                        'accent-hover': 'var(--primary-lime-hover)',
+                        'accent-text': 'var(--accent-text)',
+                        'accent-purple': '#8B5CF6',
+                        'warning': '#D97706',
+                        'error': '#DC2626',
+                        'success': '#16A34A',
+                        'info': '#0284C7',
+                        'success-token': '#16A34A',
+                        'warning-token': '#D97706',
+                        'error-token': '#DC2626',
+                        'info-token': '#0284C7',
+                    },
+                    borderRadius: {
+                        'sm': '6px',
+                        'md': '10px',
+                        'lg': '14px',
+                        'xl': '16px',
+                        '2xl': '20px',
+                        '3xl': '28px',
+                        'full': '9999px',
+                    },
+                    fontFamily: {
+                        'sans': ['Sora', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                        'display': ['Sora', 'system-ui', 'sans-serif'],
+                        'body': ['Sora', 'system-ui', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'ui-monospace', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --font-display: 'Sora', sans-serif;
+            --font-body: 'Sora', sans-serif;
+            
+            /* Light Mode Default Variables */
+            --app-base: #FFFFFF;
+            --surface-card: #FFFFFF;
+            --surface-raised: #F8FAFC;
+            --border-subtle: #E2E8F0;
+            --border-prominent: #CBD5E1;
+            --primary-lime: #16A34A;
+            --primary-lime-hover: #15803D;
+            --primary-lime-dim: rgba(22, 163, 74, 0.08);
+            --primary-lime-glow: rgba(22, 163, 74, 0.20);
+            --text-primary: #0F172A;
+            --text-secondary: #475569;
+            --text-tertiary: #64748B;
+            --text-disabled: #94A3B8;
+            --accent-text: #FFFFFF;
+
+            --color-bg: 255 255 255;
+            --color-surface: 255 255 255;
+            --color-surface-elevated: 248 250 252;
+            --color-soft-card: 255 255 255;
+            --color-border: #E2E8F0;
+            --color-border-light: #E2E8F0;
+            --color-text-primary: 15 23 42;
+            --color-text-secondary: 71 85 105;
+            --color-text-muted: 100 116 139;
+            --color-text-disabled: 148 163 184;
+            --color-accent: 22 163 74;
+            --color-accent-hover: 21 128 61;
+            --color-accent-text: 255 255 255;
+            --color-warning: 217 119 6;
+            --color-error: 220 38 38;
+            --color-success: 22 163 74;
+            --color-info: 2 132 199;
+        }
+
+        html.light {
+            --app-base: #F8FAFC;
+            --surface-card: #FFFFFF;
+            --surface-raised: #F1F5F9;
+            --border-subtle: #E2E8F0;
+            --border-prominent: #CBD5E1;
+            --primary-lime: #16A34A;
+            --primary-lime-hover: #15803D;
+            --primary-lime-dim: rgba(22, 163, 74, 0.10);
+            --primary-lime-glow: rgba(22, 163, 74, 0.25);
+            --text-primary: #0F172A;
+            --text-secondary: #475569;
+            --text-tertiary: #64748B;
+            --text-disabled: #94A3B8;
+            --accent-text: #FFFFFF;
+
+            --color-bg: 248 250 252;
+            --color-surface: 255 255 255;
+            --color-surface-elevated: 241 245 249;
+            --color-soft-card: 255 255 255;
+            --color-border: #E2E8F0;
+            --color-border-light: #E2E8F0;
+            --color-text-primary: 15 23 42;
+            --color-text-secondary: 71 85 105;
+            --color-text-muted: 100 116 139;
+            --color-text-disabled: 148 163 184;
+            --color-accent: 22 163 74;
+            --color-accent-hover: 21 128 61;
+            --color-accent-text: 255 255 255;
+            --color-warning: 217 119 6;
+            --color-error: 220 38 38;
+            --color-success: 22 163 74;
+            --color-info: 2 132 199;
+        }
+
+        html.dark {
+            --app-base: #0D0D0D;
+            --surface-card: #161616;
+            --surface-raised: #202020;
+            --border-subtle: #262626;
+            --border-prominent: #383838;
+            --primary-lime: #A8FF00;
+            --primary-lime-hover: #96E600;
+            --primary-lime-dim: rgba(168, 255, 0, 0.12);
+            --primary-lime-glow: rgba(168, 255, 0, 0.25);
+            --text-primary: #F4F4F5;
+            --text-secondary: #A1A1AA;
+            --text-tertiary: #94949E;
+            --text-disabled: #52525B;
+            --accent-text: #0D0D0D;
+
+            --color-bg: 13 13 13;
+            --color-surface: 22 22 22;
+            --color-surface-dark: 22 22 22;
+            --color-surface-elevated: 32 32 32;
+            --color-soft-card: 22 22 22;
+            --color-border: #262626;
+            --color-border-light: #262626;
+            --color-text-primary: 244 244 245;
+            --color-text-secondary: 161 161 170;
+            --color-text-muted: 148 148 158;
+            --color-text-disabled: 82 82 91;
+            --color-accent: 168 255 0;
+            --color-accent-hover: 150 230 0;
+            --color-accent-text: 13 13 13;
+            --color-warning: 250 204 21;
+            --color-error: 239 68 68;
+            --color-success: 34 197 94;
+            --color-info: 56 189 248;
+        }
+
+        html {
+            background-color: var(--app-base);
+            color: var(--text-primary);
+            font-family: 'Sora', sans-serif;
+            scroll-behavior: smooth;
+        }
+        /* Custom Typography utility classes - compact and refined */
+        .text-h1 {
+            font-family: 'Sora', sans-serif;
+            font-weight: 800; /* ExtraBold */
+            font-size: 28px;
+            line-height: 34px;
+        }
+        .text-h2 {
+            font-family: 'Sora', sans-serif;
+            font-weight: 700; /* Bold */
+            font-size: 22px;
+            line-height: 28px;
+        }
+        .text-h3 {
+            font-family: 'Sora', sans-serif;
+            font-weight: 600; /* SemiBold */
+            font-size: 18px;
+            line-height: 24px;
+        }
+        .text-h4 {
+            font-family: 'Sora', sans-serif;
+            font-weight: 500; /* Medium */
+            font-size: 15px;
+            line-height: 21px;
+        }
+        .text-h5 {
+            font-family: 'Sora', sans-serif;
+            font-weight: 500; /* Medium */
+            font-size: 13px;
+            line-height: 18px;
+        }
+        .text-body1 {
+            font-family: 'Sora', sans-serif;
+            font-weight: 400; /* Regular */
+            font-size: 14px;
+            line-height: 20px;
+        }
+        .text-body2 {
+            font-family: 'Sora', sans-serif;
+            font-weight: 400; /* Regular */
+            font-size: 12px;
+            line-height: 17px;
+        }
+        .text-caption {
+            font-family: 'Sora', sans-serif;
+            font-weight: 500; /* Medium */
+            font-size: 10px;
+            line-height: 14px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-body);
+            background-color: rgb(var(--color-bg));
+            color: rgb(var(--color-text-primary));
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            text-rendering: optimizeLegibility;
+        }
+        .glass-card {
+            background: rgb(var(--color-surface));
+            border-radius: 28px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+            border: 1px solid var(--color-border);
+            color: rgb(var(--color-text-primary));
+        }
+        html.dark .glass-card {
+            background: rgb(var(--color-surface));
+            color: rgb(var(--color-text-primary));
+            border-color: var(--color-border);
+        }
+        .neon-glow {
+            box-shadow: 0 0 15px rgba(231, 254, 37, 0.3); /* Lime glow */
+        }
+        html.dark .neon-glow {
+            box-shadow: 0 0 20px rgba(231, 254, 37, 0.25); /* Lime glow */
+        }
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        html, body, #root {
+            height: 100dvh;
+            width: 100%;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        input:focus { outline: none; }
+        .safe-area-pt { padding-top: env(safe-area-inset-top, 0px); }
+        .safe-area-pb { padding-bottom: env(safe-area-inset-bottom, 0px); }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "Pitchly",
+  "description": "The ultimate football ecosystem. Discover turfs, book matches, manage teams, and challenge other squads with a gamified experience.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

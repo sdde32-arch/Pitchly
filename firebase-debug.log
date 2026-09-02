@@ -1,0 +1,44 @@
+[debug] [2026-07-09T02:03:00.212Z] ----------------------------------------------------------------------
+[debug] [2026-07-09T02:03:00.215Z] Command:       /usr/local/bin/node /usr/local/bin/firebase projects:list
+[debug] [2026-07-09T02:03:00.215Z] CLI Version:   15.22.1
+[debug] [2026-07-09T02:03:00.215Z] Platform:      linux
+[debug] [2026-07-09T02:03:00.216Z] Node Version:  v22.23.0
+[debug] [2026-07-09T02:03:00.216Z] Detected Agent: unknown
+[debug] [2026-07-09T02:03:00.216Z] Time:          Thu Jul 09 2026 02:03:00 GMT+0000 (Coordinated Universal Time)
+[debug] [2026-07-09T02:03:00.216Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-09T02:03:00.219Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-07-09T02:03:00.254Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-09T02:03:00.319Z] Running auto auth
+[debug] [2026-07-09T02:03:00.327Z] No OAuth tokens found
+[debug] [2026-07-09T02:03:00.328Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-07-09T02:03:00.467Z] FetchError: Invalid response body while trying to fetch https://firebase.googleapis.com/v1beta1/projects?pageSize=1000: Premature close
+[debug] [2026-07-09T02:03:00.468Z] FirebaseError: FetchError: Invalid response body while trying to fetch https://firebase.googleapis.com/v1beta1/projects?pageSize=1000: Premature close
+    at RetryOperation._fn (/usr/local/lib/node_modules/firebase-tools/lib/apiv2.js:317:88)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[error] 
+[error] Error: Failed to list Firebase projects. See firebase-debug.log for more info.
+[debug] [2026-07-09T02:03:00.491Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-07-09T02:03:00.491Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-07-13T06:02:00.699Z] ----------------------------------------------------------------------
+[debug] [2026-07-13T06:02:00.703Z] Command:       /usr/local/bin/node /usr/local/bin/firebase projects:list
+[debug] [2026-07-13T06:02:00.703Z] CLI Version:   15.22.1
+[debug] [2026-07-13T06:02:00.704Z] Platform:      linux
+[debug] [2026-07-13T06:02:00.704Z] Node Version:  v22.23.0
+[debug] [2026-07-13T06:02:00.704Z] Detected Agent: unknown
+[debug] [2026-07-13T06:02:00.704Z] Time:          Mon Jul 13 2026 06:02:00 GMT+0000 (Coordinated Universal Time)
+[debug] [2026-07-13T06:02:00.705Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-13T06:02:00.708Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-07-13T06:02:00.743Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-13T06:02:00.798Z] Running auto auth
+[debug] [2026-07-13T06:02:00.804Z] No OAuth tokens found
+[debug] [2026-07-13T06:02:00.804Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-07-13T06:02:00.900Z] FetchError: Invalid response body while trying to fetch https://firebase.googleapis.com/v1beta1/projects?pageSize=1000: Premature close
+[debug] [2026-07-13T06:02:00.901Z] FirebaseError: FetchError: Invalid response body while trying to fetch https://firebase.googleapis.com/v1beta1/projects?pageSize=1000: Premature close
+    at RetryOperation._fn (/usr/local/lib/node_modules/firebase-tools/lib/apiv2.js:317:88)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[error] 
+[error] Error: Failed to list Firebase projects. See firebase-debug.log for more info.
+[debug] [2026-07-13T06:02:00.965Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-07-13T06:02:00.966Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}

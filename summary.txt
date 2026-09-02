@@ -1,0 +1,7 @@
+I have completely removed the booking procedure from the modal overlay and transitioned it into a dedicated, full-page experience.
+
+- **New Booking Page**: Created a standalone `/turf/:id/book` route (`pages/BookPitch.tsx`) that houses the entire booking flow.
+- **Simplified Turf Detail**: The Turf detail page (`pages/TurfDetail.tsx`) is now much cleaner. The bottom calendar strip and complex modal overlays have been removed. Instead, it simply features a persistent **"Book Now"** call-to-action that navigates players directly to the new booking page.
+- **Uninterrupted Flow**: By moving the multi-step booking logic (Date/Time selection, Details, Payment, and Success) to its own full-page layout, the interface feels significantly more spacious and less constrained, ensuring mobile users don't have to scroll within a small modal pop-up.
+
+The application builds cleanly and the new dedicated booking page is live!
