@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { UserProfileData } from "../context/UserContext";
+import { UserProfileData, useUser } from "../context/UserContext";
 import {
   ArrowRight,
   ShieldCheck,
@@ -10,9 +10,25 @@ import {
 } from "lucide-react";
 import { Logo } from "../components/Logo";
 import { useNavigate } from "react-router-dom";
+
 export const WelcomeBack: React.FC = () => {
   const navigate = useNavigate();
+  const { user, isAdmin, isOwner, loading } = useUser();
   const [lastUser, setLastUser] = useState<UserProfileData | null>(null);
+
+  // If already logged in, skip welcome-back and go directly to home
+  useEffect(() => {
+    if (!loading && user) {
+      if (isAdmin) {
+        navigate("/admin/overview", { replace: true });
+      } else if (isOwner) {
+        navigate("/owner", { replace: true });
+      } else {
+        navigate("/home", { replace: true });
+      }
+    }
+  }, [user, loading, isAdmin, isOwner, navigate]);
+
   useEffect(() => {
     const saved = localStorage.getItem("pitchly_last_user");
     if (saved) {
@@ -21,9 +37,17 @@ export const WelcomeBack: React.FC = () => {
       navigate("/onboarding");
     }
   }, [navigate]);
+
   if (!lastUser) return null;
+
   const handleQuickResume = () => {
-    navigate("/auth", { state: { email: lastUser.email } });
+    if (user) {
+      if (isAdmin) navigate("/admin/overview", { replace: true });
+      else if (isOwner) navigate("/owner", { replace: true });
+      else navigate("/home", { replace: true });
+    } else {
+      navigate("/auth", { state: { email: lastUser.email } });
+    }
   };
   return (
     <div className="min-h-[100dvh] bg-slate-100 dark:bg-[#0e0f12] flex flex-col items-center justify-center p-4 animate-fadeIn font-body overflow-hidden relative">

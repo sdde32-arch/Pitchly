@@ -7,11 +7,13 @@ import { useUser } from "../context/UserContext";
 import { pitchService } from "../services/pitchService";
 import { SlotAvailability, Booking } from "../types/firebase";
 import { Turf, BookingStatus, PaymentMethod } from "../types";
+import { TURFS } from "../constants";
 import { bookingService } from "../services/bookingService";
 import { storageService } from "../services/storageService";
 import { matchInvitationService } from "../services/matchInvitationService";
 import { Layout } from "../components/Layout";
 import { Loader2 } from "lucide-react";
+import { MatchWeatherWidget } from "../components/weather/MatchWeatherWidget";
 
 export const BookPitch: React.FC = () => {
   const { id } = useParams();
@@ -47,12 +49,17 @@ export const BookPitch: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  const normalizedId = id?.replace(/^pitch-/, "") || "";
+
   useEffect(() => {
     const fetchPitch = async () => {
       if (!id) return;
       setLoadingPitch(true);
       try {
-        const p = await pitchService.getById(id);
+        let p = await pitchService.getById(id);
+        if (!p && normalizedId && normalizedId !== id) {
+          p = await pitchService.getById(normalizedId);
+        }
         setRealPitch(p);
       } catch (err) {
         console.error("Error fetching pitch", err);
@@ -61,7 +68,7 @@ export const BookPitch: React.FC = () => {
       }
     };
     fetchPitch();
-  }, [id]);
+  }, [id, normalizedId]);
 
   const turf: Turf | null = realPitch ? {
     id: realPitch.id,
@@ -78,7 +85,9 @@ export const BookPitch: React.FC = () => {
     openingHour: realPitch.openingHour || "06:00",
     closingHour: realPitch.closingHour || "23:00",
     blockedDates: [],
-  } : null;
+  } : (
+    TURFS.find((t) => t.id === id || t.id === normalizedId || `pitch-${t.id}` === id) || null
+  );
 
   // Next 14 days calendar starting from today's date
   const calendarDays = React.useMemo(() => {
@@ -291,17 +300,41 @@ export const BookPitch: React.FC = () => {
       navigate(`/booking-confirmation/${bookingId}`);
     } catch (err: any) {
       console.error("Booking failed:", err);
-      setErrorMsg(err.message || "Failed to create booking.");
+      const message = err?.message || "Failed to create booking.";
+      setErrorMsg(message);
+      if (typeof message === "string" && message.includes("no longer available")) {
+        setSelectedTimes([]);
+        setBookingStep(1);
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (loadingPitch || !turf) {
+  if (loadingPitch) {
     return (
       <Layout>
         <div className="flex flex-col h-[calc(100vh-80px)] w-full items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary-lime" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!turf) {
+    return (
+      <Layout>
+        <div className="flex flex-col min-h-[60vh] items-center justify-center p-4 text-center">
+          <h2 className="text-xl font-bold text-text-primary mb-2">Pitch Not Available</h2>
+          <p className="text-text-secondary text-sm mb-6 max-w-sm">
+            This pitch schedule could not be loaded or is currently inactive.
+          </p>
+          <button
+            onClick={() => navigate("/home")}
+            className="px-6 py-2.5 rounded-xl bg-primary-lime text-accent-text font-bold text-sm"
+          >
+            Return to Explore
+          </button>
         </div>
       </Layout>
     );
@@ -399,6 +432,20 @@ export const BookPitch: React.FC = () => {
               </div>
             </div>
 
+            {/* Matchday Weather Forecast Widget */}
+            <MatchWeatherWidget
+              selectedDate={selectedDate}
+              selectedTime={selectedTimes.length > 0 ? selectedTimes[0] : null}
+              endTime={
+                selectedTimes.length > 0
+                  ? `${String(parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1).padStart(2, '0')}:00`
+                  : null
+              }
+              pitchName={turf.name}
+              latitude={turf.latitude}
+              longitude={turf.longitude}
+            />
+
             <div>
               <h2 className="text-[14px] font-bold text-text-primary px-1 font-sans mb-3">Select Times</h2>
               {loadingBookings ? (
@@ -476,6 +523,19 @@ export const BookPitch: React.FC = () => {
                     {selectedTimes[0]} - {parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1}:00
                   </div>
                 </div>
+              </div>
+
+              {/* Expected Match Weather in Summary */}
+              <div className="mt-4 pt-3.5 border-t border-border-subtle">
+                <MatchWeatherWidget
+                  selectedDate={selectedDate}
+                  selectedTime={selectedTimes[0]}
+                  endTime={`${String(parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1).padStart(2, '0')}:00`}
+                  pitchName={turf.name}
+                  latitude={turf.latitude}
+                  longitude={turf.longitude}
+                  compact={true}
+                />
               </div>
             </div>
 

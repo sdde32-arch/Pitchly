@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Users, MapPin, Clock, Plus, CheckCircle2, ChevronRight, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
+import { HomeCommunityPickupsSkeleton } from "../ui/Skeleton";
 
 interface PickupMatch {
   id: string;
@@ -14,6 +15,10 @@ interface PickupMatch {
   pricePerPlayer: number;
   hostName: string;
   skillLevel: string;
+}
+
+interface HomeCommunityPickupsProps {
+  loading?: boolean;
 }
 
 const SAMPLE_PICKUPS: PickupMatch[] = [
@@ -55,10 +60,16 @@ const SAMPLE_PICKUPS: PickupMatch[] = [
   },
 ];
 
-export const HomeCommunityPickups: React.FC = () => {
+export const HomeCommunityPickups: React.FC<HomeCommunityPickupsProps> = ({
+  loading = false,
+}) => {
   const navigate = useNavigate();
   const [joinedMatches, setJoinedMatches] = useState<Record<string, boolean>>({});
   const [showToast, setShowToast] = useState<string | null>(null);
+
+  if (loading) {
+    return <HomeCommunityPickupsSkeleton />;
+  }
 
   const handleJoin = (match: PickupMatch, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -77,24 +88,29 @@ export const HomeCommunityPickups: React.FC = () => {
       aria-label="Open Pickup Matches"
       className="space-y-4 scroll-mt-24"
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-          <h3 className="text-[15px] font-bold text-text-primary">
-            Open Pickups Looking For Players
-          </h3>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-text-primary tracking-tight">
+              Open Pickup Matches
+            </h2>
+            <p className="text-xs text-text-secondary mt-0.5">
+              Jump in on local community games looking for extra players
+            </p>
+          </div>
         </div>
         <button
           type="button"
           onClick={() => navigate("/teams")}
-          className="text-xs font-bold text-primary-lime hover:underline transition-colors cursor-pointer flex items-center gap-0.5"
+          className="text-xs font-bold text-primary-lime hover:underline transition-colors cursor-pointer flex items-center gap-1 self-start sm:self-auto pt-1 sm:pt-0"
         >
           <span>Find more games</span>
-          <ChevronRight size={13} />
+          <ChevronRight size={14} />
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {SAMPLE_PICKUPS.map((match) => {
           const isJoined = !!joinedMatches[match.id];
           return (
@@ -102,38 +118,44 @@ export const HomeCommunityPickups: React.FC = () => {
               key={match.id}
               whileHover={{ y: -2 }}
               transition={{ duration: 0.15 }}
-              className="bg-surface-card rounded-2xl p-4 border border-border-subtle hover:border-border-prominent shadow-xs flex flex-col justify-between space-y-3.5 transition-colors group"
+              className="bg-surface-card rounded-2xl p-4 sm:p-5 border border-border-subtle hover:border-border-prominent shadow-xs flex flex-col justify-between space-y-4 transition-all duration-200 group"
             >
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[9.5px] font-black uppercase">
+                  <span className="px-2.5 py-0.5 rounded-full bg-surface-raised text-text-secondary border border-border-subtle text-[10px] font-bold uppercase tracking-wider">
                     {match.format}
                   </span>
-                  <span className="text-[10px] font-semibold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md">
+                  <span
+                    className={`text-[10.5px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                      isJoined
+                        ? "bg-primary-lime/15 text-primary-lime border-primary-lime/30 font-bold"
+                        : "bg-surface-raised text-text-secondary border-border-subtle"
+                    }`}
+                  >
                     {isJoined ? "Spot Reserved" : `${match.spotsNeeded} spots left`}
                   </span>
                 </div>
 
-                <h4 className="text-[13.5px] font-bold text-text-primary leading-snug group-hover:text-primary-lime transition-colors">
+                <h3 className="text-sm font-bold text-text-primary leading-snug group-hover:text-primary-lime transition-colors">
                   {match.title}
-                </h4>
+                </h3>
 
                 <div className="space-y-1.5 text-xs text-text-secondary font-medium">
-                  <div className="flex items-center gap-1.5 truncate">
+                  <div className="flex items-center gap-2 truncate">
                     <MapPin size={13} className="text-primary-lime shrink-0" />
                     <span className="truncate">{match.venue}</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <Clock size={13} className="text-text-tertiary shrink-0" />
                     <span>{match.time}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border-subtle flex items-center justify-between">
+              <div className="pt-3.5 border-t border-border-subtle flex items-center justify-between gap-3">
                 <div>
-                  <span className="text-[9px] text-text-tertiary uppercase tracking-wider block leading-none">
-                    Share
+                  <span className="text-[9.5px] text-text-tertiary uppercase tracking-wider block font-semibold">
+                    Player Share
                   </span>
                   <span className="text-xs font-bold text-text-primary">
                     UGX {match.pricePerPlayer.toLocaleString()}
@@ -143,9 +165,9 @@ export const HomeCommunityPickups: React.FC = () => {
                 <button
                   type="button"
                   onClick={(e) => handleJoin(match, e)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 flex items-center gap-1.5 shrink-0 ${
                     isJoined
-                      ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40"
+                      ? "bg-primary-lime/20 text-primary-lime border border-primary-lime/40"
                       : "bg-primary-lime hover:bg-primary-lime-hover text-accent-text"
                   }`}
                 >

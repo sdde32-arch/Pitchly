@@ -33,6 +33,7 @@ import { MessageSquare, Upload, AlertTriangle, Smartphone, Banknote, ShieldCheck
 import { pitchService } from "../services/pitchService";
 import { Pitch, SlotAvailability, Booking } from "../types/firebase";
 import { Turf, ReportTargetType, BookingStatus } from "../types";
+import { TURFS } from "../constants";
 import { ReportModal } from "../components/ReportModal";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -59,6 +60,7 @@ export const TurfDetail: React.FC = () => {
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"about" | "reviews">("about");
 
+  const normalizedId = id?.replace(/^pitch-/, "") || "";
   const turf: Turf | undefined = realPitch
     ? {
         id: realPitch.id,
@@ -76,7 +78,8 @@ export const TurfDetail: React.FC = () => {
         closingHour: realPitch.closingHour || "23:00",
         blockedDates: [],
       }
-    : turfs.find((t) => t.id === id);
+    : turfs.find((t) => t.id === id || t.id === normalizedId || `pitch-${t.id}` === id) ||
+      TURFS.find((t) => t.id === id || t.id === normalizedId || `pitch-${t.id}` === id);
 
   const DEMO_GALLERY_FALLBACKS = [
     { url: "https://images.unsplash.com/photo-1529900245534-47fbf59f4820?auto=format&fit=crop&w=1200&q=80", label: "Full Pitch Arena" },
@@ -109,7 +112,10 @@ export const TurfDetail: React.FC = () => {
       if (!id) return;
       setLoadingPitch(true);
       try {
-        const p = await pitchService.getById(id);
+        let p = await pitchService.getById(id);
+        if (!p && normalizedId && normalizedId !== id) {
+          p = await pitchService.getById(normalizedId);
+        }
         setRealPitch(p);
 
         try {

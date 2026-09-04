@@ -32,7 +32,7 @@ export const Invitations: React.FC = () => {
 
   return (
     <Layout>
-      <div className="pb-24 pt-2">
+      <div className="pb-32 sm:pb-28 pt-2 sm:pt-4">
         <MatchInvitationsHub
           currentUser={currentUser}
           onBookProposal={handleBookProposal}

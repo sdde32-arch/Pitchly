@@ -5,10 +5,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
     <meta name="theme-color" content="#0D0D0D" />
-    <meta name="description" content="Pitchly — Book football pitches and manage your sports facility in Uganda. Real-time booking, AI-powered management, mobile payments." />
+    <meta name="description" content="The ultimate football ecosystem. Discover turfs, book matches, manage teams, and challenge other squads with a gamified experience." />
     <meta name="keywords" content="football pitch booking Uganda, turf booking, sports facility management" />
-    <meta property="og:title" content="Pitchly — Book Football Pitches in Uganda" />
-    <meta property="og:description" content="Book and manage football pitches with real-time availability, AI insights, and mobile money payments." />
+    <meta property="og:title" content="Pitchly" />
+    <meta property="og:description" content="The ultimate football ecosystem. Discover turfs, book matches, manage teams, and challenge other squads with a gamified experience." />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/logo.svg" />
     <link rel="canonical" href="https://pitchly.app" />
@@ -16,7 +16,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Pitchly - The Ultimate Football Ecosystem</title>
+    <title>Pitchly</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -294,6 +294,48 @@
         }
         html.dark .neon-glow {
             box-shadow: 0 0 20px rgba(231, 254, 37, 0.25); /* Lime glow */
+        }
+        /* Premium Skeleton Shimmer Animations */
+        @keyframes shimmer-slide {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+        .shimmer-effect {
+            position: relative;
+            overflow: hidden;
+        }
+        .shimmer-effect::after {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            transform: translateX(-100%);
+            background-image: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.04) 25%,
+                rgba(255, 255, 255, 0.14) 50%,
+                rgba(255, 255, 255, 0.04) 75%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            animation: shimmer-slide 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
+            content: '';
+            pointer-events: none;
+        }
+        html.light .shimmer-effect::after {
+            background-image: linear-gradient(
+                90deg,
+                rgba(0, 0, 0, 0) 0%,
+                rgba(0, 0, 0, 0.03) 25%,
+                rgba(0, 0, 0, 0.08) 50%,
+                rgba(0, 0, 0, 0.03) 75%,
+                rgba(0, 0, 0, 0) 100%
+            );
         }
         ::-webkit-scrollbar {
             display: none;

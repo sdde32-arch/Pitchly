@@ -46,6 +46,7 @@ export interface UserProfileData {
   hasCompletedOnboarding?: boolean;
   onboardingCompletedAt?: string;
   avatarId?: string;
+  createdAt?: string;
 }
 
 export type UserRole =

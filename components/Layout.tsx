@@ -35,6 +35,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const hideMobileNav = React.useMemo(() => {
     const hiddenPaths = [
       "/checkout",
+      "/booking-confirmation",
       "/chat/",
       "/turf/",
       "/owner/add-pitch",
@@ -49,6 +50,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const hideMobileHeader = React.useMemo(() => {
     const hiddenPaths = [
       "/checkout",
+      "/booking-confirmation",
       "/turf"
     ];
     return hiddenPaths.some(p => location.pathname.startsWith(p));
@@ -404,7 +406,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {!hideDesktopSidebar && (
         <aside className="hidden lg:flex flex-col w-72 bg-surface-card border-r border-border-subtle h-full p-4 shrink-0 z-30 shadow-xs">
           <div className="flex flex-col items-center gap-4 mb-8 pl-1">
-            <div className="cursor-pointer" onClick={() => navigate("/home")}>
+            <div className="cursor-pointer" onClick={() => navigate(isOwner ? "/owner" : "/home")}>
               <Logo
                 size={38}
                 showTagline={false}
@@ -485,7 +487,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="flex items-center gap-2">
               <div
                 className="flex items-center gap-2 cursor-pointer"
-                onClick={() => navigate("/home")}
+                onClick={() => navigate(isOwner ? "/owner" : "/home")}
               >
                 <Logo
                   size={32}
@@ -566,7 +568,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         {!hideMobileNav && (
           <div className="lg:hidden fixed bottom-5 inset-x-0 z-40 px-4 pointer-events-none flex justify-center">
             <nav 
-              className="pointer-events-auto w-full max-w-[360px] h-[56px] px-1.5 rounded-full bg-surface-card/95 backdrop-blur-md shadow-2xl border border-border-subtle flex justify-between items-center" 
+              className="pointer-events-auto w-full max-w-[360px] h-[58px] px-2 rounded-full bg-primary-lime shadow-[0_10px_30px_rgba(22,163,74,0.4)] border border-[#15803D]/20 flex justify-between items-center" 
               id="player-bottom-nav"
             >
               {links.slice(0, 5).map((link, index) => {
@@ -579,21 +581,21 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                         link.search ? `${link.path}?${link.search}` : link.path,
                       )
                     }
-                    className={`relative flex flex-col items-center justify-center flex-1 h-[44px] rounded-full transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime ${
+                    className={`relative flex flex-col items-center justify-center flex-1 h-[46px] rounded-full transition-all duration-300 cursor-pointer focus-visible:outline-none ${
                       active 
-                        ? "bg-primary-lime text-accent-text font-bold shadow-md shadow-primary-lime/15" 
-                        : "text-text-secondary hover:text-text-primary"
+                        ? "bg-[#14532D] text-white font-bold shadow-inner" 
+                        : "text-[#14532D]/80 hover:text-[#14532D]"
                     }`}
                   >
                     <span
-                      className="material-symbols-outlined text-[19px] leading-none"
+                      className="material-symbols-outlined text-[20px] leading-none mb-0.5"
                       style={{
                         fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0",
                       }}
                     >
                       {link.icon}
                     </span>
-                    <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap text-center font-bold">
+                    <span className={`text-[10px] leading-tight tracking-tight whitespace-nowrap text-center ${active ? 'font-black' : 'font-bold'}`}>
                       {link.label}
                     </span>
                   </button>

@@ -7,24 +7,17 @@ import {
   X,
   RefreshCw,
   Zap,
-  Layers,
-  Compass,
-  Trophy,
-  Moon,
-  QrCode,
-  Heart,
-  ArrowDown,
-  Check,
   Clock,
-  Sparkles,
-  Flame,
+  Check,
+  ArrowDown,
   ShieldCheck,
   ChevronRight,
   Filter,
-  Users,
-  Presentation,
-  ExternalLink,
   ArrowUp,
+  ChevronDown,
+  Calendar,
+  Sparkles,
+  Trophy,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Layout } from "../components/Layout";
@@ -36,151 +29,110 @@ import { pitchService } from "../services/pitchService";
 import { bookingService } from "../services/bookingService";
 import { Pitch, Booking } from "../types/firebase";
 import { PitchStatus, BookingStatus } from "../types";
-import { PlayerAvatar } from "../components/PlayerAvatars";
-import { Skeleton, PitchCardSkeleton, SpotlightCardSkeleton } from "../components/ui/Skeleton";
-import { GettingStartedGuide } from "../components/onboarding/GettingStartedGuide";
+import { TURFS } from "../constants";
+import { Skeleton, PitchCardSkeleton } from "../components/ui/Skeleton";
 import { FirstTimeUserTourModal } from "../components/onboarding/FirstTimeUserTourModal";
 import { SmartDashboard } from "../components/dashboard/SmartDashboard";
-import { HomeGamificationSummaryCard } from "../components/dashboard/HomeGamificationSummaryCard";
 import { HomeActionGrid } from "../components/dashboard/HomeActionGrid";
 import { HomeCommunityPickups } from "../components/dashboard/HomeCommunityPickups";
+import { MatchdayDateStrip } from "../components/home/MatchdayDateStrip";
+import { FootballPitchCard } from "../components/home/FootballPitchCard";
+import { SpotlightCarousel } from "../components/home/SpotlightCarousel";
+import { MatchdayBanner } from "../components/home/MatchdayBanner";
+import { QuickBookingModal } from "../components/home/QuickBookingModal";
 
-// Fallback high quality football pitches around Kampala
-const DEFAULT_FALLBACK_PITCHES: Partial<Pitch>[] = [
-  {
-    id: "pitch-lugogo-1",
-    name: "Lugogo AstroTurf Grounds",
-    location: "Lugogo Bypass, Kampala",
-    pricePerHour: 120000,
-    pitchFormats: ["11-a-side", "Football", "Artificial Turf", "Floodlit"],
-    images: ["https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=600&q=80"],
-    status: PitchStatus.ACTIVE,
-    latitude: 0.328,
-    longitude: 32.602,
-    amenities: ["Floodlights", "Changing rooms", "Parking", "Cafeteria"],
-  },
-  {
-    id: "pitch-kansanga-2",
-    name: "Kansanga Football Arena",
-    location: "Ggaba Road, Kansanga, Kampala",
-    pricePerHour: 80000,
-    pitchFormats: ["7-a-side", "Football", "Floodlit"],
-    images: ["https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=600&q=80"],
-    status: PitchStatus.ACTIVE,
-    latitude: 0.292,
-    longitude: 32.608,
-    amenities: ["Floodlights", "Locker room", "Cafeteria", "Parking"],
-  },
-  {
-    id: "pitch-naguru-3",
-    name: "Naguru Floodlit Turf Pitch",
-    location: "Naguru Hill Road, Kampala",
-    pricePerHour: 65000,
-    pitchFormats: ["7-a-side", "Football", "Floodlit"],
-    images: ["https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=600&q=80"],
-    status: PitchStatus.ACTIVE,
-    latitude: 0.345,
-    longitude: 32.608,
-    amenities: ["Synthetic grass", "Night floodlights", "Water station"],
-  },
-  {
-    id: "pitch-kyanja-4",
-    name: "Kyanja Mini Football Pitch",
-    location: "Kyanja Ring Road, Kampala",
-    pricePerHour: 50000,
-    pitchFormats: ["5-a-side", "Football", "Artificial Turf"],
-    images: ["https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=600&q=80"],
-    status: PitchStatus.ACTIVE,
-    latitude: 0.381,
-    longitude: 32.615,
-    amenities: ["5-a-side cages", "Water station", "Parking"],
-  },
-  {
-    id: "pitch-munyonyo-5",
-    name: "Munyonyo Synthetic Turf Ground",
-    location: "Munyonyo Environs, Kampala",
-    pricePerHour: 75000,
-    pitchFormats: ["7-a-side", "Football", "Artificial Turf", "Floodlit"],
-    images: ["https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=600&q=80"],
-    status: PitchStatus.ACTIVE,
-    latitude: 0.258,
-    longitude: 32.628,
-    amenities: ["High quality fiber", "Night lights", "Locker room"],
-  },
-  {
-    id: "pitch-nakawa-6",
-    name: "Nakawa Premier Football Stadium",
-    location: "Jinja Road, Nakawa, Kampala",
-    pricePerHour: 140000,
-    pitchFormats: ["11-a-side", "Football", "Natural Turf"],
-    images: ["https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?auto=format&fit=crop&w=600&q=80"],
-    status: PitchStatus.ACTIVE,
-    latitude: 0.332,
-    longitude: 32.618,
-    amenities: ["Natural grass", "Stadium seating", "Changing rooms", "Parking"],
-  },
-  {
-    id: "pitch-tal-olympic-7",
-    name: "Tal Olympic Arena",
-    location: "Munyonyo Environs, Kampala",
-    pricePerHour: 85000,
-    pitchFormats: ["7-a-side", "5-a-side", "Football", "Floodlit"],
-    images: ["https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=600&q=80"],
-    status: PitchStatus.ACTIVE,
-    latitude: 0.254,
-    longitude: 32.625,
-    amenities: ["Floodlights", "Changing rooms", "Parking", "Cafeteria"],
-  },
-];
-
-// Kampala Hubs
+// Kampala Neighborhood Hubs
 const KAMPALA_HUBS = [
   "All Kampala",
   "Lugogo",
   "Naguru",
+  "Bugolobi",
+  "Ntinda",
+  "Muyenga",
   "Kansanga",
   "Kyanja",
-  "Munyonyo",
   "Nakawa",
   "Kololo",
 ];
 
 const AMENITIES_LIST = [
   "Floodlights",
-  "Changing rooms",
-  "Parking",
+  "Changing Rooms",
+  "Showers",
+  "Secure Parking",
   "Cafeteria",
-  "Water station",
+  "Free WiFi",
 ];
+
+// Sort Options with clean labels
+const SORT_OPTIONS: { id: "recommended" | "rating" | "price-asc" | "price-desc"; label: string; shortLabel: string }[] = [
+  { id: "recommended", label: "Recommended", shortLabel: "Recommended" },
+  { id: "rating", label: "Top Rated", shortLabel: "Top Rated" },
+  { id: "price-asc", label: "Price: Low to High", shortLabel: "Lowest Price" },
+  { id: "price-desc", label: "Price: High to Low", shortLabel: "Highest Price" },
+];
+
+// Fallback pitches mapped from TURFS for complete sports consistency
+const FALLBACK_PITCHES: Partial<Pitch>[] = TURFS.map((t) => ({
+  id: `pitch-${t.id}`,
+  name: t.name,
+  location: t.location,
+  formattedAddress: t.formattedAddress || t.fullAddress,
+  pricePerHour: t.pricePerHour,
+  pitchFormats: t.pitchFormats || ["7-a-side", "Artificial Turf"],
+  images: t.images && t.images.length > 0 ? t.images : [t.image || ""],
+  status: t.status || PitchStatus.ACTIVE,
+  latitude: t.latitude,
+  longitude: t.longitude,
+  amenities: t.amenities || ["Floodlights", "Changing Rooms", "Parking"],
+  isVerified: true,
+  rating: t.rating || 4.8,
+  distance: t.distance || "1.8 km",
+  surfaceType: t.name.toLowerCase().includes("grass")
+    ? "Natural Grass"
+    : t.name.toLowerCase().includes("futsal") || t.name.toLowerCase().includes("fusion")
+    ? "Indoor Futsal Turf"
+    : "FIFA Synthetic Turf",
+} as any));
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
-  const { userProfile, user, role, loading, stats } = useUser();
-  const { startWalkthrough } = useInteractiveWalkthrough();
+  const { userProfile, user, role, loading } = useUser();
 
-  // State
+  // Selected Matchday date (default: today)
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    return new Date().toISOString().split("T")[0];
+  });
+
+  // State for data
   const [realPitches, setRealPitches] = useState<Pitch[]>([]);
   const [loadingPitches, setLoadingPitches] = useState(true);
+  const [userUpcomingBooking, setUserUpcomingBooking] = useState<Booking | null>(null);
+  const [loadingBooking, setLoadingBooking] = useState(true);
+
+  // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFormat, setSelectedFormat] = useState<string>("All");
   const [selectedHub, setSelectedHub] = useState<string>("All Kampala");
   const [activeCollectionTab, setActiveCollectionTab] = useState<
     "all" | "trending" | "budget" | "floodlit" | "favorites"
   >("all");
-  const [sortBy, setSortBy] = useState<"nearest" | "price-asc" | "price-desc" | "rating">("nearest");
+  const [sortBy, setSortBy] = useState<"recommended" | "price-asc" | "price-desc" | "rating">("recommended");
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const sortMenuRef = React.useRef<HTMLDivElement>(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [maxPriceFilter, setMaxPriceFilter] = useState(200000);
+  const [maxPriceFilter, setMaxPriceFilter] = useState(150000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  const [userUpcomingBooking, setUserUpcomingBooking] = useState<Booking | null>(null);
-  const [showTourModal, setShowTourModal] = useState(false);
-  const [showGettingStarted, setShowGettingStarted] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem("hasDismissedGettingStarted") !== "true";
-    } catch {
-      return true;
-    }
-  });
 
+  // Quick Booking Modal state
+  const [quickBookingPitch, setQuickBookingPitch] = useState<Partial<Pitch> | null>(null);
+  const [quickBookingSlot, setQuickBookingSlot] = useState<string>("19:00");
+  const [showQuickBookingModal, setShowQuickBookingModal] = useState(false);
+
+  // Tour modal
+  const [showTourModal, setShowTourModal] = useState(false);
+
+  // Favorites state
   const [favorites, setFavorites] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem("pitchly_favorites");
@@ -190,21 +142,34 @@ export const Home: React.FC = () => {
     }
   });
 
-  // Fetch Firestore pitches & user's upcoming match
+  // Pull to refresh & status
+  const [pullY, setPullY] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [justUpdated, setJustUpdated] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Fetch Firestore Pitches
   const fetchPitches = async () => {
     setLoadingPitches(true);
     try {
       const pitches = await pitchService.listPublic();
       setRealPitches(pitches);
     } catch (err) {
-      console.warn("Failed to load real pitches, using fallbacks", err);
+      console.warn("Using fallback football pitches", err);
     } finally {
       setLoadingPitches(false);
     }
   };
 
+  // Fetch User's Upcoming Booking
   const fetchUserUpcomingBooking = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoadingBooking(false);
+      return;
+    }
+    setLoadingBooking(true);
     try {
       const bookings = await bookingService.listByUser(user.uid);
       const active = bookings.find((b) => {
@@ -217,7 +182,9 @@ export const Home: React.FC = () => {
       });
       setUserUpcomingBooking(active || null);
     } catch (err) {
-      console.warn("Could not fetch user booking for home screen", err);
+      console.warn("Could not fetch user booking", err);
+    } finally {
+      setLoadingBooking(false);
     }
   };
 
@@ -228,189 +195,32 @@ export const Home: React.FC = () => {
     }
   }, [loading, user]);
 
-  // Pull to refresh & live status state
-  const [startY, setStartY] = useState(0);
-  const [pullY, setPullY] = useState(0);
-  const [isPulling, setIsPulling] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [justUpdated, setJustUpdated] = useState(false);
-
-  // Helper to determine if scroll position is at the very top
-  const isScrolledToTop = () => {
-    const mainEl = document.querySelector("main");
-    const mainScroll = mainEl ? mainEl.scrollTop : 0;
-    const winScroll = window.scrollY || document.documentElement.scrollTop || 0;
-    return mainScroll <= 2 && winScroll <= 2;
-  };
-
-  // Trigger full refresh of pitches & user match data
-  const handleManualOrPullRefresh = async () => {
-    if (refreshing) return;
-    setRefreshing(true);
-    setPullY(54);
-    try {
-      await Promise.all([
-        fetchPitches(),
-        fetchUserUpcomingBooking(),
-        new Promise((resolve) => setTimeout(resolve, 500)),
-      ]);
-      setJustUpdated(true);
-      setTimeout(() => setJustUpdated(false), 1200);
-    } catch (err) {
-      console.warn("Refresh error:", err);
-    } finally {
-      setTimeout(() => {
-        setRefreshing(false);
-        setPullY(0);
-      }, 300);
-    }
-  };
-
-  // Pull to refresh touch handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (isScrolledToTop() && !refreshing) {
-      setStartY(e.touches[0].clientY);
-      setIsPulling(true);
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isPulling || refreshing) return;
-    const currentY = e.touches[0].clientY;
-    const dy = currentY - startY;
-    if (dy > 0 && isScrolledToTop()) {
-      const resistedDistance = Math.min(Math.pow(dy, 0.82) * 1.8, 72);
-      setPullY(resistedDistance);
-    } else {
-      setPullY(0);
-    }
-  };
-
-  const handleTouchEnd = async () => {
-    if (!isPulling) return;
-    setIsPulling(false);
-    if (pullY >= 46 && !refreshing) {
-      await handleManualOrPullRefresh();
-    } else {
-      setPullY(0);
-    }
-  };
-
-  // Smooth scroll & active section tracking for modern page navigation
-  const [activeSection, setActiveSection] = useState<string>("radar");
-  const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
-
-  // Smooth scroll handler with offset for sticky headers & padding
-  const smoothScrollToSection = (sectionId: string, offset = 14) => {
-    const el = document.getElementById(sectionId);
-    if (!el) return;
-
-    const scrollContainer =
-      document.getElementById("main-content-scroll") ||
-      document.querySelector("main.overflow-y-auto") ||
-      window;
-
-    if (scrollContainer && scrollContainer !== window) {
-      const container = scrollContainer as HTMLElement;
-      const containerRect = container.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
-      const targetY = container.scrollTop + (elRect.top - containerRect.top) - offset;
-
-      container.scrollTo({
-        top: Math.max(0, targetY),
-        behavior: "smooth",
-      });
-    } else {
-      const yOffset = -offset;
-      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
-    }
-  };
-
-  // Monitor scroll position to update active section pill and show back-to-top button
-  useEffect(() => {
-    const sectionList = [
-      { id: "walkthrough-radar-card", key: "radar" },
-      { id: "walkthrough-format-categories", key: "categories" },
-      { id: "featured-pitches-section", key: "recommended" },
-      { id: "booking-section", key: "booking" },
-      { id: "popular-section", key: "popular" },
-    ];
-
-    const scrollContainer =
-      document.getElementById("main-content-scroll") ||
-      document.querySelector("main.overflow-y-auto") ||
-      window;
-
-    const handleScroll = () => {
-      const scrollY =
-        scrollContainer === window
-          ? window.scrollY
-          : (scrollContainer as HTMLElement).scrollTop;
-
-      setShowScrollTop(scrollY > 260);
-
-      const containerTop =
-        scrollContainer === window
-          ? 0
-          : (scrollContainer as HTMLElement).getBoundingClientRect().top;
-
-      let current = "radar";
-      for (const sec of sectionList) {
-        const el = document.getElementById(sec.id);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          // Element has scrolled into upper viewing area
-          if (rect.top - containerTop <= 180) {
-            current = sec.key;
-          }
-        }
-      }
-      setActiveSection(current);
-    };
-
-    if (scrollContainer === window) {
-      window.addEventListener("scroll", handleScroll, { passive: true });
-    } else {
-      (scrollContainer as HTMLElement).addEventListener("scroll", handleScroll, {
-        passive: true,
-      });
-    }
-
-    return () => {
-      if (scrollContainer === window) {
-        window.removeEventListener("scroll", handleScroll);
-      } else {
-        (scrollContainer as HTMLElement).removeEventListener("scroll", handleScroll);
-      }
-    };
-  }, []);
-
-  // Combine real pitches with fallback data
+  // Combine real pitches with rich fallback data
   const allPitches = useMemo(() => {
     if (realPitches.length > 0) {
       return realPitches.map((p, idx) => ({
         ...p,
         images: p.images?.length
           ? p.images
-          : [DEFAULT_FALLBACK_PITCHES[idx % DEFAULT_FALLBACK_PITCHES.length]?.images?.[0] || ""],
+          : [FALLBACK_PITCHES[idx % FALLBACK_PITCHES.length]?.images?.[0] || ""],
         pitchFormats: p.pitchFormats?.length
           ? p.pitchFormats
-          : [DEFAULT_FALLBACK_PITCHES[idx % DEFAULT_FALLBACK_PITCHES.length]?.pitchFormats?.[0] || "Football"],
+          : [FALLBACK_PITCHES[idx % FALLBACK_PITCHES.length]?.pitchFormats?.[0] || "7-a-side"],
         status: p.status || PitchStatus.ACTIVE,
-        rating: (p as any).rating !== undefined && (p as any).rating !== null ? (p as any).rating : (4.8 + ((idx % 3) * 0.1)),
+        rating: (p as any).rating || 4.8,
         reviewsCount: 20 + ((idx * 7) % 35),
+        distance: (p as any).distance || `${(1.2 + (idx * 0.7) % 4).toFixed(1)} km`,
       }));
     }
-    return DEFAULT_FALLBACK_PITCHES as Pitch[];
+    return FALLBACK_PITCHES as Pitch[];
   }, [realPitches]);
 
-  // Spotlight pitches for carousel (all active pitches)
+  // Top rated / spotlight pitches
   const spotlightPitches = useMemo(() => {
-    return allPitches.slice(0, 8);
+    return allPitches.slice(0, 6);
   }, [allPitches]);
 
-  // Time Greeting in Sentence Case
+  // Time Greeting
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
@@ -429,7 +239,7 @@ export const Home: React.FC = () => {
     return "Player";
   }, [userProfile, user]);
 
-  // Toggle favorites
+  // Toggle favorite
   const toggleFavorite = (pitchId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setFavorites((prev) => {
@@ -437,7 +247,7 @@ export const Home: React.FC = () => {
       try {
         localStorage.setItem("pitchly_favorites", JSON.stringify(updated));
       } catch (err) {
-        console.warn("Could not save favorites to localStorage", err);
+        console.warn("Could not save favorites", err);
       }
       return updated;
     });
@@ -452,17 +262,90 @@ export const Home: React.FC = () => {
       formats.includes("flood") ||
       formats.includes("night") ||
       amenities.includes("flood") ||
-      amenities.includes("night") ||
       amenities.includes("light") ||
       name.includes("floodlit")
     );
   };
 
+  // Open Quick Booking Sheet
+  const handleOpenQuickBooking = (pitch: Partial<Pitch>, slot: string) => {
+    setQuickBookingPitch(pitch);
+    setQuickBookingSlot(slot);
+    setShowQuickBookingModal(true);
+  };
+
+  // Smooth scroll
+  const smoothScrollToSection = (sectionId: string, offset = 14) => {
+    const el = document.getElementById(sectionId);
+    if (!el) return;
+
+    const scrollContainer =
+      document.getElementById("main-content-scroll") ||
+      document.querySelector("main.overflow-y-auto") ||
+      window;
+
+    if (scrollContainer && scrollContainer !== window) {
+      const container = scrollContainer as HTMLElement;
+      const containerRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const targetY = container.scrollTop + (elRect.top - containerRect.top) - offset;
+      container.scrollTo({ top: Math.max(0, targetY), behavior: "smooth" });
+    } else {
+      const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+    }
+  };
+
+  // Scroll listener for back to top
+  useEffect(() => {
+    const scrollContainer =
+      document.getElementById("main-content-scroll") ||
+      document.querySelector("main.overflow-y-auto") ||
+      window;
+
+    const handleScroll = () => {
+      const scrollY =
+        scrollContainer === window
+          ? window.scrollY
+          : (scrollContainer as HTMLElement).scrollTop;
+      setShowScrollTop(scrollY > 280);
+    };
+
+    if (scrollContainer === window) {
+      window.addEventListener("scroll", handleScroll, { passive: true });
+    } else {
+      (scrollContainer as HTMLElement).addEventListener("scroll", handleScroll, { passive: true });
+    }
+
+    return () => {
+      if (scrollContainer === window) {
+        window.removeEventListener("scroll", handleScroll);
+      } else {
+        (scrollContainer as HTMLElement).removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, []);
+
+  // Close sort menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
+        setShowSortMenu(false);
+      }
+    };
+    if (showSortMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showSortMenu]);
+
   // Filter & Sort Pitches
   const filteredPitches = useMemo(() => {
     return allPitches
       .filter((pitch) => {
-        // Search query
+        // Query search
         const query = searchQuery.toLowerCase().trim();
         const matchesQuery =
           !query ||
@@ -475,9 +358,9 @@ export const Home: React.FC = () => {
         let matchesHub = true;
         if (selectedHub !== "All Kampala") {
           const h = selectedHub.toLowerCase();
-          const locStr = (pitch.location || "" + " " + (pitch.formattedAddress || "")).toLowerCase();
-          const nameStr = (pitch.name || "").toLowerCase();
-          matchesHub = locStr.includes(h) || nameStr.includes(h);
+          const loc = (pitch.location || "" + " " + (pitch.formattedAddress || "")).toLowerCase();
+          const name = (pitch.name || "").toLowerCase();
+          matchesHub = loc.includes(h) || name.includes(h);
         }
 
         // Format
@@ -488,19 +371,13 @@ export const Home: React.FC = () => {
           const nameStr = (pitch.name || "").toLowerCase();
 
           if (f.includes("5-a-side")) {
-            matchesFormat = formatsStr.includes("5-a-side") || nameStr.includes("5") || nameStr.includes("cage");
+            matchesFormat = formatsStr.includes("5-a-side") || nameStr.includes("5") || nameStr.includes("cage") || nameStr.includes("futsal");
           } else if (f.includes("7-a-side")) {
             matchesFormat = formatsStr.includes("7-a-side") || nameStr.includes("7") || nameStr.includes("arena");
           } else if (f.includes("11-a-side")) {
             matchesFormat = formatsStr.includes("11-a-side") || nameStr.includes("11") || nameStr.includes("stadium");
-          } else if (f.includes("night") || f.includes("floodlit")) {
+          } else if (f.includes("floodlit")) {
             matchesFormat = hasFloodlight(pitch);
-          } else if (f.includes("turf") || f.includes("weather") || f.includes("artificial")) {
-            matchesFormat =
-              formatsStr.includes("artificial") ||
-              formatsStr.includes("turf") ||
-              nameStr.includes("turf") ||
-              formatsStr.includes("astro");
           }
         }
 
@@ -509,7 +386,7 @@ export const Home: React.FC = () => {
         if (activeCollectionTab === "trending") {
           matchesCollection = ((pitch as any).rating || 4.8) >= 4.8;
         } else if (activeCollectionTab === "budget") {
-          matchesCollection = (pitch.pricePerHour || 0) <= 80000;
+          matchesCollection = (pitch.pricePerHour || 0) <= 75000;
         } else if (activeCollectionTab === "floodlit") {
           matchesCollection = hasFloodlight(pitch);
         } else if (activeCollectionTab === "favorites") {
@@ -519,7 +396,7 @@ export const Home: React.FC = () => {
         // Price
         const matchesPrice = (pitch.pricePerHour || 0) <= maxPriceFilter;
 
-        // Amenities filter
+        // Amenities
         let matchesAmenities = true;
         if (selectedAmenities.length > 0) {
           const pitchAmenities = (pitch.amenities || []).map((a) => a.toLowerCase());
@@ -547,7 +424,7 @@ export const Home: React.FC = () => {
         if (sortBy === "rating") {
           return ((b as any).rating || 4.8) - ((a as any).rating || 4.8);
         }
-        return 0;
+        return 0; // recommended
       });
   }, [
     allPitches,
@@ -565,389 +442,441 @@ export const Home: React.FC = () => {
     let count = 0;
     if (selectedFormat !== "All") count++;
     if (selectedHub !== "All Kampala") count++;
-    if (maxPriceFilter < 200000) count++;
+    if (maxPriceFilter < 150000) count++;
     if (selectedAmenities.length > 0) count += selectedAmenities.length;
-    if (sortBy !== "nearest") count++;
+    if (sortBy !== "recommended") count++;
     return count;
   }, [selectedFormat, selectedHub, maxPriceFilter, selectedAmenities, sortBy]);
 
-  // Customer Discover Screen View
+  // Pull to refresh handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const mainEl = document.querySelector("main");
+    if ((!mainEl || mainEl.scrollTop <= 2) && !refreshing) {
+      setStartY(e.touches[0].clientY);
+      setIsPulling(true);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPulling || refreshing) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 0) {
+      setPullY(Math.min(Math.pow(dy, 0.8) * 1.8, 65));
+    } else {
+      setPullY(0);
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (!isPulling) return;
+    setIsPulling(false);
+    if (pullY >= 45 && !refreshing) {
+      setRefreshing(true);
+      await Promise.all([fetchPitches(), fetchUserUpcomingBooking()]);
+      setJustUpdated(true);
+      setTimeout(() => setJustUpdated(false), 1500);
+      setRefreshing(false);
+    }
+    setPullY(0);
+  };
+
+  // Customer Player Discover View
   const DiscoverScreen = () => {
     return (
       <div
-        className="min-h-[100dvh] bg-app-base text-text-primary pb-28 font-sans"
+        id="home-discover-screen"
+        className="min-h-[100dvh] bg-app-base text-text-primary pb-28 font-sans selection:bg-primary-lime/30"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Pull to refresh interactive indicator banner */}
+        {/* Pull To Refresh Live Banner */}
         <div
+          id="pull-to-refresh-banner"
           className="flex flex-col justify-center items-center overflow-hidden transition-all duration-200 pointer-events-none"
           style={{
             height: `${pullY}px`,
             opacity: pullY > 8 || refreshing || justUpdated ? 1 : 0,
           }}
-          aria-live="polite"
         >
           <div className="bg-surface-card rounded-full px-3 py-1.5 border border-border-subtle shadow-xs flex items-center gap-2 my-1">
             {justUpdated ? (
               <>
-                <div className="w-4 h-4 rounded-full bg-primary-lime/20 text-primary-lime flex items-center justify-center shrink-0">
+                <div className="w-4 h-4 rounded-full bg-primary-lime/20 text-primary-lime flex items-center justify-center">
                   <Check size={11} strokeWidth={3} />
                 </div>
-                <span className="text-[11px] font-medium text-text-primary">
-                  Availability up to date
+                <span className="text-[11px] font-bold text-text-primary">
+                  Pitch availability updated
                 </span>
               </>
             ) : refreshing ? (
               <>
-                <RefreshCw size={13} className="text-primary-lime animate-spin shrink-0" />
-                <span className="text-[11px] font-medium text-primary-lime">
-                  Checking live pitches...
-                </span>
-              </>
-            ) : pullY >= 46 ? (
-              <>
-                <div className="w-4 h-4 rounded-full bg-primary-lime text-accent-text flex items-center justify-center shrink-0">
-                  <ArrowDown
-                    size={11}
-                    strokeWidth={2.5}
-                    className="rotate-180 transition-transform duration-200"
-                  />
-                </div>
-                <span className="text-[11px] font-medium text-primary-lime">
-                  Release to refresh
+                <RefreshCw size={13} className="text-primary-lime animate-spin" />
+                <span className="text-[11px] font-bold text-primary-lime">
+                  Checking live matchday slots...
                 </span>
               </>
             ) : (
               <>
                 <ArrowDown
                   size={13}
-                  className="text-text-tertiary transition-transform shrink-0"
-                  style={{ transform: `rotate(${Math.min((pullY / 46) * 180, 180)}deg)` }}
+                  className="text-text-tertiary transition-transform"
+                  style={{ transform: `rotate(${Math.min((pullY / 45) * 180, 180)}deg)` }}
                 />
                 <span className="text-[11px] font-medium text-text-secondary">
-                  Pull to refresh
+                  {pullY >= 45 ? "Release to refresh" : "Pull to check slots"}
                 </span>
               </>
             )}
           </div>
         </div>
 
-        <main className="max-w-4xl mx-auto px-4 py-4 pb-24 space-y-6">
-          {/* 1. WELCOME HERO & SEARCH */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <span className="text-xs font-semibold text-text-secondary">
-                  {new Date().getHours() < 12
-                    ? "Good morning"
-                    : new Date().getHours() < 17
-                    ? "Good afternoon"
-                    : "Good evening"}
-                  , {userProfile?.name ? userProfile.name.split(" ")[0] : user?.displayName ? user.displayName.split(" ")[0] : "Player"} ⚡
-                </span>
-                <h1 className="text-xl sm:text-2xl font-black text-text-primary tracking-tight font-display">
-                  Find your matchday turf
-                </h1>
-              </div>
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-6 sm:space-y-8">
+          {/* 1. MATCHDAY HERO HEADER & DATE SELECTOR */}
+          <div id="matchday-hero-header" className="space-y-4">
+            <div className="space-y-1.5 min-w-0">
+              {/* Hero Title - Refined High-Appeal Greeting */}
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight font-display text-text-primary">
+                <span className="font-semibold text-text-secondary">{greeting}, </span>
+                <span className="text-primary-lime font-black">{firstName}</span>
+              </h1>
 
-              <button
-                onClick={() => navigate("/explore-map")}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-card hover:bg-surface-raised border border-border-subtle hover:border-border-prominent text-xs font-bold text-text-primary transition-all shadow-xs cursor-pointer shrink-0"
-                title="View Kampala Map"
-              >
-                <MapPin size={14} className="text-primary-lime shrink-0" />
-                <span>Map</span>
-              </button>
+              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed max-w-xl font-medium">
+                Book verified artificial turfs and grass pitches in seconds. Direct 1-tap slots and mobile money payment.
+              </p>
             </div>
 
-            {/* Search bar */}
-            <section aria-label="Search" className="flex items-center gap-2.5">
-              <div className="relative flex-1">
-                <Search
-                  size={16}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Search pitch name or area (Lugogo, Naguru...)"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-11 pl-10 pr-3.5 rounded-xl bg-surface-card text-[13px] text-text-primary placeholder-[#94949E] focus:outline-none focus:border-primary-lime/50 transition-colors border border-border-subtle"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary p-1 cursor-pointer"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-              <button
-                onClick={() => setShowFilterModal(true)}
-                className="w-11 h-11 rounded-xl bg-surface-raised hover:bg-border-subtle border border-border-subtle flex items-center justify-center shrink-0 transition-transform active:scale-95 shadow-xs cursor-pointer text-text-primary relative"
-                title="Open filters"
-              >
-                <SlidersHorizontal size={16} className="text-text-primary" />
-                {activeFiltersCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary-lime text-accent-text text-[9px] font-black flex items-center justify-center shadow-xs">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </button>
-            </section>
+            {/* Matchday Date Selector Strip */}
+            <MatchdayDateStrip
+              selectedDate={selectedDate}
+              onSelectDate={(date) => setSelectedDate(date)}
+            />
+          </div>
 
-            {/* Format Filter Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-              {[
-                { id: "All", label: "All Turfs" },
-                { id: "5-a-side", label: "5-A-Side" },
-                { id: "7-a-side", label: "7-A-Side" },
-                { id: "11-a-side", label: "11-A-Side" },
-                { id: "Outdoor", label: "Floodlit / Outdoor" },
-              ].map((format) => {
-                const isActive = selectedFormat === format.id;
-                return (
-                  <button
-                    key={format.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedFormat(format.id);
-                      setSearchQuery("");
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
-                      isActive
-                        ? "bg-primary-lime text-accent-text font-bold shadow-xs"
-                        : "bg-surface-card hover:bg-surface-raised border border-border-subtle text-text-secondary hover:text-text-primary"
-                    }`}
-                  >
-                    {format.label}
-                  </button>
-                );
-              })}
+          {/* 2. CORE FOOTBALL QUICK ACTIONS */}
+          <HomeActionGrid
+            onExplorePitches={() => smoothScrollToSection("pitches-booking-section", 16)}
+            onFilterInstant={() => {
+              setActiveCollectionTab("floodlit");
+              smoothScrollToSection("pitches-booking-section", 16);
+            }}
+          />
+
+          {/* 3. DUAL-COLUMN MATCHDAY DASHBOARD GRID */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+            {/* PRIMARY COLUMN: DISCOVERY & BOOKING (8 cols on desktop) */}
+            <div className="lg:col-span-8 space-y-7 sm:space-y-8 min-w-0">
+              {/* Featured Stadium Venues (Spotlight Carousel) */}
+              <SpotlightCarousel
+                pitches={spotlightPitches}
+                onSelectSlot={(pitch, slot) => handleOpenQuickBooking(pitch, slot)}
+                loading={loadingPitches}
+              />
+
+              {/* Available Pitches & Direct Slot Booking (CORE PURPOSE) */}
+              <motion.section
+                id="pitches-booking-section"
+                aria-label="Available Football Grounds"
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-20px" }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="space-y-4 sm:space-y-5 scroll-mt-20"
+              >
+                {/* Section Heading & Sort Dropdown */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pt-1 border-b border-border-subtle pb-3.5">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <div className="relative flex items-center justify-center">
+                        <span className="w-2.5 h-2.5 rounded-full bg-primary-lime shrink-0 shadow-[0_0_8px_rgba(22,163,74,0.5)]" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-primary-lime animate-ping absolute opacity-40" />
+                      </div>
+                      <h2 className="text-lg sm:text-xl font-black text-text-primary tracking-tight font-display uppercase">
+                        Available Pitches
+                      </h2>
+                      <span className="px-2.5 py-0.5 rounded-full bg-primary-lime/10 text-primary-lime border border-primary-lime/25 text-[11px] font-bold tracking-tight shadow-2xs">
+                        {filteredPitches.length} {filteredPitches.length === 1 ? "ground" : "grounds"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-text-secondary font-medium">
+                      Select a slot directly on any card to book with mobile money
+                    </p>
+                  </div>
+
+                  {/* Filters & Sort Controls */}
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+                    {/* Filters Modal Trigger */}
+                    <button
+                      id="open-filters-modal-btn"
+                      type="button"
+                      onClick={() => setShowFilterModal(true)}
+                      className={`h-9 px-3.5 sm:px-4 rounded-full border flex items-center gap-2 shrink-0 transition-all cursor-pointer font-bold text-xs active:scale-95 ${
+                        activeFiltersCount > 0
+                          ? "bg-primary-lime text-white border-primary-lime shadow-sm shadow-primary-lime/20"
+                          : "bg-surface-card hover:bg-surface-raised border-border-subtle text-text-secondary hover:text-text-primary shadow-2xs"
+                      }`}
+                      title="Open pitch filters"
+                    >
+                      <SlidersHorizontal size={13} className={activeFiltersCount > 0 ? "text-white" : "text-text-secondary"} />
+                      <span className="text-[11px] font-bold uppercase tracking-wider">Filters</span>
+                      {activeFiltersCount > 0 && (
+                        <span className="min-w-4 h-4 px-1 rounded-full bg-white text-primary-lime text-[10px] font-black flex items-center justify-center shadow-2xs ml-0.5">
+                          {activeFiltersCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Custom Sort Dropdown */}
+                    <div className="relative shrink-0" ref={sortMenuRef}>
+                      <button
+                        id="pitch-sort-menu-btn"
+                        type="button"
+                        onClick={() => setShowSortMenu((prev) => !prev)}
+                        className={`h-9 px-3.5 sm:px-4 rounded-full border transition-all flex items-center gap-2 text-xs font-bold cursor-pointer shadow-2xs active:scale-95 ${
+                          showSortMenu
+                            ? "bg-surface-raised border-primary-lime/40 text-text-primary"
+                            : "bg-surface-card hover:bg-surface-raised border-border-subtle text-text-secondary hover:text-text-primary"
+                        }`}
+                        aria-haspopup="true"
+                        aria-expanded={showSortMenu}
+                      >
+                        <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">
+                          Sort
+                        </span>
+                        <span className="w-px h-3.5 bg-border-subtle" />
+                        <span className="text-text-primary font-bold text-[11px]">
+                          {SORT_OPTIONS.find((o) => o.id === sortBy)?.shortLabel || "Recommended"}
+                        </span>
+                        <ChevronDown
+                          size={13}
+                          className={`text-text-tertiary transition-transform duration-200 ${
+                            showSortMenu ? "rotate-180 text-primary-lime" : ""
+                          }`}
+                        />
+                      </button>
+
+                      {/* Hidden select for full programmatic & testing accessibility */}
+                      <select
+                        id="pitch-sort-select"
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className="sr-only"
+                        aria-label="Sort pitches"
+                      >
+                        {SORT_OPTIONS.map((opt) => (
+                          <option key={opt.id} value={opt.id}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Floating Dropdown Menu */}
+                      <AnimatePresence>
+                        {showSortMenu && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                            transition={{ duration: 0.15, ease: "easeOut" }}
+                            className="absolute right-0 mt-1.5 w-48 rounded-2xl bg-surface-card border border-border-subtle shadow-xl py-1.5 z-40 overflow-hidden"
+                          >
+                            <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-text-tertiary border-b border-border-subtle/50 mb-1">
+                              Sort Grounds By
+                            </div>
+                            {SORT_OPTIONS.map((opt) => {
+                              const isSelected = sortBy === opt.id;
+                              return (
+                                <button
+                                  key={opt.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSortBy(opt.id);
+                                    setShowSortMenu(false);
+                                  }}
+                                  className={`w-full px-3 py-2 text-left text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                                    isSelected
+                                      ? "bg-primary-lime/10 text-primary-lime"
+                                      : "text-text-primary hover:bg-surface-raised"
+                                  }`}
+                                >
+                                  <span>{opt.label}</span>
+                                  {isSelected && <Check size={14} className="text-primary-lime stroke-[2.5]" />}
+                                </button>
+                              );
+                            })}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pitch Cards Grid with 1-Tap Slot Selection */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                  {loadingPitches ? (
+                    Array.from({ length: 4 }).map((_, idx) => <PitchCardSkeleton key={idx} />)
+                  ) : filteredPitches.length > 0 ? (
+                    filteredPitches.map((pitch) => (
+                      <FootballPitchCard
+                        key={pitch.id}
+                        pitch={pitch}
+                        isFavorite={!!favorites[pitch.id || ""]}
+                        onToggleFavorite={toggleFavorite}
+                        onSelectSlot={handleOpenQuickBooking}
+                        selectedDate={selectedDate}
+                      />
+                    ))
+                  ) : (
+                    <div className="col-span-full py-16 text-center text-text-tertiary text-xs bg-surface-card rounded-3xl border border-border-subtle space-y-3 p-6">
+                      <div className="w-12 h-12 rounded-2xl bg-surface-raised border border-border-subtle flex items-center justify-center mx-auto text-text-tertiary">
+                        <Search size={22} />
+                      </div>
+                      <h3 className="text-sm font-bold text-text-primary">No pitches match your filters</h3>
+                      <p className="max-w-xs mx-auto text-text-secondary">
+                        Try adjusting your maximum price, neighborhood, or format options.
+                      </p>
+                      <button
+                        id="reset-filters-empty-state-btn"
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setSelectedFormat("All");
+                          setSelectedHub("All Kampala");
+                          setActiveCollectionTab("all");
+                          setMaxPriceFilter(150000);
+                          setSelectedAmenities([]);
+                          setSortBy("recommended");
+                        }}
+                        className="px-4 py-2 rounded-xl bg-primary-lime text-accent-text text-xs font-black transition-transform active:scale-95 cursor-pointer shadow-sm"
+                      >
+                        Reset All Filters
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </motion.section>
+
+              {/* Community Open Pickup Matches */}
+              <HomeCommunityPickups loading={loadingPitches} />
+            </div>
+
+            {/* DASHBOARD COMPANION RAIL: UPCOMING TICKET, WEATHER & SPECIALS (4 cols on desktop) */}
+            <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-4 min-w-0">
+              {/* Smart Matchday Hub (Next Matchday / Active Upcoming Booking Ticket) */}
+              <SmartDashboard
+                upcomingBooking={userUpcomingBooking}
+                loading={loadingBooking}
+                onExplorePitches={() => smoothScrollToSection("pitches-booking-section", 16)}
+              />
+
+              {/* Matchday Promotions & Floodlight Sessions */}
+              <MatchdayBanner
+                onFilterFloodlit={() => {
+                  setActiveCollectionTab("floodlit");
+                  smoothScrollToSection("pitches-booking-section", 16);
+                }}
+              />
             </div>
           </div>
 
-          {/* 2. CORE QUICK ACTIONS */}
-          <HomeActionGrid
-            onExplorePitches={() => smoothScrollToSection("featured-pitches-section", 16)}
-          />
-
-          {/* 3. SMART MATCHDAY HUB */}
-          <SmartDashboard 
-            upcomingBooking={userUpcomingBooking}
-            onExplorePitches={() => smoothScrollToSection("featured-pitches-section", 16)}
-          />
-
-          {/* 4. FEATURED & AVAILABLE TURFS */}
-          <motion.section 
-            id="featured-pitches-section" 
-            aria-label="Available Turfs" 
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-20px" }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-            className="space-y-4 scroll-mt-20"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-text-primary">
-                  Available Turf Grounds
-                </h2>
-                <p className="text-xs text-text-secondary">
-                  Verified artificial and grass pitches across Kampala
-                </p>
-              </div>
-              <button 
-                onClick={() => navigate("/explore-map")}
-                className="text-xs font-bold text-primary-lime hover:underline transition-colors cursor-pointer flex items-center gap-0.5"
-              >
-                <span>View all ({filteredPitches.length})</span>
-                <ChevronRight size={13} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              {loadingPitches ? (
-                Array.from({ length: 4 }).map((_, idx) => <PitchCardSkeleton key={idx} />)
-              ) : filteredPitches.length > 0 ? (
-                filteredPitches.slice(0, 6).map((pitch) => {
-                  const firstImg = pitch.images?.[0] || DEFAULT_FALLBACK_PITCHES[0].images?.[0];
-                  const isFav = !!favorites[pitch.id || ""];
-                  const formatDetail = pitch.pitchFormats?.[0] || "5-A-Side";
-
-                  return (
-                    <article
-                      key={pitch.id}
-                      onClick={() => pitch.id && navigate(`/turf/${pitch.id}`)}
-                      className="bg-surface-card rounded-2xl p-4 shadow-xs border border-border-subtle cursor-pointer group hover:border-border-prominent hover:shadow-md transition-all duration-200 flex flex-col justify-between"
-                    >
-                      <div>
-                        {/* Image */}
-                        <div className="relative w-full h-[150px] rounded-xl overflow-hidden mb-3 bg-surface-raised">
-                          <img
-                            src={firstImg}
-                            alt={pitch.name || "Football pitch"}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          
-                          {/* Overlay: Verified */}
-                          <div className="absolute top-2.5 left-2.5 bg-white/90 dark:bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-md flex items-center gap-1 text-[9.5px] font-bold text-text-primary border border-border-subtle shadow-xs">
-                            <Flame size={11} className="text-amber-500 fill-amber-400" />
-                            Verified
-                          </div>
-
-                          {/* Top Right: Heart */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              if (pitch.id) toggleFavorite(pitch.id, e);
-                              e.stopPropagation();
-                            }}
-                            className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 dark:bg-black/75 backdrop-blur-md flex items-center justify-center text-text-tertiary hover:text-primary-lime border border-border-subtle transition-colors shadow-xs"
-                          >
-                            <Heart
-                              size={14}
-                              className={isFav ? "fill-primary-lime text-primary-lime" : ""}
-                            />
-                          </button>
-                          
-                          {/* Overlay: Rating */}
-                          <div className="absolute bottom-2.5 right-2.5 bg-white/90 dark:bg-black/80 backdrop-blur-md px-2.5 py-0.5 rounded-md flex items-center gap-1 text-[11px] font-bold text-text-primary border border-border-subtle shadow-xs">
-                            <Star size={11} className="fill-amber-400 text-amber-500" />
-                            {(pitch as any).rating || 4.7}
-                          </div>
-                        </div>
-
-                        {/* Content Structure */}
-                        <div className="px-0.5 pb-1">
-                          <div className="flex justify-between items-start mb-1.5">
-                            <h3 className="text-[14px] font-bold text-text-primary leading-tight truncate pr-2 group-hover:text-primary-lime transition-colors">
-                              {pitch.name}
-                            </h3>
-                            <div className="text-right flex flex-col shrink-0 ml-1">
-                              <span className="text-[8.5px] text-text-tertiary uppercase tracking-wider leading-none">From</span>
-                              <span className="text-[13px] font-black text-primary-lime leading-tight">
-                                UGX {(pitch.pricePerHour || 50000).toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 text-text-secondary text-xs font-medium mb-3">
-                            <div className="flex items-center gap-1 truncate">
-                              <MapPin size={12} className="text-primary-lime shrink-0" />
-                              <span className="truncate">{pitch.location || "Kampala, Uganda"}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Facilities Chips */}
-                      <div className="flex items-center gap-1.5 pt-2.5 border-t border-border-subtle overflow-x-auto no-scrollbar">
-                        <div className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40 whitespace-nowrap">
-                          <span>{formatDetail}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40 whitespace-nowrap">
-                          <Zap size={10} className="text-amber-500 fill-amber-400 shrink-0" />
-                          <span>Floodlights</span>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })
-              ) : (
-                <div className="col-span-full py-12 text-center text-text-tertiary text-xs bg-surface-card rounded-2xl border border-border-subtle">
-                  No pitches found matching your criteria.
-                </div>
-              )}
-            </div>
-          </motion.section>
-
-          {/* 5. COMMUNITY OPEN PICKUPS */}
-          <HomeCommunityPickups />
-
-          {/* FLOATING SMOOTH SCROLL TO TOP BUTTON */}
+          {/* BACK TO TOP FLOATING BUTTON */}
           <AnimatePresence>
             {showScrollTop && (
               <motion.button
+                id="floating-scroll-top-btn"
                 type="button"
                 initial={{ opacity: 0, scale: 0.8, y: 15 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8, y: 15 }}
                 transition={{ duration: 0.2 }}
-                onClick={() => smoothScrollToSection("main-top-anchor", 0)}
-                className="fixed bottom-20 lg:bottom-8 right-5 z-40 w-10 h-10 rounded-full bg-surface-card/95 hover:bg-surface-raised text-primary-lime border border-border-subtle shadow-lg flex items-center justify-center cursor-pointer active:scale-90 transition-all backdrop-blur-md"
+                onClick={() => smoothScrollToSection("matchday-hero-header", 0)}
+                className="fixed bottom-20 lg:bottom-8 right-5 z-40 w-11 h-11 rounded-full bg-surface-card/95 hover:bg-surface-raised text-primary-lime border border-border-subtle shadow-xl flex items-center justify-center cursor-pointer active:scale-90 transition-all backdrop-blur-md"
                 aria-label="Scroll to top"
-                title="Smooth scroll to top"
+                title="Back to top"
               >
-                <ArrowUp size={18} strokeWidth={2.5} />
+                <ArrowUp size={20} strokeWidth={2.5} />
               </motion.button>
             )}
           </AnimatePresence>
-        </main>
+        </div>
 
-        {/* 8. MODERN FILTER MODAL SHEET */}
+        {/* 8. QUICK BOOKING SLIDE-UP MODAL */}
+        <QuickBookingModal
+          isOpen={showQuickBookingModal}
+          onClose={() => setShowQuickBookingModal(false)}
+          pitch={quickBookingPitch}
+          selectedDate={selectedDate}
+          initialTimeSlot={quickBookingSlot}
+        />
+
+        {/* 9. DETAILED FILTER MODAL SHEET */}
         {showFilterModal && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-            <div className="bg-surface-card border border-border-subtle rounded-2xl max-w-md w-full p-4 space-y-4 text-text-primary relative shadow-xl max-h-[90vh] overflow-y-auto">
+          <div
+            id="filter-modal-backdrop"
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn"
+          >
+            <div
+              id="filter-modal-content"
+              className="bg-surface-card border border-border-subtle rounded-3xl max-w-md w-full p-5 space-y-4 text-text-primary relative shadow-2xl max-h-[90vh] overflow-y-auto"
+            >
               <div className="flex items-center justify-between border-b border-border-subtle pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary-lime/15 text-primary-lime flex items-center justify-center border border-primary-lime/30">
-                    <SlidersHorizontal size={15} />
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-primary-lime/15 text-primary-lime flex items-center justify-center border border-primary-lime/30">
+                    <SlidersHorizontal size={16} />
                   </div>
-                  <h3 className="text-sm font-semibold text-text-primary">
-                    Filter Pitch Grounds
+                  <h3 className="text-sm font-black text-text-primary uppercase tracking-tight">
+                    Filter Pitches
                   </h3>
                 </div>
                 <button
+                  id="filter-modal-close-btn"
                   onClick={() => setShowFilterModal(false)}
-                  className="w-7 h-7 rounded-full hover:bg-surface-raised flex items-center justify-center text-text-tertiary hover:text-text-primary"
+                  className="w-8 h-8 rounded-full hover:bg-surface-raised flex items-center justify-center text-text-tertiary hover:text-text-primary transition-colors cursor-pointer"
                 >
-                  <X size={15} />
+                  <X size={16} />
                 </button>
               </div>
 
               {/* Price filter */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-text-secondary font-medium">
-                    Maximum Hourly Rate
-                  </span>
-                  <span className="text-primary-lime font-bold">
+                  <span className="text-text-secondary font-bold">Maximum Hourly Rate</span>
+                  <span className="text-primary-lime font-black text-sm">
                     UGX {maxPriceFilter.toLocaleString()}
                   </span>
                 </div>
                 <input
+                  id="filter-price-slider"
                   type="range"
-                  min="30000"
+                  min="40000"
                   max="200000"
                   step="5000"
                   value={maxPriceFilter}
                   onChange={(e) => setMaxPriceFilter(Number(e.target.value))}
                   className="w-full accent-[#A8FF00] cursor-pointer"
                 />
-                <div className="flex justify-between text-[10px] text-text-tertiary">
-                  <span>UGX 30k</span>
+                <div className="flex justify-between text-[10px] text-text-tertiary font-bold">
+                  <span>UGX 40k</span>
                   <span>UGX 100k</span>
                   <span>UGX 200k</span>
                 </div>
               </div>
 
-              {/* Kampala Hubs */}
+              {/* Kampala Hubs Grid */}
               <div className="space-y-2 pt-2 border-t border-border-subtle">
-                <label className="text-xs text-text-secondary font-medium block">
-                  Kampala Neighborhood Hub
+                <label className="text-xs text-text-secondary font-bold block">
+                  Neighborhood Hub
                 </label>
                 <div className="grid grid-cols-2 gap-1.5">
                   {KAMPALA_HUBS.map((hub) => (
                     <button
                       key={hub}
+                      id={`hub-filter-btn-${hub}`}
+                      type="button"
                       onClick={() => setSelectedHub(hub)}
-                      className={`py-2 px-2.5 rounded-xl text-xs font-medium text-center truncate transition-colors cursor-pointer ${
+                      className={`py-2 px-2.5 rounded-xl text-xs font-bold text-center truncate transition-colors cursor-pointer ${
                         selectedHub === hub
-                          ? "bg-primary-lime text-accent-text font-bold shadow-sm"
+                          ? "bg-primary-lime text-accent-text font-black shadow-xs"
                           : "bg-surface-raised border border-border-subtle text-text-secondary hover:text-text-primary"
                       }`}
                     >
@@ -959,7 +888,7 @@ export const Home: React.FC = () => {
 
               {/* Amenities checkboxes */}
               <div className="space-y-2 pt-2 border-t border-border-subtle">
-                <label className="text-xs text-text-secondary font-medium block">
+                <label className="text-xs text-text-secondary font-bold block">
                   Required Amenities
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -968,6 +897,7 @@ export const Home: React.FC = () => {
                     return (
                       <button
                         key={amenity}
+                        id={`amenity-toggle-${amenity}`}
                         type="button"
                         onClick={() => {
                           if (isChecked) {
@@ -978,16 +908,16 @@ export const Home: React.FC = () => {
                         }}
                         className={`p-2 rounded-xl border text-xs flex items-center gap-2 text-left transition-colors cursor-pointer ${
                           isChecked
-                            ? "bg-primary-lime/10 border-primary-lime text-primary-lime font-medium"
+                            ? "bg-primary-lime/10 border-primary-lime text-primary-lime font-bold"
                             : "bg-surface-raised border-border-subtle text-text-secondary hover:text-text-primary"
                         }`}
                       >
                         <div
-                          className={`w-3.5 h-3.5 rounded flex items-center justify-center ${
-                            isChecked ? "bg-primary-lime text-accent-text" : "border border-[#71717A]"
+                          className={`w-4 h-4 rounded flex items-center justify-center ${
+                            isChecked ? "bg-primary-lime text-accent-text" : "border border-border-prominent"
                           }`}
                         >
-                          {isChecked && <Check size={10} strokeWidth={3} />}
+                          {isChecked && <Check size={11} strokeWidth={3} />}
                         </div>
                         <span className="truncate">{amenity}</span>
                       </button>
@@ -996,51 +926,28 @@ export const Home: React.FC = () => {
                 </div>
               </div>
 
-              {/* Sort selector */}
-              <div className="space-y-2 pt-2 border-t border-border-subtle">
-                <label className="text-xs text-text-secondary font-medium block">
-                  Sort Results
-                </label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {[
-                    { id: "nearest", label: "Featured" },
-                    { id: "rating", label: "Highest Rated" },
-                    { id: "price-asc", label: "Lowest Price" },
-                    { id: "price-desc", label: "Highest Price" },
-                  ].map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => setSortBy(s.id as any)}
-                      className={`py-1.5 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                        sortBy === s.id
-                          ? "bg-primary-lime text-accent-text font-bold"
-                          : "bg-surface-raised border border-border-subtle text-text-secondary hover:text-text-primary"
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actions */}
+              {/* Modal Actions */}
               <div className="pt-3 flex items-center gap-2 border-t border-border-subtle">
                 <button
+                  id="filter-modal-reset-btn"
+                  type="button"
                   onClick={() => {
-                    setMaxPriceFilter(200000);
+                    setMaxPriceFilter(150000);
                     setSelectedFormat("All");
                     setSelectedHub("All Kampala");
                     setSelectedAmenities([]);
-                    setSortBy("nearest");
+                    setSortBy("recommended");
                     setSearchQuery("");
                   }}
-                  className="flex-1 h-11 rounded-full border border-border-subtle text-[12px] font-medium text-text-secondary hover:bg-surface-raised hover:text-text-primary cursor-pointer"
+                  className="flex-1 h-11 rounded-full border border-border-subtle text-xs font-bold text-text-secondary hover:bg-surface-raised hover:text-text-primary cursor-pointer"
                 >
                   Reset all
                 </button>
                 <button
+                  id="filter-modal-apply-btn"
+                  type="button"
                   onClick={() => setShowFilterModal(false)}
-                  className="flex-1 h-11 rounded-full bg-primary-lime hover:bg-[#96E600] text-accent-text text-[12px] font-bold transition-colors shadow-xs cursor-pointer"
+                  className="flex-1 h-11 rounded-full bg-primary-lime hover:bg-[#96E600] text-accent-text text-xs font-black transition-colors shadow-xs cursor-pointer"
                 >
                   Show {filteredPitches.length} Pitches
                 </button>
@@ -1049,7 +956,7 @@ export const Home: React.FC = () => {
           </div>
         )}
 
-        {/* First Time User Maneuver Tour Modal */}
+        {/* First Time User Tour Modal */}
         <FirstTimeUserTourModal
           isOpen={showTourModal}
           onClose={() => setShowTourModal(false)}

@@ -51,32 +51,32 @@ const BentoKpiCard: React.FC<BentoKpiProps> = ({
   <div 
     id={id} 
     onClick={onClick}
-    className={`bg-surface-card rounded-2xl p-4 sm:p-4.5 border border-border-subtle flex flex-col justify-between hover:border-border-prominent transition-all group shadow-sm ${
+    className={`bg-surface-card rounded-2xl p-4 sm:p-5 border border-border-subtle flex flex-col justify-between hover:border-border-prominent transition-all group shadow-xs ${
       onClick ? 'cursor-pointer active:scale-[0.98]' : ''
     }`}
   >
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-[11px] font-bold text-text-secondary uppercase tracking-wider font-sans">
+    <div className="flex items-center justify-between mb-3.5">
+      <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">
         {title}
       </span>
-      <div className={`w-9 h-9 rounded-xl bg-surface-raised border border-border-subtle flex items-center justify-center ${accentColor} transition-transform group-hover:scale-105`}>
+      <div className={`w-10 h-10 rounded-xl bg-surface-raised border border-border-subtle flex items-center justify-center ${accentColor} transition-transform group-hover:scale-105`}>
         <Icon size={18} />
       </div>
     </div>
     
     <div className="space-y-1">
       <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="text-2xl sm:text-2xl font-extrabold text-text-primary tracking-tight font-sans">
+        <span className="text-2xl font-extrabold text-text-primary tracking-tight font-display">
           {value}
         </span>
         {badgeText && (
-          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${badgeBg}`}>
+          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${badgeBg}`}>
             {badgeText}
           </span>
         )}
       </div>
       {subtitle && (
-        <p className="text-xs text-text-tertiary font-medium font-sans truncate">
+        <p className="text-xs text-text-secondary font-medium truncate">
           {subtitle}
         </p>
       )}
@@ -198,10 +198,27 @@ export const OwnerOverview: React.FC = () => {
       <div className="space-y-4 md:space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="bg-surface-card rounded-2xl p-4 border border-border-subtle h-28 animate-pulse" />
+            <div key={i} className="bg-surface-card rounded-2xl p-4 border border-border-subtle h-28 shimmer-effect space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="h-3 w-20 rounded bg-surface-raised" />
+                <div className="w-8 h-8 rounded-xl bg-surface-raised" />
+              </div>
+              <div className="h-6 w-28 rounded-md bg-surface-raised" />
+              <div className="h-2.5 w-36 rounded bg-surface-raised" />
+            </div>
           ))}
         </div>
-        <div className="bg-surface-card rounded-2xl p-6 border border-border-subtle h-72 animate-pulse" />
+        <div className="bg-surface-card rounded-2xl p-6 border border-border-subtle h-72 shimmer-effect space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="h-4 w-36 rounded bg-surface-raised" />
+            <div className="h-8 w-24 rounded-xl bg-surface-raised" />
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-2">
+            {[1, 2, 3, 4, 5, 6].map(s => (
+              <div key={s} className="h-16 rounded-xl bg-surface-raised" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

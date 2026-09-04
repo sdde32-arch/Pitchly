@@ -282,19 +282,21 @@ export const CreateMatchProposalModal: React.FC<CreateMatchProposalModalProps> =
                   {playersNeeded} players needed
                 </span>
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[6, 10, 14, 22].map((num) => (
                   <button
                     type="button"
                     key={num}
                     onClick={() => setPlayersNeeded(num)}
-                    className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                    className={`py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
                       playersNeeded === num
                         ? 'bg-primary-lime text-accent-text border-primary-lime shadow-xs'
                         : 'bg-surface-raised border-border-subtle text-text-secondary hover:text-text-primary'
                     }`}
                   >
-                    {num} Players ({num / 2}v{num / 2})
+                    <span className="block sm:hidden">{num} Players</span>
+                    <span className="hidden sm:block">{num} Players</span>
+                    <span className="text-[10px] opacity-80 block font-normal">({num / 2}v{num / 2})</span>
                   </button>
                 ))}
               </div>

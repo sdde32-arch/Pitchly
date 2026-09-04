@@ -83,6 +83,7 @@ export interface Booking {
   ownerId: string;
   date: string;
   time: string; // e.g. "19:00"
+  timeSlot?: string;
   duration: number; // in hours
   slots: string[];
   totalPrice: number;

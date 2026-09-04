@@ -22,6 +22,13 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Turf } from "../types";
+import { RecentSearchTags } from "../components/search/RecentSearchTags";
+import {
+  getRecentSearches,
+  saveRecentSearch,
+  clearRecentSearches,
+  removeRecentSearch,
+} from "../utils/recentSearches";
 
 const NEIGHBORHOODS = [
   { name: "Kampala Central", coords: [0.3476, 32.5825] as [number, number] },
@@ -55,6 +62,7 @@ export const ExploreMap: React.FC = () => {
   const { turfs, bookings, loading } = useBooking();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => getRecentSearches());
   const [selectedFormat, setSelectedFormat] = useState("All");
   const [selectedHour, setSelectedHour] = useState("All");
   const [selectedRadius, setSelectedRadius] = useState<number>(999);
@@ -151,7 +159,8 @@ export const ExploreMap: React.FC = () => {
 
   const getPitchAvailability = useMemo(() => {
     return (pitchId: string, date: string, hourStr: string) => {
-      const pitchObj = turfs.find((t) => t.id === pitchId);
+      const normalizedPitchId = pitchId.replace(/^pitch-/, "");
+      const pitchObj = turfs.find((t) => t.id === pitchId || t.id === normalizedPitchId || `pitch-${t.id}` === pitchId);
       if (!pitchObj) return { isAvailable: false, freeSlotsCount: 0, freeSlots: [], isClosed: false };
 
       if (pitchObj.blockedDates && pitchObj.blockedDates.includes(date)) {
@@ -168,7 +177,7 @@ export const ExploreMap: React.FC = () => {
 
       const activeBookings = bookings.filter(
         (b) =>
-          (b.pitchId === pitchId || b.turfId === pitchId) &&
+          (b.pitchId === pitchId || b.turfId === pitchId || b.pitchId === normalizedPitchId || b.turfId === normalizedPitchId) &&
           b.date === date &&
           b.status !== "CANCELLED" &&
           b.status !== "REJECTED" &&
@@ -420,9 +429,35 @@ export const ExploreMap: React.FC = () => {
                 placeholder="Search venue name, area, or amenities..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && searchTerm.trim()) {
+                    const updated = saveRecentSearch(searchTerm);
+                    setRecentSearches(updated);
+                  }
+                }}
                 className="w-full h-11 pl-10 pr-4 rounded-xl bg-surface-raised border border-border-subtle text-[13px] font-medium text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary-lime/50 transition-all"
               />
             </div>
+
+            {/* Section under search bar: 3 most recent searches as clickable tags */}
+            <RecentSearchTags
+              searches={recentSearches}
+              activeQuery={searchTerm}
+              onSelectTag={(term) => {
+                setSearchTerm(term);
+                const updated = saveRecentSearch(term);
+                setRecentSearches(updated);
+              }}
+              onClearAll={() => {
+                clearRecentSearches();
+                setRecentSearches([]);
+              }}
+              onRemoveTag={(term, e) => {
+                e.stopPropagation();
+                const updated = removeRecentSearch(term);
+                setRecentSearches(updated);
+              }}
+            />
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {/* Proximity / Distance Radius */}

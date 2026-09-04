@@ -12,6 +12,8 @@ import {
 import { Logo } from "../components/Logo";
 import { Eyebrow } from "../components/ui/Eyebrow";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "../context/UserContext";
+
 const SLIDES = [
   {
     id: 0,
@@ -60,8 +62,23 @@ const SLIDES = [
 ];
 export const Onboarding: React.FC = () => {
   const navigate = useNavigate();
+  const { user, isAdmin, isOwner, loading } = useUser();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [direction, setDirection] = useState(1);
+
+  // If already logged in, redirect directly to home tab
+  useEffect(() => {
+    if (!loading && user) {
+      if (isAdmin) {
+        navigate("/admin/overview", { replace: true });
+      } else if (isOwner) {
+        navigate("/owner", { replace: true });
+      } else {
+        navigate("/home", { replace: true });
+      }
+    }
+  }, [user, loading, isAdmin, isOwner, navigate]);
+
   /* Preload images for smooth transitions */ useEffect(() => {
     SLIDES.forEach((slide) => {
       const img = new Image();
