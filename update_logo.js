@@ -1,0 +1,52 @@
+const fs = require('fs');
+
+const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background rounded squircle mask / fill -->
+    <clipPath id="squircleClip">
+      <rect x="16" y="16" width="480" height="480" rx="110" ry="110" />
+    </clipPath>
+    
+    <!-- Multi-layer intense Neon Glow Filter -->
+    <filter id="cleanIconBallGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="0" stdDeviation="14" flood-color="#A8FF00" flood-opacity="0.95"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="28" flood-color="#84CC16" flood-opacity="0.75"/>
+    </filter>
+  </defs>
+
+  <!-- Base Dark Squircle Tile (#0D0D0D) -->
+  <rect x="16" y="16" width="480" height="480" rx="110" ry="110" fill="#0D0D0D" />
+
+  <!-- Logo Content Group -->
+  <g transform="translate(10, 20)">
+    <!-- Bold White Letter P in Sora Font Style -->
+    <text
+      x="140"
+      y="380"
+      fill="#FFFFFF"
+      font-family="Sora, system-ui, -apple-system, sans-serif"
+      font-size="340"
+      font-weight="800"
+      letter-spacing="-0.04em"
+    >p</text>
+    
+    <!-- Bouncing Arc Line -->
+    <path 
+      d="M 120 180 Q 200 -10 320 95" 
+      fill="none" 
+      stroke="#A8FF00" 
+      stroke-width="18" 
+      stroke-linecap="round"
+      filter="url(#cleanIconBallGlow)"
+    />
+
+    <!-- Glowing Vibrant Neon Green Circle -->
+    <g transform="translate(320, 95)" filter="url(#cleanIconBallGlow)">
+      <!-- Neon Lime Ball Base -->
+      <circle cx="0" cy="0" r="50" fill="#A8FF00" />
+    </g>
+  </g>
+</svg>`;
+
+fs.writeFileSync('public/logo.svg', svgContent);
+console.log('Logo SVG updated.');

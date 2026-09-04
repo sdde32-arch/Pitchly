@@ -228,15 +228,16 @@ export const Home: React.FC = () => {
     return "Good evening";
   }, []);
 
-  // User First Name
+  // User Full Name
   const firstName = useMemo(() => {
+    let name = "Player";
     if (userProfile?.name) {
-      return userProfile.name.trim().split(" ")[0];
+      name = userProfile.name;
+    } else if (user?.displayName) {
+      name = user.displayName;
     }
-    if (user?.displayName) {
-      return user.displayName.trim().split(" ")[0];
-    }
-    return "Player";
+    // Clean up "Owner " prefix if it was accidentally saved
+    return name.trim().replace(/^owner\s+/i, '').trim();
   }, [userProfile, user]);
 
   // Toggle favorite
