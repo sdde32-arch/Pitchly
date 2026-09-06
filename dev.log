@@ -1,0 +1,6 @@
+
+> footlink@0.1.0 dev
+> tsx server.ts
+
+WebSocket server error: Port is already in use
+Server running on http://0.0.0.0:3000

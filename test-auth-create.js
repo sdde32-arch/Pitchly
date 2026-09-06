@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { readFileSync } from 'fs';
 
 const config = JSON.parse(readFileSync('./firebase-applet-config.json', 'utf-8'));
@@ -8,8 +8,8 @@ const auth = getAuth(app);
 
 async function test() {
   try {
-    await signInWithEmailAndPassword(auth, "test@test.com", "password123");
-    console.log("SUCCESS");
+    const cred = await createUserWithEmailAndPassword(auth, "test.user.123@test.com", "password123");
+    console.log("SUCCESS CREATE", cred.user.uid);
   } catch(e) {
     console.log("FAIL", e.message);
   }

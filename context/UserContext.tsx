@@ -133,9 +133,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
             );
           } else {
             const pendingRole = localStorage.getItem("pitchly_pending_role") as UserRole | null;
+            const pendingName = localStorage.getItem("pitchly_pending_name");
+            const pendingPhone = localStorage.getItem("pitchly_pending_phone");
             const isOwnerRole = pendingRole === "OWNER" || pendingRole === "owner";
             const defaultAvatar = isOwnerRole 
-              ? `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.email?.split("@")[0] || "Owner")}&background=22C55E&color=fff&bold=true`
+              ? `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingName || firebaseUser.email?.split("@")[0] || "Owner")}&background=22C55E&color=fff&bold=true`
               : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
 
             // Randomly assign one of the 20 bubble-head avatars for a delightful new user experience!
@@ -144,12 +146,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 
             let newProfile: UserProfileData = {
               id: firebaseUser.uid,
-              name:
+              name: pendingName ||
                 firebaseUser.displayName ||
                 firebaseUser.email?.split("@")[0] ||
                 "Pitchly User",
               email: firebaseUser.email || "",
-              phone: "",
+              phone: pendingPhone || "",
               avatar: firebaseUser.photoURL || defaultAvatar,
               avatarId: randomAvatarId,
               bio: isOwnerRole ? "Turf Business Owner" : "Ready to play.",

@@ -195,8 +195,8 @@ export const OwnerOverview: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="space-y-4 md:space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="space-y-4 md:space-y-6 w-full overflow-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
           {[1, 2, 3, 4].map(i => (
             <div key={i} className="bg-surface-card rounded-2xl p-4 border border-border-subtle h-28 shimmer-effect space-y-3">
               <div className="flex justify-between items-center">
@@ -295,7 +295,7 @@ export const OwnerOverview: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fadeIn font-sans">
+    <div className="space-y-6 sm:space-y-8 animate-fadeIn font-sans w-full">
       {/* Top Banner with Quick Context */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-card border border-border-subtle rounded-2xl p-4 sm:p-5 shadow-sm">
         <div className="space-y-1">

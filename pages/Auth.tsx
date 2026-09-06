@@ -59,13 +59,16 @@ export const Auth: React.FC = () => {
   // If already authenticated, redirect directly to the designated tab
   useEffect(() => {
     if (!authLoading && user) {
+      let targetRoute = from && from !== "/auth" ? from : null;
       if (isAdmin) {
-        navigate("/admin/overview", { replace: true });
+        if (!targetRoute || !targetRoute.startsWith("/admin")) targetRoute = "/admin/overview";
+        navigate(targetRoute, { replace: true });
       } else if (userIsOwner) {
-        navigate("/owner", { replace: true });
+        if (!targetRoute || targetRoute === "/home" || targetRoute === "/") targetRoute = "/owner";
+        navigate(targetRoute, { replace: true });
       } else {
-        const dest = from && from !== "/auth" ? from : "/home";
-        navigate(dest, { replace: true });
+        if (!targetRoute || targetRoute === "/" || targetRoute === "/owner" || targetRoute.startsWith("/admin")) targetRoute = "/home";
+        navigate(targetRoute, { replace: true });
       }
     }
   }, [user, authLoading, isAdmin, userIsOwner, navigate, from]);
@@ -95,32 +98,57 @@ export const Auth: React.FC = () => {
     return (
       validateEmail(email) &&
       password.length >= 6 &&
-      fullName.trim().length > 2 &&
-      phone.length >= 8
+      fullName.trim().length > 0 &&
+      phone.length >= 0
     );
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isFormValid() || loading || isSubmitting) return;
+    console.log("=== handleSubmit triggered ===");
+    console.log("Mode:", mode);
+    console.log("Form State:", { email, passwordLength: password.length, fullName, phone, isOwner });
+    console.log("Validation States:", {
+      isFormValid: isFormValid(),
+      loading,
+      isSubmitting,
+      validateEmail: validateEmail(email)
+    });
+
+    if (!isFormValid() || loading || isSubmitting) {
+      console.log("handleSubmit returned early. Reason:", {
+        formInvalid: !isFormValid(),
+        isLoading: loading,
+        isCurrentlySubmitting: isSubmitting
+      });
+      return;
+    }
+    
+    console.log("Proceeding with authentication...");
     setLoading(true);
     setIsSubmitting(true);
     setError(null);
     setSuccessMessage(null);
     try {
       if (mode === "SIGN_UP") {
+        console.log("Starting SIGN_UP flow...");
         const photoURL = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=22C55E&color=fff&bold=true`;
         const role = isOwner ? "OWNER" : "PLAYER";
         
         // Save pending role in localStorage to prevent the onAuthStateChanged race condition in UserContext
         localStorage.setItem("pitchly_pending_role", role);
+        localStorage.setItem("pitchly_pending_name", fullName);
+        localStorage.setItem("pitchly_pending_phone", phone);
 
         try {
+          console.log("Calling createUserWithEmailAndPassword...");
           const { user } = await createUserWithEmailAndPassword(
             auth,
             email,
             password
           );
+          console.log("createUserWithEmailAndPassword SUCCESS, UID:", user.uid);
           
+          console.log("Saving user profile to Firestore...");
           await setDoc(doc(db, "users", user.uid), {
             id: user.uid,
             name: fullName,
@@ -132,19 +160,27 @@ export const Auth: React.FC = () => {
             avatarId: `avatar_${String(Math.floor(Math.random() * 20) + 1).padStart(2, "0")}`,
             bio: isOwner ? "Turf Business Owner" : "Football enthusiast",
             createdAt: new Date().toISOString(),
-          });
+          }, { merge: true });
+          console.log("Firestore profile saved successfully.");
           
-          navigate(role === "OWNER" ? "/owner" : "/home", { replace: true });
+          // Navigation is handled by the useEffect above when user context updates.
+        } catch (innerError: any) {
+          console.error("Inner error during SIGN_UP:", innerError);
+          throw innerError;
         } finally {
           // Always clean up the pending role so it doesn't linger or leak, even on signup failure
           localStorage.removeItem("pitchly_pending_role");
+          localStorage.removeItem("pitchly_pending_name");
+          localStorage.removeItem("pitchly_pending_phone");
         }
       } else if (mode === "SIGN_IN") {
+        console.log("Calling signInWithEmailAndPassword...");
         const { user } = await signInWithEmailAndPassword(
           auth,
           email,
           password,
         );
+        console.log("signInWithEmailAndPassword SUCCESS, UID:", user.uid);
         let userRole = "PLAYER";
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -161,20 +197,7 @@ export const Auth: React.FC = () => {
           userRole === "ADMIN" ||
           userRole === "super_admin";
 
-        if (isAdminUser) {
-          if (!targetRoute.startsWith("/admin")) {
-            targetRoute = "/admin/overview";
-          }
-        } else if (targetRoute === "/home" || targetRoute === "/") {
-          if (userRole === "OWNER" || userRole === "owner") {
-            targetRoute = "/owner";
-          } else if (userRole === "staff" || userRole === "STAFF") {
-            targetRoute = "/staff";
-          } else {
-            targetRoute = "/home";
-          }
-        }
-        navigate(targetRoute, { replace: true });
+        // Navigation is handled by the useEffect above when user context updates.
       } else if (mode === "FORGOT_PASSWORD") {
         await sendPasswordResetEmail(auth, email);
         setSuccessMessage("Password reset link sent to your email!");
@@ -218,14 +241,7 @@ export const Auth: React.FC = () => {
         userRole === "ADMIN" ||
         userRole === "super_admin";
 
-      if (isAdminUser) {
-        navigate("/admin/overview", { replace: true });
-      } else if (userRole === "OWNER" || userRole === "owner") {
-        navigate("/owner", { replace: true });
-      } else {
-        const dest = from && from !== "/auth" ? from : "/home";
-        navigate(dest, { replace: true });
-      }
+      // Navigation is handled by the useEffect above when user context updates.
     } catch (err: any) {
       if (
         err.code === "auth/popup-closed-by-user" ||
@@ -392,8 +408,7 @@ export const Auth: React.FC = () => {
                   />
                   <input
                     type="tel"
-                    required
-                    placeholder="Phone Number"
+                    placeholder="Phone Number (Optional)"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-4 pl-12 pr-5 text-[14px] font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"

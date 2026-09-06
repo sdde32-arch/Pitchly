@@ -108,7 +108,7 @@ const PageTransition: React.FC<{ children: React.ReactNode }> = ({ children }) =
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
-      className="w-full h-full"
+      className="h-full w-full flex flex-col items-center justify-center"
     >
       {children}
     </motion.div>
@@ -172,7 +172,8 @@ const AnimatedRoutes: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <div className="h-full w-full overflow-hidden">
+    <div className="h-full w-full flex flex-col items-center justify-center overflow-hidden bg-app-base">
+      <div className="w-full h-full max-w-[480px] relative shadow-2xl overflow-hidden bg-app-base">
       <ErrorBoundary>
         <ThemeProvider>
           <UserProvider>
@@ -197,6 +198,7 @@ const App: React.FC = () => {
           </UserProvider>
         </ThemeProvider>
       </ErrorBoundary>
+      </div>
     </div>
   );
 };

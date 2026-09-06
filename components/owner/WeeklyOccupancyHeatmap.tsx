@@ -268,7 +268,7 @@ export const WeeklyOccupancyHeatmap: React.FC<WeeklyOccupancyHeatmapProps> = ({
   };
 
   return (
-    <div className="bg-surface-card rounded-2xl p-4 sm:p-5 border border-border-subtle space-y-5 shadow-sm font-sans animate-fadeIn">
+    <div className="bg-surface-card rounded-2xl p-4 sm:p-5 border border-border-subtle space-y-5 shadow-sm font-sans animate-fadeIn w-full overflow-hidden">
       {/* Header & Controls Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-border-subtle">
         <div className="space-y-1">

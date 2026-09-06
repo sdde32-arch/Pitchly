@@ -236,7 +236,7 @@ export const BookingManager: React.FC = () => {
       : unpaidBookings;
 
   return (
-    <div className="space-y-6 animate-fadeIn font-sans">
+    <div className="space-y-6 animate-fadeIn font-sans w-full">
       {/* Dynamic Toast Feedback Banner */}
       {toast && (
         <div

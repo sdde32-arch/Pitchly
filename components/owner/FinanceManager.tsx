@@ -112,7 +112,7 @@ export const FinanceManager: React.FC = () => {
     Object.entries(daySales).sort((a, b) => b[1] - a[1])[0]?.[0] || "Sat";
 
   return (
-    <div className="space-y-6 animate-fadeIn font-sans">
+    <div className="space-y-6 animate-fadeIn font-sans w-full">
       {/* Top Financial Bento Grid: 2 columns on Laptop, stacked on Tablet/Mobile */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left Hero: Monthly Revenue & Category Breakdown (7 cols) */}

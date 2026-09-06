@@ -25,7 +25,7 @@ async function startServer() {
       }));
 
       const response = await ai.models.generateContent({
-        model: req.body.model === 'claude-sonnet-4-20250514' ? 'gemini-2.5-flash' : (req.body.model || 'gemini-2.5-flash'),
+        model: req.body.model === 'claude-sonnet-4-20250514' ? 'gemini-3.6-flash' : (req.body.model || 'gemini-3.6-flash'),
         contents,
         config: {
             systemInstruction: req.body.system,

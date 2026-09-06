@@ -134,7 +134,7 @@ export const BusinessSettings: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fadeIn font-sans max-w-4xl">
+    <div className="space-y-6 sm:space-y-8 animate-fadeIn font-sans max-w-4xl w-full">
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-card border border-border-subtle rounded-2xl p-4 sm:p-5 shadow-sm">
         <div>

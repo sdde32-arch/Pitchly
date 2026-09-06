@@ -63,7 +63,7 @@ export const StaffManager: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn font-sans">
+    <div className="space-y-6 animate-fadeIn font-sans w-full">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-card border border-border-subtle rounded-2xl p-4 sm:p-5 shadow-sm">
         <div>

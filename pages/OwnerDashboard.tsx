@@ -67,7 +67,7 @@ export const OwnerDashboard: React.FC = () => {
 
   return (
     <Layout>
-      <div className="min-h-[100dvh] bg-app-base text-text-primary font-sans">
+      <div className="w-full bg-app-base text-text-primary font-sans">
         {/* Sticky Sub-Header with Navigation Tabs */}
         <div className="sticky top-0 z-20 bg-app-base/95 backdrop-blur-md border-b border-border-subtle px-3 sm:px-4 md:px-6 pt-3 pb-2">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -93,7 +93,6 @@ export const OwnerDashboard: React.FC = () => {
                 );
               })}
             </div>
-
             {/* Quick Action Button */}
             <div className="hidden sm:flex items-center gap-2 shrink-0">
               <button
@@ -108,8 +107,8 @@ export const OwnerDashboard: React.FC = () => {
         </div>
 
         {/* Tab Content Container */}
-        <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-6 pb-28">
-          <div className="animate-fadeIn">
+        <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-6 pb-20 sm:pb-8">
+          <div className="animate-fadeIn w-full">
             {renderTabContent()}
           </div>
         </main>

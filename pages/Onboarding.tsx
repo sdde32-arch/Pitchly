@@ -85,7 +85,7 @@ export const Onboarding: React.FC = () => {
   const Icon = activeSlide.icon;
 
   return (
-    <div className="relative flex min-h-[100dvh] w-full flex-col overflow-hidden bg-app-base text-text-primary selection:bg-primary-lime/30">
+    <div className="relative flex h-[100dvh] w-full flex-col overflow-x-hidden overflow-y-auto bg-app-base text-text-primary selection:bg-primary-lime/30">
       {/* Visual Background Elements */}
       <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary-lime/5 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
@@ -104,10 +104,10 @@ export const Onboarding: React.FC = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="relative z-20 flex flex-col flex-1 w-full max-w-xl mx-auto p-6 pb-8 pt-24 sm:pt-32 justify-center">
+      <div className="relative z-20 flex flex-col flex-1 w-full max-w-xl mx-auto p-6 pb-6 pt-20 sm:pt-28 justify-center min-h-max">
         
         {/* Abstract Icon/Graphic Container replacing Image */}
-        <div className="w-full flex items-center justify-center mb-10 sm:mb-12 h-48 sm:h-64 relative">
+        <div className="w-full flex items-center justify-center mb-6 sm:mb-10 h-32 sm:h-48 relative shrink-0">
           {SLIDES.map((slide, index) => (
             <div
               key={slide.id}
@@ -115,17 +115,17 @@ export const Onboarding: React.FC = () => {
                 currentSlide === index ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
               }`}
             >
-               <div className={`w-32 h-32 sm:w-40 sm:h-40 rounded-[2.5rem] ${slide.bgColor} ${slide.color} flex items-center justify-center shadow-lg shadow-${slide.color.replace('text-', '')}/10 border border-white/5`}>
-                 <slide.icon size={64} strokeWidth={1.5} />
+               <div className={`w-28 h-28 sm:w-36 sm:h-36 rounded-[2rem] sm:rounded-[2.5rem] ${slide.bgColor} ${slide.color} flex items-center justify-center shadow-lg shadow-${slide.color.replace('text-', '')}/10 border border-white/5`}>
+                 <slide.icon size={52} strokeWidth={1.5} className="sm:w-16 sm:h-16" />
                </div>
             </div>
           ))}
         </div>
 
         {/* Slide Content */}
-        <div className="flex-1 min-h-[220px]">
+        <div className="flex-1 flex flex-col justify-center">
           {/* Pillar Badge */}
-          <div className="overflow-hidden mb-5 h-7">
+          <div className="overflow-hidden mb-4 h-7 shrink-0">
             <div
               key={`pillar-${currentSlide}`}
               className={`inline-flex items-center px-3 py-1 ${activeSlide.bgColor} ${activeSlide.color} border ${activeSlide.borderColor} rounded-full text-[10px] font-black uppercase tracking-[0.2em] animate-slideUp shadow-sm`}
@@ -137,7 +137,7 @@ export const Onboarding: React.FC = () => {
           {/* Title */}
           <h1
             key={`title-${currentSlide}`}
-            className="text-3xl sm:text-[40px] font-black text-text-primary leading-[1.1] tracking-tight mb-4 animate-slideUp font-display"
+            className="text-3xl sm:text-[40px] font-black text-text-primary leading-[1.1] tracking-tight mb-3 animate-slideUp font-display"
           >
             {activeSlide.title}
           </h1>
@@ -145,13 +145,13 @@ export const Onboarding: React.FC = () => {
           {/* Description */}
           <p
             key={`desc-${currentSlide}`}
-            className="text-text-secondary text-[15px] sm:text-base font-medium leading-relaxed mb-8 animate-slideUp delay-75 max-w-md"
+            className="text-text-secondary text-[14px] sm:text-base font-medium leading-relaxed mb-6 animate-slideUp delay-75 max-w-md"
           >
             {activeSlide.desc}
           </p>
           
           {/* Features List */}
-          <div className="space-y-4 mb-10">
+          <div className="space-y-3 mb-6 shrink-0">
             {activeSlide.features.map((feature, i) => (
               <div
                 key={`${currentSlide}-feat-${i}`}
@@ -170,7 +170,7 @@ export const Onboarding: React.FC = () => {
         </div>
 
         {/* Bottom Interaction Bar */}
-        <div className="flex flex-col gap-6 mt-8">
+        <div className="flex flex-col gap-5 mt-auto pt-4 shrink-0">
           {/* Indicators - Dot Style */}
           <div className="flex items-center gap-2.5">
             {SLIDES.map((_, index) => (
@@ -184,10 +184,10 @@ export const Onboarding: React.FC = () => {
           </div>
           
           {/* Action Button */}
-          <div className="flex items-center safe-bottom w-full">
+          <div className="flex items-center safe-bottom w-full pb-2">
             <button
               onClick={nextSlide}
-              className="group w-full flex h-[56px] items-center justify-center gap-3 rounded-full px-6 text-[15px] font-black uppercase tracking-wide text-accent-text shadow-xl shadow-primary-lime/20 transition-all active:scale-[0.98] bg-primary-lime hover:bg-[#15803D] border border-[#16A34A] cursor-pointer"
+              className="group w-full flex h-[52px] sm:h-[56px] items-center justify-center gap-3 rounded-full px-6 text-[15px] font-black uppercase tracking-wide text-accent-text shadow-xl shadow-primary-lime/20 transition-all active:scale-[0.98] bg-primary-lime hover:bg-[#15803D] border border-[#16A34A] cursor-pointer"
             >
               <span>
                 {currentSlide === SLIDES.length - 1
