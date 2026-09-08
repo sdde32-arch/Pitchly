@@ -275,9 +275,9 @@ export const BookingManager: React.FC = () => {
         <div className="flex items-center gap-1.5 p-1 bg-surface-raised rounded-xl w-full sm:w-auto">
           <button
             onClick={() => setViewMode("bookings")}
-            className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-extrabold rounded-lg transition-all text-center select-none active:scale-95 cursor-pointer ${
+            className={`flex-1 sm:flex-initial px-4 h-9 text-xs font-extrabold rounded-lg transition-all text-center select-none active:scale-95 cursor-pointer flex items-center justify-center ${
               viewMode === "bookings"
-                ? "bg-primary-lime text-accent-text shadow-sm shadow-primary-lime/20"
+                ? "bg-primary-lime text-black shadow-sm"
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
@@ -285,16 +285,16 @@ export const BookingManager: React.FC = () => {
           </button>
           <button
             onClick={() => setViewMode("payments")}
-            className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-extrabold rounded-lg transition-all text-center select-none active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`flex-1 sm:flex-initial px-4 h-9 text-xs font-extrabold rounded-lg transition-all text-center select-none active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 ${
               viewMode === "payments"
-                ? "bg-primary-lime text-accent-text shadow-sm shadow-primary-lime/20"
+                ? "bg-primary-lime text-black shadow-sm"
                 : "text-text-secondary hover:text-text-primary"
             }`}
           >
             <span>Payment Records</span>
             {screenshotSubmittedBookings.length > 0 && (
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                viewMode === "payments" ? "bg-accent-text text-primary-lime" : "bg-[#38BDF8] text-white"
+                viewMode === "payments" ? "bg-black text-primary-lime" : "bg-[#38BDF8] text-white"
               }`}>
                 {screenshotSubmittedBookings.length}
               </span>
@@ -305,7 +305,7 @@ export const BookingManager: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setThisMonthOnly(!thisMonthOnly)}
-            className={`flex-1 sm:flex-initial px-3.5 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 border ${
+            className={`flex-1 sm:flex-initial px-3.5 h-9 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border cursor-pointer active:scale-95 ${
               thisMonthOnly
                 ? "bg-primary-lime/15 border-primary-lime text-primary-lime"
                 : "bg-surface-raised border-border-subtle text-text-secondary hover:text-text-primary"
@@ -322,24 +322,24 @@ export const BookingManager: React.FC = () => {
         <div className="space-y-4 sm:space-y-6">
           {/* Quick Metrics Bar: 1 col on mobile, 3 cols on tablet/desktop */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
-            <div className="bg-surface-card rounded-2xl p-3 sm:p-4 text-center border border-border-subtle shadow-sm flex sm:flex-col items-center justify-between sm:justify-center px-4">
-              <p className="text-[10px] sm:text-[11px] font-bold text-text-secondary uppercase tracking-wider order-1 sm:order-2 sm:mt-0.5">
+            <div className="bg-surface-card rounded-2xl p-4 sm:p-5 text-center border border-border-subtle shadow-sm flex sm:flex-col items-center justify-between sm:justify-center">
+              <p className="text-[10px] sm:text-[11px] font-bold text-text-secondary uppercase tracking-wider order-1 sm:order-2 sm:mt-1">
                 Pending Bookings
               </p>
               <p className="text-xl sm:text-2xl font-black text-[#38BDF8] order-2 sm:order-1">
                 {bookings.filter((b) => b.status === "PENDING" || b.status === BookingStatus.PENDING_PAYMENT).length}
               </p>
             </div>
-            <div className="bg-surface-card rounded-2xl p-3 sm:p-4 text-center border border-border-subtle shadow-sm flex sm:flex-col items-center justify-between sm:justify-center px-4">
-              <p className="text-[10px] sm:text-[11px] font-bold text-text-secondary uppercase tracking-wider order-1 sm:order-2 sm:mt-0.5">
+            <div className="bg-surface-card rounded-2xl p-4 sm:p-5 text-center border border-border-subtle shadow-sm flex sm:flex-col items-center justify-between sm:justify-center">
+              <p className="text-[10px] sm:text-[11px] font-bold text-text-secondary uppercase tracking-wider order-1 sm:order-2 sm:mt-1">
                 Confirmed Matches
               </p>
               <p className="text-xl sm:text-2xl font-black text-[#22C55E] order-2 sm:order-1">
                 {bookings.filter((b) => b.status === "CONFIRMED" || b.status === "CHECKED_IN").length}
               </p>
             </div>
-            <div className="bg-surface-card rounded-2xl p-3 sm:p-4 text-center border border-border-subtle shadow-sm flex sm:flex-col items-center justify-between sm:justify-center px-4">
-              <p className="text-[10px] sm:text-[11px] font-bold text-text-secondary uppercase tracking-wider order-1 sm:order-2 sm:mt-0.5">
+            <div className="bg-surface-card rounded-2xl p-4 sm:p-5 text-center border border-border-subtle shadow-sm flex sm:flex-col items-center justify-between sm:justify-center">
+              <p className="text-[10px] sm:text-[11px] font-bold text-text-secondary uppercase tracking-wider order-1 sm:order-2 sm:mt-1">
                 Cancelled / Rejected
               </p>
               <p className="text-xl sm:text-2xl font-black text-[#EF4444] order-2 sm:order-1">
@@ -364,9 +364,9 @@ export const BookingManager: React.FC = () => {
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-3 sm:px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
+                  className={`px-3.5 h-9 text-xs font-bold rounded-lg transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
                     filter === f 
-                      ? "bg-text-primary text-app-base font-extrabold shadow-sm" 
+                      ? "bg-primary-lime text-black font-extrabold shadow-sm" 
                       : "bg-surface-card text-text-secondary hover:text-text-primary border border-border-subtle"
                   }`}
                 >
@@ -385,7 +385,7 @@ export const BookingManager: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search player or ID..."
-                className="w-full bg-surface-card border border-border-subtle text-text-primary rounded-xl pl-9 pr-4 py-2 text-xs font-semibold outline-none focus:border-border-prominent transition-all placeholder:text-text-tertiary min-h-[40px]"
+                className="w-full bg-surface-card border border-border-subtle text-text-primary rounded-lg pl-9 pr-4 h-9 text-xs font-semibold outline-none focus:border-border-prominent transition-all placeholder:text-text-tertiary"
               />
               {searchQuery && (
                 <button
@@ -532,7 +532,7 @@ export const BookingManager: React.FC = () => {
                             <button
                               onClick={() => handleAction(booking, "CONFIRMED")}
                               disabled={processingId === booking.id}
-                              className="px-4 py-2 bg-[#22C55E] hover:bg-[#22C55E]/90 text-white rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-sm shadow-[#22C55E]/20 cursor-pointer active:scale-95 disabled:opacity-50 min-h-[38px]"
+                              className="h-9 px-4 bg-[#22C55E] hover:bg-[#22C55E]/90 text-white rounded-lg text-xs font-black flex items-center gap-1.5 transition-all shadow-sm shadow-[#22C55E]/20 cursor-pointer active:scale-95 disabled:opacity-50"
                             >
                               {processingId === booking.id ? (
                                 <>
@@ -549,7 +549,7 @@ export const BookingManager: React.FC = () => {
                             <button
                               onClick={() => handleAction(booking, "CANCELLED")}
                               disabled={processingId === booking.id}
-                              className="px-3 py-2 bg-surface-raised hover:bg-[#EF4444]/10 border border-border-subtle hover:border-[#EF4444]/30 text-[#EF4444] rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95 min-h-[38px] disabled:opacity-50"
+                              className="h-9 px-3.5 bg-surface-raised hover:bg-[#EF4444]/10 border border-border-subtle hover:border-[#EF4444]/30 text-[#EF4444] rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
                             >
                               {processingId === booking.id ? (
                                 <Loader2 size={14} className="animate-spin" />
@@ -566,7 +566,7 @@ export const BookingManager: React.FC = () => {
                         {/* Confirmed Match State */}
                         {isConfirmed && (
                           <div className="flex items-center gap-2 flex-wrap justify-end">
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#22C55E]/15 border border-[#22C55E]/40 text-[#22C55E] text-xs font-black rounded-xl">
+                            <div className="flex items-center gap-1.5 px-3 h-9 bg-[#22C55E]/15 border border-[#22C55E]/40 text-[#22C55E] text-xs font-black rounded-lg">
                               <CheckCircle2 size={14} />
                               <span>{booking.status === "CHECKED_IN" ? "Checked In" : "Confirmed"}</span>
                             </div>
@@ -575,7 +575,7 @@ export const BookingManager: React.FC = () => {
                               <button
                                 onClick={() => handleAction(booking, "CHECKED_IN")}
                                 disabled={processingId === booking.id}
-                                className="px-3 py-1.5 bg-surface-raised hover:bg-primary-lime/20 border border-border-subtle hover:border-primary-lime/40 text-text-secondary hover:text-primary-lime text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 min-h-[32px]"
+                                className="px-3 h-9 bg-surface-raised hover:bg-primary-lime/20 border border-border-subtle hover:border-primary-lime/40 text-text-secondary hover:text-primary-lime text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 active:scale-95"
                                 title="Check in player when they arrive at pitch"
                               >
                                 <ShieldCheck size={13} />
@@ -587,7 +587,7 @@ export const BookingManager: React.FC = () => {
                               <button
                                 onClick={() => handleMarkPaid(booking)}
                                 disabled={processingId === booking.id}
-                                className="px-3 py-1.5 bg-surface-raised hover:bg-[#22C55E]/20 border border-border-subtle hover:border-[#22C55E]/40 text-text-secondary hover:text-[#22C55E] text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 min-h-[32px]"
+                                className="px-3 h-9 bg-surface-raised hover:bg-[#22C55E]/20 border border-border-subtle hover:border-[#22C55E]/40 text-text-secondary hover:text-[#22C55E] text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 active:scale-95"
                                 title="Mark match as paid in cash"
                               >
                                 <DollarSign size={13} />
@@ -599,7 +599,7 @@ export const BookingManager: React.FC = () => {
 
                         {/* Cancelled / Rejected State */}
                         {isCancelled && (
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#EF4444]/15 border border-[#EF4444]/40 text-[#EF4444] text-xs font-bold rounded-xl">
+                          <div className="flex items-center gap-1.5 px-3 h-9 bg-[#EF4444]/15 border border-[#EF4444]/40 text-[#EF4444] text-xs font-bold rounded-lg">
                             <X size={14} />
                             <span>Declined</span>
                           </div>
@@ -611,7 +611,7 @@ export const BookingManager: React.FC = () => {
                             {booking.paymentProofUrl && (
                               <button
                                 onClick={() => setPreviewReceiptUrl(booking.paymentProofUrl!)}
-                                className="px-2.5 py-2 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-xl text-xs font-bold text-[#38BDF8] flex items-center gap-1.5 min-h-[38px]"
+                                className="px-3 h-9 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-lg text-xs font-bold text-[#38BDF8] flex items-center gap-1.5 active:scale-95"
                               >
                                 <Image size={14} />
                                 <span>Receipt</span>
@@ -621,7 +621,7 @@ export const BookingManager: React.FC = () => {
                             <button
                               onClick={() => handleAction(booking, "CONFIRMED")}
                               disabled={processingId === booking.id}
-                              className="px-3.5 py-2 bg-primary-lime hover:bg-[#96E600] text-accent-text font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50 min-h-[38px]"
+                              className="px-3.5 h-9 bg-primary-lime hover:bg-[#96E600] text-black font-extrabold rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50 shadow-sm"
                             >
                               {processingId === booking.id ? (
                                 <Loader2 size={14} className="animate-spin" />
@@ -640,12 +640,12 @@ export const BookingManager: React.FC = () => {
                                   value={rejectReason}
                                   onChange={(e) => setRejectReason(e.target.value)}
                                   placeholder="Reason..."
-                                  className="bg-surface-raised text-text-primary text-xs px-2.5 py-1.5 rounded-lg border border-border-subtle outline-none w-28"
+                                  className="bg-surface-raised text-text-primary text-xs px-2.5 h-9 rounded-lg border border-border-subtle outline-none w-28"
                                 />
                                 <button
                                   onClick={() => handleAction(booking, "REJECTED")}
                                   disabled={!rejectReason}
-                                  className="px-2.5 py-1.5 bg-[#EF4444] text-white text-xs font-bold rounded-lg"
+                                  className="px-2.5 h-9 bg-[#EF4444] text-white text-xs font-bold rounded-lg cursor-pointer"
                                 >
                                   OK
                                 </button>
@@ -654,7 +654,7 @@ export const BookingManager: React.FC = () => {
                                     setRejectingId(null);
                                     setRejectReason("");
                                   }}
-                                  className="p-1.5 text-text-tertiary hover:text-text-primary"
+                                  className="p-1.5 text-text-tertiary hover:text-text-primary cursor-pointer"
                                 >
                                   <X size={14} />
                                 </button>
@@ -663,7 +663,7 @@ export const BookingManager: React.FC = () => {
                               <button
                                 onClick={() => setRejectingId(booking.id)}
                                 disabled={processingId === booking.id}
-                                className="px-3 py-2 bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30 rounded-xl text-xs font-bold hover:bg-[#EF4444]/20 min-h-[38px]"
+                                className="px-3 h-9 bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30 rounded-lg text-xs font-bold hover:bg-[#EF4444]/20 cursor-pointer active:scale-95"
                               >
                                 Reject
                               </button>
@@ -832,8 +832,8 @@ export const BookingManager: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-border-subtle text-xs gap-2">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                    <div className="flex items-center justify-between pt-2.5 border-t border-border-subtle text-xs gap-2">
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
                         booking.paymentStatus === "PAID"
                           ? "bg-[#22C55E]/15 text-[#22C55E]"
                           : booking.paymentStatus === "SUBMITTED"
@@ -847,7 +847,7 @@ export const BookingManager: React.FC = () => {
                         {booking.paymentProofUrl && (
                           <button
                             onClick={() => setPreviewReceiptUrl(booking.paymentProofUrl!)}
-                            className="px-3 py-1.5 bg-surface-raised hover:bg-border-subtle border border-border-subtle text-[#38BDF8] rounded-lg text-xs font-bold flex items-center gap-1"
+                            className="px-3 h-8 bg-surface-raised hover:bg-border-subtle border border-border-subtle text-[#38BDF8] rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer active:scale-95"
                           >
                             <Image size={13} />
                             <span>View MoMo Screenshot</span>
@@ -858,7 +858,7 @@ export const BookingManager: React.FC = () => {
                           <button
                             onClick={() => handleAction(booking, "CONFIRMED")}
                             disabled={processingId === booking.id}
-                            className="px-3 py-1.5 bg-primary-lime text-accent-text font-bold rounded-lg text-xs flex items-center gap-1 active:scale-95"
+                            className="px-3.5 h-8 bg-primary-lime text-black font-extrabold rounded-lg text-xs flex items-center gap-1 active:scale-95 cursor-pointer shadow-sm"
                           >
                             {processingId === booking.id ? (
                               <Loader2 size={13} className="animate-spin" />

@@ -10,6 +10,7 @@ import { InteractiveWalkthroughProvider } from './context/InteractiveWalkthrough
 import { InteractiveWalkthroughOverlay } from './components/onboarding/InteractiveWalkthroughOverlay';
 import { MatchReminderProvider } from './context/MatchReminderContext';
 import { MatchReminderToast } from './components/MatchReminderToast';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { useMatchReminders } from './hooks/useMatchReminders';
 import { RequireAuth, RequireAdmin, RequireOwner } from './components/RouteGuards';
 import { Loader2 } from 'lucide-react';
@@ -108,7 +109,7 @@ const PageTransition: React.FC<{ children: React.ReactNode }> = ({ children }) =
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
-      className="h-full w-full flex flex-col items-center justify-center"
+      className="h-full w-full"
     >
       {children}
     </motion.div>
@@ -131,6 +132,7 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/home" element={<RequireAuth><PageTransition><Home /></PageTransition></RequireAuth>} />
         <Route path="/turf/:id" element={<RequireAuth blockAdmin><PageTransition><TurfDetail /></PageTransition></RequireAuth>} />
         <Route path="/turf/:id/book" element={<RequireAuth blockAdmin><PageTransition><BookPitch /></PageTransition></RequireAuth>} />
+        <Route path="/checkout/:id" element={<RequireAuth blockAdmin><PageTransition><BookPitch /></PageTransition></RequireAuth>} />
         <Route path="/explore-map" element={<RequireAuth><PageTransition><ExploreMap /></PageTransition></RequireAuth>} />
         <Route path="/teams" element={<RequireAuth><PageTransition><Teams /></PageTransition></RequireAuth>} />
         <Route path="/invitations" element={<RequireAuth><PageTransition><Invitations /></PageTransition></RequireAuth>} />
@@ -172,8 +174,7 @@ const AnimatedRoutes: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <div className="h-full w-full flex flex-col items-center justify-center overflow-hidden bg-app-base">
-      <div className="w-full h-full max-w-[480px] relative shadow-2xl overflow-hidden bg-app-base">
+    <div className="h-full w-full bg-app-base overflow-hidden">
       <ErrorBoundary>
         <ThemeProvider>
           <UserProvider>
@@ -190,6 +191,7 @@ const App: React.FC = () => {
                       <AnimatedRoutes />
                       <InteractiveWalkthroughOverlay />
                       <MatchReminderToast />
+                      <OfflineIndicator />
                     </InteractiveWalkthroughProvider>
                   </HashRouter>
                 </PWAProvider>
@@ -198,7 +200,6 @@ const App: React.FC = () => {
           </UserProvider>
         </ThemeProvider>
       </ErrorBoundary>
-      </div>
     </div>
   );
 };

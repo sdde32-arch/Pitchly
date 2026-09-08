@@ -233,7 +233,7 @@ export const ManagePitches: React.FC = () => {
                   </div>
 
                   {/* Card Body */}
-                  <div className="p-4 space-y-3">
+                  <div className="p-4 sm:p-5 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-text-secondary font-medium">Rate / Hour</span>
                       <span className="text-sm font-extrabold text-text-primary">
@@ -242,13 +242,13 @@ export const ManagePitches: React.FC = () => {
                     </div>
 
                     {pitch.status === 'REJECTED' && pitch.rejectionReason && (
-                      <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl p-3 text-xs text-[#EF4444] space-y-1">
+                      <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg p-3 text-xs text-[#EF4444] space-y-1">
                         <p className="font-extrabold">Action needed:</p>
                         <p className="leading-relaxed">{pitch.rejectionReason}</p>
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between text-xs text-text-tertiary pt-2 border-t border-border-subtle">
+                    <div className="flex items-center justify-between text-xs text-text-tertiary pt-2.5 border-t border-border-subtle">
                       <div className="flex items-center gap-1">
                         <Clock size={12} />
                         <span>{pitch.openingHour} – {pitch.closingHour}</span>
@@ -259,17 +259,17 @@ export const ManagePitches: React.FC = () => {
                 </div>
 
                 {/* Card Footer Actions */}
-                <div className="p-3 bg-surface-raised/60 border-t border-border-subtle flex items-center gap-2">
+                <div className="p-3 sm:p-3.5 bg-surface-raised/40 border-t border-border-subtle flex items-center gap-2">
                   <button
                     onClick={() => navigate(`/owner/edit-pitch/${pitch.id}`)}
-                    className="flex-1 py-2 bg-surface-card hover:bg-surface-raised border border-border-subtle text-text-primary rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                    className="flex-1 h-9 bg-surface-card hover:bg-surface-raised border border-border-subtle text-text-primary rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
                   >
                     <Edit3 size={13} />
                     <span>Edit Pitch</span>
                   </button>
                   <button
                     onClick={() => navigate('/owner?tab=Dashboard')}
-                    className="py-2 px-3 bg-primary-lime/10 hover:bg-primary-lime/20 text-primary-lime border border-primary-lime/30 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer"
+                    className="h-9 px-3.5 bg-primary-lime/10 hover:bg-primary-lime/20 text-primary-lime border border-primary-lime/30 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer"
                     title="Manage Slots"
                   >
                     <Calendar size={13} />

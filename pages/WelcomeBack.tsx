@@ -50,8 +50,11 @@ export const WelcomeBack: React.FC = () => {
     }
   };
   return (
-    <div className="min-h-[100dvh] bg-slate-100 dark:bg-[#0e0f12] flex flex-col items-center justify-center p-4 animate-fadeIn font-body overflow-hidden relative">
-      <div className="max-w-sm w-full text-center relative z-10 bg-white dark:bg-[#14151a] p-4 sm:p-10 rounded-[16px] border border-slate-200 dark:border-white/10 shadow-xl">
+    <div
+      className="fixed inset-0 h-full w-full bg-slate-100 dark:bg-[#0e0f12] overflow-y-auto overflow-x-hidden p-4 sm:p-8 animate-fadeIn font-body relative"
+      style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+    >
+      <div className="max-w-sm w-full text-center mx-auto my-auto py-8 relative z-10 bg-white dark:bg-[#14151a] p-4 sm:p-10 rounded-[16px] border border-slate-200 dark:border-white/10 shadow-xl">
         <div className="flex justify-center mb-10">
           <Logo
             size={64}

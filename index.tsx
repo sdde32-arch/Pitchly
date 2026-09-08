@@ -3,19 +3,24 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { autoSeedIfEmpty } from './utils/seedTurfs';
 import { autoSeedAdmin } from './utils/seedAdmin';
+import { registerSW } from 'virtual:pwa-register';
 
 autoSeedIfEmpty().catch(console.warn);
 autoSeedAdmin().catch(console.warn);
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then((reg) => {
-      console.log('[PWA] Service Worker registered successfully:', reg.scope);
-    }).catch((err) => {
-      console.warn('[PWA] Service Worker registration failed:', err);
-    });
-  });
-}
+// Register service worker with auto update support
+registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    console.log('[PWA] New content available, service worker ready to update.');
+  },
+  onOfflineReady() {
+    console.log('[PWA] App ready to work offline with service worker caching.');
+  },
+  onRegisterError(error) {
+    console.warn('[PWA] Service worker registration error:', error);
+  },
+});
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

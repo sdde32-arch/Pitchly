@@ -258,9 +258,9 @@ export const FinanceManager: React.FC = () => {
           </div>
 
           {/* Request Payout Module */}
-          <div className="bg-surface-card rounded-2xl p-4 border border-border-subtle shadow-sm space-y-3">
+          <div className="bg-surface-card rounded-2xl p-5 border border-border-subtle shadow-sm space-y-3.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-text-primary">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-text-primary">
                 Instant Payout Request
               </span>
               <span className="text-[11px] text-text-tertiary font-medium">
@@ -269,8 +269,8 @@ export const FinanceManager: React.FC = () => {
             </div>
 
             {payoutSuccess && (
-              <div className="p-2.5 rounded-xl bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-xs font-bold flex items-center gap-2 animate-fadeIn">
-                <CheckCircle2 size={15} />
+              <div className="p-3 rounded-lg bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-xs font-bold flex items-center gap-2 animate-fadeIn">
+                <CheckCircle2 size={16} />
                 <span>Payout request submitted successfully!</span>
               </div>
             )}
@@ -304,12 +304,12 @@ export const FinanceManager: React.FC = () => {
                 value={payoutAmount}
                 onChange={(e) => setPayoutAmount(e.target.value)}
                 placeholder={`Max: UGX ${(balance || 0).toLocaleString()}`}
-                className="flex-1 bg-surface-raised border border-border-subtle text-text-primary rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none focus:border-[#38BDF8] placeholder:text-text-tertiary min-h-[42px]"
+                className="flex-1 bg-surface-raised border border-border-subtle text-text-primary rounded-lg px-3.5 h-11 text-xs font-bold outline-none focus:border-border-prominent placeholder:text-text-tertiary"
               />
               <button
                 onClick={() => handleRequestPayout()}
                 disabled={requesting || !payoutAmount || Number(payoutAmount) <= 0}
-                className="px-4 py-2.5 bg-primary-lime hover:bg-[#96E600] text-accent-text font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:grayscale transition-all active:scale-95 cursor-pointer min-h-[42px] shrink-0"
+                className="px-4 h-11 bg-primary-lime hover:bg-[#96E600] text-black font-extrabold text-xs rounded-lg flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:grayscale transition-all active:scale-95 cursor-pointer shrink-0 shadow-sm"
               >
                 {requesting ? (
                   <Loader2 size={15} className="animate-spin" />
@@ -327,12 +327,12 @@ export const FinanceManager: React.FC = () => {
 
       {/* Transactions & Payouts Tabs */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2 border-b border-border-subtle pb-2">
+        <div className="flex items-center gap-2 border-b border-border-subtle pb-3">
           <button
             onClick={() => setActiveTab("transactions")}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === "transactions"
-                ? "bg-primary-lime text-accent-text font-extrabold shadow-sm"
+                ? "bg-primary-lime text-black font-extrabold shadow-sm"
                 : "bg-surface-card text-text-secondary hover:text-text-primary border border-border-subtle"
             }`}
           >
@@ -342,7 +342,7 @@ export const FinanceManager: React.FC = () => {
             onClick={() => setActiveTab("payouts")}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === "payouts"
-                ? "bg-primary-lime text-accent-text font-extrabold shadow-sm"
+                ? "bg-primary-lime text-black font-extrabold shadow-sm"
                 : "bg-surface-card text-text-secondary hover:text-text-primary border border-border-subtle"
             }`}
           >
@@ -367,7 +367,7 @@ export const FinanceManager: React.FC = () => {
                   className="bg-surface-card rounded-xl p-3.5 sm:p-4 flex items-center justify-between gap-3 border border-border-subtle hover:border-border-prominent transition-all shadow-xs"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 bg-[#22C55E]/10 text-[#22C55E] rounded-xl flex items-center justify-center border border-[#22C55E]/20 shrink-0">
+                    <div className="w-10 h-10 bg-[#22C55E]/10 text-[#22C55E] rounded-lg flex items-center justify-center border border-[#22C55E]/20 shrink-0">
                       <ArrowDownLeft size={18} />
                     </div>
                     <div className="min-w-0">
@@ -411,7 +411,7 @@ export const FinanceManager: React.FC = () => {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center border shrink-0 ${
                         payout.status === "PAID"
                           ? "bg-[#22C55E]/10 border-[#22C55E]/30 text-[#22C55E]"
                           : "bg-[#38BDF8]/10 border-[#38BDF8]/30 text-[#38BDF8]"

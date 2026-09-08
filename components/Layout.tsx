@@ -2,6 +2,7 @@ import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Calendar,
+  CalendarCheck,
   User,
   Home,
   LayoutDashboard,
@@ -9,17 +10,26 @@ import {
   Shield,
   LogOut,
   Settings,
+  Building2,
+  Wallet,
+  Users,
+  Mail,
+  Compass,
   Map as MapIcon,
   ClipboardCheck,
   Presentation,
   ExternalLink,
+  ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
+import { useInteractiveWalkthrough } from "../context/InteractiveWalkthroughContext";
 import { PlayerAvatar } from "./PlayerAvatars";
 import { useNavigate, useLocation } from "react-router-dom";
 import { RoleOnboarding } from "./onboarding/RoleOnboarding";
 import { Logo } from "./Logo";
 import { UpcomingMatchesBell } from "./UpcomingMatchesBell";
+import { PWAInstallButton } from "./PWAInstallButton";
 import { collection, query, where, onSnapshot, doc, setDoc, updateDoc } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { slotAlertService } from "../services/slotAlertService";
@@ -68,6 +78,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     user,
     signOut,
   } = useUser();
+  const { openWalkthrough } = useInteractiveWalkthrough();
   const [showOnboarding, setShowOnboarding] = React.useState(false);
   const [slotNotifs, setSlotNotifs] = React.useState<any[]>([]);
   const [activeSubs, setActiveSubs] = React.useState<any[]>([]);
@@ -314,52 +325,63 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     );
   };
   const playerLinks = [
-    { path: "/home", search: "", label: "Home", icon: "home" },
-    { path: "/explore-map", search: "", label: "Explore", icon: "explore" },
-    { path: "/invitations", search: "", label: "Proposals", icon: "mail" },
-    { path: "/bookings", search: "", label: "Bookings", icon: "calendar_today" },
-    { path: "/teams", search: "", label: "Squads", icon: "groups" },
-    { path: "/profile", search: "", label: "Profile", icon: "person" },
+    { path: "/home", search: "", label: "Home", icon: Home },
+    { path: "/explore-map", search: "", label: "Explore", icon: Compass },
+    { path: "/invitations", search: "", label: "Proposals", icon: Mail },
+    { path: "/bookings", search: "", label: "Bookings", icon: Calendar },
+    { path: "/teams", search: "", label: "Squads", icon: Users },
+    { path: "/profile", search: "", label: "Profile", icon: User },
   ];
   const ownerLinks = [
     {
       path: "/owner",
       search: "tab=Dashboard",
-      label: "Dashboard",
-      icon: "dashboard",
-    },
-    {
-      path: "/invitations",
-      search: "",
-      label: "Proposals",
-      icon: "mail",
+      label: "Overview",
+      icon: LayoutDashboard,
     },
     {
       path: "/owner",
       search: "tab=Bookings",
       label: "Bookings",
-      icon: "event_note",
+      icon: CalendarCheck,
     },
     {
       path: "/owner/pitches",
       search: "",
       label: "Facilities",
-      icon: "stadium",
+      icon: Building2,
     },
     {
       path: "/owner",
       search: "tab=Finances",
       label: "Finances",
-      icon: "account_balance_wallet",
+      icon: Wallet,
     },
-    { path: "/owner-profile", search: "", label: "Profile", icon: "person" },
+    {
+      path: "/owner",
+      search: "tab=Staff",
+      label: "Staff",
+      icon: Users,
+    },
+    {
+      path: "/invitations",
+      search: "",
+      label: "Proposals",
+      icon: Mail,
+    },
+    {
+      path: "/owner",
+      search: "tab=Settings",
+      label: "Settings",
+      icon: Settings,
+    },
   ];
   const adminLinks = [
     {
       path: "/admin/overview",
       search: "",
       label: "Admin Hub",
-      icon: "admin_panel_settings",
+      icon: Shield,
     },
   ];
   let links = playerLinks;
@@ -380,10 +402,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       return { label: r === "super_admin" ? "Super Admin" : "Admin", color: "text-[#A78BFA]", bg: "bg-[#A78BFA]/10", border: "border-[#A78BFA]/25" };
     }
     if (r === "owner") {
-      return { label: "Pitch Owner", color: "text-[#38BDF8]", bg: "bg-[#38BDF8]/10", border: "border-[#38BDF8]/25" };
+      return { label: "Pitch Owner", color: "text-[#0284C7]", bg: "bg-[#0284C7]/10", border: "border-[#0284C7]/25" };
     }
     if (r === "staff") {
-      return { label: "Staff", color: "text-[#38BDF8]", bg: "bg-[#38BDF8]/10", border: "border-[#38BDF8]/25" };
+      return { label: "Staff", color: "text-[#0284C7]", bg: "bg-[#0284C7]/10", border: "border-[#0284C7]/25" };
     }
     return { label: "Player", color: "text-primary-lime", bg: "bg-primary-lime/10", border: "border-primary-lime/25" };
   };
@@ -391,7 +413,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const RoleBadge = () => {
     const badge = getRoleBadgeConfig();
     return (
-      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${badge.border} ${badge.bg} shadow-xs`}>
+      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border ${badge.border} ${badge.bg}`}>
         <Shield size={12} className={badge.color} />
         <span className={`text-[10px] font-bold ${badge.color} tracking-wider uppercase`}>
           {badge.label}
@@ -401,86 +423,132 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex h-[100dvh] bg-app-base text-text-primary font-body overflow-hidden selection:bg-primary-lime/30">
+    <div className="flex h-[100dvh] w-full bg-app-base text-text-primary font-body overflow-hidden selection:bg-primary-lime/30">
       {/* DESKTOP SIDEBAR */}
       {!hideDesktopSidebar && (
-        <aside className="hidden lg:flex flex-col w-72 bg-surface-card border-r border-border-subtle h-full p-4 shrink-0 z-30 shadow-xs">
-          <div className="flex flex-col items-center gap-4 mb-8 pl-1">
-            <div className="cursor-pointer" onClick={() => navigate(isOwner ? "/owner" : "/home")}>
-              <Logo
-                size={38}
-                showTagline={false}
-                variant="auto"
-                className="transform origin-left"
-              />
-            </div>
-            <div className="flex items-center w-full pr-1 justify-between">
-              <RoleBadge />
+        <aside className="hidden lg:flex flex-col w-64 bg-surface-card border-r border-border-subtle h-full shrink-0 z-30 shadow-xs select-none">
+          {/* Brand Header */}
+          <div className="p-4 border-b border-border-subtle space-y-3">
+            <div className="flex items-center justify-between">
+              <div
+                className="cursor-pointer"
+                onClick={() => navigate(isOwner ? "/owner" : "/home")}
+              >
+                <Logo
+                  size={32}
+                  showTagline={false}
+                  variant="auto"
+                />
+              </div>
               <UpcomingMatchesBell />
             </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <RoleBadge />
+              <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
+                {isOwner ? "Portal" : "App"}
+              </span>
+            </div>
           </div>
-          <div className="mb-6">
-            <p className="font-bold text-[10px] uppercase tracking-widest text-text-tertiary px-3 mb-2">
-              Menu
-            </p>
-            <nav className="space-y-1">
-              {links.map((link) => {
-                const active = isActive(link.path, link.search);
-                return (
-                  <button
-                    key={link.label}
-                    onClick={() =>
-                      navigate(link.search ? `${link.path}?${link.search}` : link.path)
-                    }
-                    className={`relative flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime ${
-                      active
-                        ? "bg-primary-lime/10 text-primary-lime font-bold"
-                        : "text-text-secondary hover:bg-surface-raised hover:text-text-primary"
-                    }`}
-                  >
-                    <span
-                      className={`material-symbols-outlined text-[20px] transition-colors ${
-                        active ? "text-primary-lime" : "text-text-tertiary"
+
+          {/* Navigation Items */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-5 no-scrollbar">
+            <div>
+              <p className="font-bold text-[10px] uppercase tracking-widest text-text-tertiary px-3 mb-1.5">
+                {isOwner ? "Facility Management" : "Main Navigation"}
+              </p>
+              <nav className="space-y-1">
+                {links.map((link) => {
+                  const active = isActive(link.path, link.search);
+                  const Icon = link.icon;
+                  return (
+                    <button
+                      key={link.label}
+                      onClick={() =>
+                        navigate(link.search ? `${link.path}?${link.search}` : link.path)
+                      }
+                      className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime ${
+                        active
+                          ? "bg-primary-lime text-black font-extrabold shadow-sm shadow-primary-lime/20"
+                          : "text-text-secondary hover:bg-surface-raised hover:text-text-primary"
                       }`}
-                      style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}
                     >
-                      {link.icon}
-                    </span>
-                    <span>{link.label}</span>
-                    {active && (
-                      <div className="ml-auto w-1.5 h-1.5 bg-primary-lime rounded-full"></div>
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
+                      <Icon
+                        size={17}
+                        strokeWidth={active ? 2.5 : 2}
+                        className={`shrink-0 transition-colors ${
+                          active ? "text-black" : "text-text-tertiary"
+                        }`}
+                      />
+                      <span className="truncate">{link.label}</span>
+                      {active && (
+                        <div className="ml-auto w-1.5 h-1.5 bg-black rounded-full" />
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
           </div>
-          <div className="mt-auto pt-4 border-t border-border-subtle space-y-1">
+
+          {/* Sidebar Footer: PWA Install, User Card & Logout */}
+          <div className="p-3 border-t border-border-subtle space-y-2 shrink-0 bg-surface-raised/40">
             <button
-              onClick={() => navigate("/settings")}
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full text-xs font-medium text-text-secondary hover:bg-surface-raised hover:text-text-primary transition-all cursor-pointer group"
+              type="button"
+              onClick={() => openWalkthrough()}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-bold text-primary-lime bg-primary-lime/10 hover:bg-primary-lime/20 border border-primary-lime/30 transition-all cursor-pointer shadow-xs active:scale-98"
+              title="Open Footlink Master Walkthrough & Guide"
             >
-              <Settings
-                size={18}
-                className="group-hover:rotate-90 transition-transform duration-300 text-text-tertiary"
-              />
-              <span>Settings</span>
+              <div className="flex items-center gap-2">
+                <Compass size={15} className="text-primary-lime animate-spin-slow" />
+                <span>App Walkthrough</span>
+              </div>
+              <Sparkles size={12} className="text-primary-lime" />
             </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full text-xs font-medium text-[#EF4444] hover:bg-[#EF4444]/10 transition-all cursor-pointer group"
-            >
-              <LogOut
-                size={18}
-                className="group-hover:-translate-x-0.5 transition-transform text-[#EF4444]"
-              />
-              <span>Log out</span>
-            </button>
+            <PWAInstallButton variant="sidebar" />
+            <div className="flex items-center justify-between p-2 rounded-xl bg-surface-card border border-border-subtle">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-surface-raised border border-border-subtle flex items-center justify-center text-text-secondary shrink-0 overflow-hidden">
+                  {userProfile?.avatar ? (
+                    <img src={userProfile.avatar} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={16} />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-text-primary truncate">
+                    {userProfile?.name || user?.displayName || (isOwner ? "Pitch Owner" : "Footballer")}
+                  </p>
+                  <p className="text-[10px] text-text-tertiary truncate">
+                    {user?.email || "verified account"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 pt-1">
+              <button
+                onClick={() => navigate("/settings")}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-text-secondary hover:bg-surface-card hover:text-text-primary border border-transparent hover:border-border-subtle transition-all cursor-pointer"
+                title="Account Settings"
+              >
+                <Settings size={14} />
+                <span>Settings</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center justify-center p-2 rounded-lg text-[#DC2626] hover:bg-[#DC2626]/10 border border-transparent hover:border-[#DC2626]/20 transition-all cursor-pointer"
+                title="Log out"
+                aria-label="Log out"
+              >
+                <LogOut size={15} />
+              </button>
+            </div>
           </div>
         </aside>
       )}
       {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative min-w-0">
         {/* GLOBAL TOP BAR */}
         {!hideMobileHeader && (
           <header className="bg-surface-card/90 backdrop-blur-md flex justify-between items-center w-full px-4 py-3 sticky top-0 z-50 border-b border-border-subtle lg:hidden">
@@ -498,7 +566,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
               <RoleBadge />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <button
+                type="button"
+                onClick={() => openWalkthrough()}
+                className="w-9 h-9 rounded-full flex items-center justify-center bg-primary-lime/10 hover:bg-primary-lime/20 border border-primary-lime/30 text-primary-lime cursor-pointer active:scale-95 transition-all shrink-0"
+                title="Footlink App Walkthrough & Guide"
+                aria-label="App Walkthrough & Guide"
+              >
+                <Compass size={16} className="text-primary-lime animate-spin-slow" />
+              </button>
+              <PWAInstallButton variant="compact" />
               <UpcomingMatchesBell />
               <button
                 onClick={() => navigate("/profile")}
@@ -548,7 +626,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </div>
         )}
-        <main id="main-content-scroll" className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
+        <main id="main-content-scroll" className="flex-1 overflow-y-auto no-scrollbar scroll-smooth w-full">
           <div className="w-full min-h-full lg:max-w-7xl lg:mx-auto pb-16 overflow-x-hidden">
             <AnimatePresence mode="wait">
               <motion.div
@@ -573,6 +651,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             >
               {links.slice(0, 5).map((link, index) => {
                 const active = isActive(link.path, link.search);
+                const IconComponent = link.icon;
                 return (
                   <button
                     key={index}
@@ -587,14 +666,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                         : "text-[#14532D]/80 hover:text-[#14532D]"
                     }`}
                   >
-                    <span
-                      className="material-symbols-outlined text-[20px] leading-none mb-0.5"
-                      style={{
-                        fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0",
-                      }}
-                    >
-                      {link.icon}
-                    </span>
+                    <IconComponent
+                      size={18}
+                      strokeWidth={active ? 2.5 : 2}
+                      className="mb-0.5 shrink-0"
+                    />
                     <span className={`text-[10px] leading-tight tracking-tight whitespace-nowrap text-center ${active ? 'font-black' : 'font-bold'}`}>
                       {link.label}
                     </span>

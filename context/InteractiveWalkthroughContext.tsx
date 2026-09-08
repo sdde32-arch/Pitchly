@@ -1,212 +1,382 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-export interface WalkthroughStep {
+export type WalkthroughCategory = "all" | "player" | "owner" | "booking" | "community";
+
+export interface WalkthroughStepDetail {
   id: string;
-  route: string;
-  targetSelector: string;
+  stepNumber: number;
+  category: "player" | "owner" | "booking" | "community" | "general";
   title: string;
-  serviceName: string;
+  subtitle: string;
   badge: string;
-  highlightTag: string;
-  advantage: string;
-  actionToMaster: string;
-  preferredPosition?: "top" | "bottom" | "left" | "right" | "auto";
-  actionLabel?: string;
-  onExecuteAction?: () => void;
+  route: string;
+  actionLabel: string;
+  summary: string;
+  howToUse: string[];
+  keyAdvantage: string;
+  proTip: string;
+  interactiveWidgetType: 
+    | "flow_overview" 
+    | "distance_radar" 
+    | "gps_map" 
+    | "slot_lock" 
+    | "momo_checkout" 
+    | "qr_pass" 
+    | "motm_voting" 
+    | "split_billing" 
+    | "owner_portal" 
+    | "pwa_tips";
 }
 
-export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
+export const MASTER_WALKTHROUGH_STEPS: WalkthroughStepDetail[] = [
   {
-    id: "step-radar-search",
+    id: "app-overview",
+    stepNumber: 1,
+    category: "general",
+    title: "Welcome to Footlink",
+    subtitle: "Kampala's Premier Sports Turf Booking & Matchmaking Platform",
+    badge: "Chapter 1 • Platform Overview",
     route: "/home",
-    targetSelector: "#walkthrough-radar-card",
-    title: "Kampala Pitch Radar",
-    serviceName: "Real-Time Proximity Scanner & Distance Calculator",
-    badge: "Step 1 of 6 • Discovery",
-    highlightTag: "Zero-Traffic Routing",
-    advantage:
-      "Avoid cross-city traffic bottlenecks across Kampala. The live radar scanner immediately measures driving and walking distance from your exact neighborhood (Kololo, Lugogo, Naguru, Munyonyo) to verified pitches.",
-    actionToMaster:
-      "Tap the Radar card or 'Launch Interactive Pitch Radar' to preview venues within 1km to 15km of your location.",
-    preferredPosition: "bottom",
-    actionLabel: "Preview Nearby Pitches"
+    actionLabel: "Explore Home Dashboard",
+    summary:
+      "Footlink connects football lovers, team captains, and pitch managers across Kampala. Book certified turf grounds, prevent double-bookings with cloud slot locks, pay via Mobile Money, and enter venues with digital QR passes.",
+    howToUse: [
+      "Find Pitches: Use the proximity radar or interactive map to spot venues near your location.",
+      "Pick & Hold: Tap any green slot to lock it for 10 minutes exclusively in the cloud.",
+      "Pay & Scan: Complete checkout via MTN MoMo or Airtel Money to receive your dynamic entry QR pass."
+    ],
+    keyAdvantage:
+      "100% transparent pricing in UGX with zero phone tag, cash friction, or lost reservation disputes.",
+    proTip:
+      "Footlink can be installed directly onto your phone's home screen as a Progressive Web App (PWA) for 1-tap offline access.",
+    interactiveWidgetType: "flow_overview"
   },
   {
-    id: "step-format-filters",
+    id: "radar-discovery",
+    stepNumber: 2,
+    category: "player",
+    title: "Proximity Radar & Distance Engine",
+    subtitle: "Zero-Traffic Discovery Across Kampala Neighborhoods",
+    badge: "Chapter 2 • Smart Search",
     route: "/home",
-    targetSelector: "#walkthrough-format-categories",
-    title: "Surface & Format Selector",
-    serviceName: "Dynamic Pitch Capacity & Weather Filters",
-    badge: "Step 2 of 6 • Match Sizing",
-    highlightTag: "Exact Squad Match",
-    advantage:
-      "Never arrive with 14 players to a 5-a-side cage or face rain delays. Filters isolate certified FIFA AstroTurf, covered indoor courts, and illuminated night floodlights in real time.",
-    actionToMaster:
-      "Tap any match size chip (5-A-Side, 7-A-Side, Indoor) to instantly filter venues that match your squad's capacity.",
-    preferredPosition: "bottom",
-    actionLabel: "Filter by 7-A-Side"
+    actionLabel: "Search Nearby Pitches",
+    summary:
+      "Beat Kampala traffic bottlenecks. The built-in proximity radar calculates driving and walking distance in kilometers and minutes from key city hubs like Lugogo, Kololo, Naguru, Munyonyo, and Ntinda.",
+    howToUse: [
+      "Select your neighborhood anchor or allow GPS location to measure exact road distances.",
+      "Filter by match format: 5-A-Side cage, 7-A-Side, 9-A-Side, 11-A-Side, or Covered Indoor.",
+      "Filter by surface and amenities: Certified FIFA AstroTurf, night floodlights, parking, and showers."
+    ],
+    keyAdvantage:
+      "Know precisely how far your squad will have to travel before committing to a booking.",
+    proTip:
+      "Pitches with night floodlights remain open till 11:00 PM for late evening and after-work corporate fixtures.",
+    interactiveWidgetType: "distance_radar"
   },
   {
-    id: "step-explore-map",
+    id: "interactive-map",
+    stepNumber: 3,
+    category: "player",
+    title: "Interactive GPS Turf Map",
+    subtitle: "Geographical Ground Pins, Live Price Tags & Directions",
+    badge: "Chapter 3 • Venue Navigation",
     route: "/explore-map",
-    targetSelector: "#walkthrough-map-canvas",
-    title: "Live GPS Turf Map",
-    serviceName: "Geographical Pitch Pins & Cluster Scanner",
-    badge: "Step 3 of 6 • Venue Locator",
-    highlightTag: "Interactive GPS Grid",
-    advantage:
-      "Gives you a full interactive aerial map of Kampala's sports grounds with color-coded availability badges, hourly price tags, and direct Google navigation shortcuts.",
-    actionToMaster:
-      "Drag the map, switch neighborhood anchors (e.g., Lugogo or Ntinda), or tap a pitch marker to open full specs.",
-    preferredPosition: "bottom",
-    actionLabel: "Anchor to Lugogo"
+    actionLabel: "Open GPS Turf Map",
+    summary:
+      "View Kampala's sporting landscape on an aerial GPS map. See pins with live hourly prices, open slot counters, and instant 1-tap Google Maps turn-by-turn navigation directly to the stadium gates.",
+    howToUse: [
+      "Pan, pinch, and zoom across the Kampala map to inspect venues in various suburbs.",
+      "Tap any pitch marker to preview photos, open slot availability, and hourly pricing in UGX.",
+      "Tap the navigation icon on any pitch card to immediately route in Google Maps."
+    ],
+    keyAdvantage:
+      "Visual clustering lets you find hidden community pitches and avoid congested corridors.",
+    proTip:
+      "Green map markers indicate venues with more than 3 open slots for today's matches.",
+    interactiveWidgetType: "gps_map"
   },
   {
-    id: "step-slot-lock",
-    route: "/turf/pitch-tal-olympic-7/book",
-    targetSelector: "#walkthrough-slot-picker",
-    title: "Anti-Double Booking Lock",
-    serviceName: "10-Minute Cloud Slot Hold & Rate Engine",
-    badge: "Step 4 of 6 • Reservation",
-    highlightTag: "10-Min Reserved Hold",
-    advantage:
-      "Prevents someone else from taking your game slot while your team gathers money. Once you pick an hour, Footlink locks it exclusively in the cloud for 10 minutes with instant MTN/Airtel checkout.",
-    actionToMaster:
-      "Tap an available green hour slot to initiate your secured 10-minute hold lock before completing Mobile Money checkout.",
-    preferredPosition: "bottom",
-    actionLabel: "Inspect Available Slots"
+    id: "slot-locking",
+    stepNumber: 4,
+    category: "booking",
+    title: "Live Slots & 10-Minute Cloud Lock",
+    subtitle: "Real-Time Anti-Double Booking Protection",
+    badge: "Chapter 4 • Reservation Hold",
+    route: "/home",
+    actionLabel: "View Available Slots",
+    summary:
+      "Never lose your favorite game hour while waiting for your squad to gather money. When you select an available hour, Footlink locks it exclusively in the cloud for 10 minutes so nobody else can take it.",
+    howToUse: [
+      "Inspect the live slot grid: Green = Available, Amber = Held in 10-min Cloud Lock, Gray = Booked.",
+      "Select your kickoff hour. The timer starts immediately, protecting your slot while you check out.",
+      "Choose match duration: 1 hour, 1.5 hours, or 2 hours for full match tournaments."
+    ],
+    keyAdvantage:
+      "Eliminates double-booking conflicts completely. When a slot is held by you, all other users see it locked.",
+    proTip:
+      "If you abandon checkout, the slot unlocks automatically when the 10-minute timer expires, freeing it for others.",
+    interactiveWidgetType: "slot_lock"
   },
   {
-    id: "step-qr-pass",
+    id: "momo-checkout",
+    stepNumber: 5,
+    category: "booking",
+    title: "Mobile Money (MTN & Airtel) Checkout",
+    subtitle: "Direct USSD Prompts & Secure Instant Receipts",
+    badge: "Chapter 5 • Fast Payment",
+    route: "/home",
+    actionLabel: "Explore Payment Options",
+    summary:
+      "Pay securely using Uganda's most trusted payment methods: MTN Mobile Money and Airtel Money. Receive instant USSD checkout approvals and digital receipts in seconds.",
+    howToUse: [
+      "Select MTN MoMo or Airtel Money during checkout and enter your Uganda phone number (+256).",
+      "Confirm the transparent UGX total with all taxes and pitch fees included.",
+      "Approve the automated prompt on your phone to complete your confirmed booking."
+    ],
+    keyAdvantage:
+      "Zero hidden credit card surcharges or international transaction fees. Exact UGX pricing.",
+    proTip:
+      "Have a promo code? Enter it at checkout for special team discounts on weekend matches.",
+    interactiveWidgetType: "momo_checkout"
+  },
+  {
+    id: "digital-qr-pass",
+    stepNumber: 6,
+    category: "booking",
+    title: "Digital QR Match Pass & Turnstile Entry",
+    subtitle: "Offline-Ready Gate Pass for Fast Stadium Check-In",
+    badge: "Chapter 6 • Venue Access",
     route: "/bookings",
-    targetSelector: "#walkthrough-qr-pass-section",
-    title: "Digital QR Match Pass",
-    serviceName: "Instant Gate Turnstile Verification",
-    badge: "Step 5 of 6 • Venue Entry",
-    highlightTag: "Offline-Ready Pass",
-    advantage:
-      "Zero paperwork, cash disputes, or phone calls needed. Pitch marshals scan your dynamic QR ticket at the gate in 1 second, functioning seamlessly even if stadium cellular data drops.",
-    actionToMaster:
-      "Tap 'View Pass' on your confirmed booking to display your high-contrast QR entry code to the pitch supervisor.",
-    preferredPosition: "bottom",
-    actionLabel: "View Digital Pass"
+    actionLabel: "View My Match Passes",
+    summary:
+      "No physical tickets or printed paper required. Your confirmed booking generates a high-contrast dynamic QR pass that pitch marshals scan in under 1 second at the gate.",
+    howToUse: [
+      "Go to 'Bookings' from the bottom navigation bar to view all your upcoming and past matches.",
+      "Tap 'View Pass' to reveal your high-contrast QR entry pass and booking details.",
+      "Show the QR code to the pitch supervisor upon arriving at the grounds."
+    ],
+    keyAdvantage:
+      "Offline-ready! Even if cellular data drops at the arena, your ticket loads from local cache without error.",
+    proTip:
+      "Need to cancel or reschedule? Self-service options are available right from the booking pass view.",
+    interactiveWidgetType: "qr_pass"
   },
   {
-    id: "step-teams-split",
+    id: "match-motm",
+    stepNumber: 7,
+    category: "community",
+    title: "Match Center & Man of the Match (MotM)",
+    subtitle: "Real-Time Scorekeeping & Squad MVP Voting",
+    badge: "Chapter 7 • Post-Match Hub",
+    route: "/bookings",
+    actionLabel: "Open Match Center",
+    summary:
+      "The experience doesn't end when the final whistle blows. Enter the match score, nominate players, and let everyone on the pitch vote for the official Man of the Match with real-time percentage charts.",
+    howToUse: [
+      "Tap 'Match Summary' on any completed booking card.",
+      "Enter the final scoreline (Home vs Away) and add player candidate names.",
+      "Vote for your game MVP and tap 'Share to WhatsApp' to broadcast the official match report to your squad group."
+    ],
+    keyAdvantage:
+      "Brings professional league excitement to casual pickup games and company leagues.",
+    proTip:
+      "Every player gets exactly 1 vote, preventing vote stuffing and ensuring genuine recognition.",
+    interactiveWidgetType: "motm_voting"
+  },
+  {
+    id: "squads-momo-split",
+    stepNumber: 8,
+    category: "community",
+    title: "Squads & Automated MoMo Bill Split",
+    subtitle: "Team Matchmaking & Splitting Turf Fees Fairly",
+    badge: "Chapter 8 • Team Matchmaking",
     route: "/teams",
-    targetSelector: "#walkthrough-teams-hub",
-    title: "Squads & Automated MoMo Split",
-    serviceName: "Matchmaking & Mobile Money Bill Splitting",
-    badge: "Step 6 of 6 • Community",
-    highlightTag: "Automated Fee Split",
-    advantage:
-      "Team captains no longer need to pay UGX 100,000 upfront. Automatically calculates and requests individual shares from 10 to 14 teammates via MTN & Airtel MoMo with real-time payment status tracking.",
-    actionToMaster:
-      "Create a squad, invite teammates via link, or host a public weekend match fixture with split billing.",
-    preferredPosition: "top",
-    actionLabel: "Host Match Fixture"
+    actionLabel: "Open Squads Hub",
+    summary:
+      "Team captains no longer need to pay UGX 120,000 out of pocket. Footlink calculates each player's exact share (e.g., UGX 10,000 for 12 players) and tracks who has paid in real time.",
+    howToUse: [
+      "Navigate to 'Squads' to create your team with a custom crest, captain info, and home venue.",
+      "Share your squad invite link with friends via WhatsApp or SMS to assemble your roster.",
+      "Use the automated bill split feature when booking: input squad size and track who has settled their share."
+    ],
+    keyAdvantage:
+      "Ends the hassle of chasing teammates for pitch contributions after the game.",
+    proTip:
+      "Looking for a match? Post in the Squads matchmaking tab to challenge rival teams in Kampala.",
+    interactiveWidgetType: "split_billing"
+  },
+  {
+    id: "owner-portal",
+    stepNumber: 9,
+    category: "owner",
+    title: "Turf Owner & Manager Portal",
+    subtitle: "Venue Listings, Slot Scheduling & Revenue Analytics",
+    badge: "Chapter 9 • Venue Management",
+    route: "/owner",
+    actionLabel: "Visit Owner Portal",
+    summary:
+      "Pitch owners and venue managers have a dedicated suite to list grounds, set hourly rates, manage slots, approve offline cash bookings, and analyze earnings.",
+    howToUse: [
+      "Switch to Owner mode via the role switcher in your Profile or the header role badge.",
+      "List your pitch: add photos, dimensions, surface type, floodlight availability, and hourly rates in UGX.",
+      "Manage reservations on the live calendar: block maintenance slots, verify QR passes, and view payouts."
+    ],
+    keyAdvantage:
+      "Maximizes pitch occupancy and automates payment collection with zero double-booking headaches.",
+    proTip:
+      "Set custom peak-hour pricing for popular Friday night and weekend afternoon slots.",
+    interactiveWidgetType: "owner_portal"
+  },
+  {
+    id: "pwa-tips",
+    stepNumber: 10,
+    category: "general",
+    title: "Pro Tips, Offline Mode & Settings",
+    subtitle: "Get the Absolute Best Out of Footlink",
+    badge: "Chapter 10 • Pro Tips & Setup",
+    route: "/profile",
+    actionLabel: "View Profile & Settings",
+    summary:
+      "Everything you need to customize your Footlink experience: PWA home screen installation, match alerts, theme selection, and 24/7 support.",
+    howToUse: [
+      "Install as App: Tap 'Install App' in the top header to add Footlink directly to your Android or iOS home screen.",
+      "Enable Match Alerts: Receive automatic 15-minute kick-off notifications so your team is never late.",
+      "Theme Customization: Switch between Dark Mode (ideal for night fixtures) and clean Light Mode in Profile."
+    ],
+    keyAdvantage:
+      "Fast, native-like experience on any smartphone with minimal battery and cellular data usage.",
+    proTip:
+      "Encounter an issue at a turf? Use the in-app Report & Support feature to report maintenance or billing questions.",
+    interactiveWidgetType: "pwa_tips"
   }
 ];
 
 interface WalkthroughContextType {
-  isActive: boolean;
+  isOpen: boolean;
   currentStepIndex: number;
-  currentStep: WalkthroughStep | null;
+  currentStep: WalkthroughStepDetail;
   totalSteps: number;
-  startWalkthrough: (startingStepIndex?: number) => void;
-  endWalkthrough: () => void;
+  steps: WalkthroughStepDetail[];
+  activeCategory: WalkthroughCategory;
+  viewMode: "guide" | "directory";
+  searchQuery: string;
+  hasCompleted: boolean;
+  openWalkthrough: (startingStepOrId?: number | string) => void;
+  closeWalkthrough: () => void;
   nextStep: () => void;
   prevStep: () => void;
   goToStep: (index: number) => void;
+  setActiveCategory: (cat: WalkthroughCategory) => void;
+  setViewMode: (mode: "guide" | "directory") => void;
+  setSearchQuery: (query: string) => void;
+  markCompleted: () => void;
+  startWalkthrough: (stepIndex?: number) => void; // backwards-compatible alias
+  endWalkthrough: () => void; // backwards-compatible alias
 }
 
 const WalkthroughContext = createContext<WalkthroughContextType | undefined>(undefined);
 
 export const InteractiveWalkthroughProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isActive, setIsActive] = useState<boolean>(false);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const currentStep = isActive && currentStepIndex < WALKTHROUGH_STEPS.length
-    ? WALKTHROUGH_STEPS[currentStepIndex]
-    : null;
-
-  // Navigate to appropriate page when step changes
-  useEffect(() => {
-    if (!isActive || !currentStep) return;
-
-    if (location.pathname !== currentStep.route) {
-      navigate(currentStep.route);
-    }
-  }, [isActive, currentStepIndex, currentStep, location.pathname, navigate]);
-
-  const startWalkthrough = useCallback((startingStepIndex = 0) => {
-    const idx = Math.max(0, Math.min(startingStepIndex, WALKTHROUGH_STEPS.length - 1));
-    setCurrentStepIndex(idx);
-    setIsActive(true);
-    const targetStep = WALKTHROUGH_STEPS[idx];
-    if (targetStep && location.pathname !== targetStep.route) {
-      navigate(targetStep.route);
-    }
-  }, [location.pathname, navigate]);
-
-  const endWalkthrough = useCallback(() => {
-    setIsActive(false);
+  const [activeCategory, setActiveCategory] = useState<WalkthroughCategory>("all");
+  const [viewMode, setViewMode] = useState<"guide" | "directory">("guide");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [hasCompleted, setHasCompleted] = useState<boolean>(() => {
     try {
-      localStorage.setItem("pitchly_walkthrough_completed", "true");
+      return localStorage.getItem("pitchly_master_walkthrough_completed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const navigate = useNavigate();
+
+  const currentStep = MASTER_WALKTHROUGH_STEPS[currentStepIndex] || MASTER_WALKTHROUGH_STEPS[0];
+
+  const openWalkthrough = useCallback((startingStepOrId?: number | string) => {
+    let index = 0;
+    if (typeof startingStepOrId === "number") {
+      index = Math.max(0, Math.min(startingStepOrId, MASTER_WALKTHROUGH_STEPS.length - 1));
+    } else if (typeof startingStepOrId === "string") {
+      const foundIdx = MASTER_WALKTHROUGH_STEPS.findIndex(
+        s => s.id === startingStepOrId || s.route.includes(startingStepOrId)
+      );
+      if (foundIdx !== -1) index = foundIdx;
+    }
+    setCurrentStepIndex(index);
+    setViewMode("guide");
+    setIsOpen(true);
+  }, []);
+
+  const closeWalkthrough = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  const markCompleted = useCallback(() => {
+    setHasCompleted(true);
+    try {
+      localStorage.setItem("pitchly_master_walkthrough_completed", "true");
     } catch (e) {
       console.warn("Could not save walkthrough completion:", e);
     }
+    setIsOpen(false);
   }, []);
 
   const nextStep = useCallback(() => {
-    if (currentStepIndex < WALKTHROUGH_STEPS.length - 1) {
-      const nextIdx = currentStepIndex + 1;
-      setCurrentStepIndex(nextIdx);
-      const nextTarget = WALKTHROUGH_STEPS[nextIdx];
-      if (nextTarget && location.pathname !== nextTarget.route) {
-        navigate(nextTarget.route);
-      }
+    if (currentStepIndex < MASTER_WALKTHROUGH_STEPS.length - 1) {
+      setCurrentStepIndex(prev => prev + 1);
     } else {
-      endWalkthrough();
+      markCompleted();
     }
-  }, [currentStepIndex, location.pathname, navigate, endWalkthrough]);
+  }, [currentStepIndex, markCompleted]);
 
   const prevStep = useCallback(() => {
     if (currentStepIndex > 0) {
-      const prevIdx = currentStepIndex - 1;
-      setCurrentStepIndex(prevIdx);
-      const prevTarget = WALKTHROUGH_STEPS[prevIdx];
-      if (prevTarget && location.pathname !== prevTarget.route) {
-        navigate(prevTarget.route);
-      }
+      setCurrentStepIndex(prev => prev - 1);
     }
-  }, [currentStepIndex, location.pathname, navigate]);
+  }, [currentStepIndex]);
 
   const goToStep = useCallback((index: number) => {
-    if (index >= 0 && index < WALKTHROUGH_STEPS.length) {
+    if (index >= 0 && index < MASTER_WALKTHROUGH_STEPS.length) {
       setCurrentStepIndex(index);
-      const target = WALKTHROUGH_STEPS[index];
-      if (target && location.pathname !== target.route) {
-        navigate(target.route);
-      }
+      setViewMode("guide");
     }
-  }, [location.pathname, navigate]);
+  }, []);
+
+  // Backwards-compatible aliases
+  const startWalkthrough = useCallback((stepIndex = 0) => {
+    openWalkthrough(stepIndex);
+  }, [openWalkthrough]);
+
+  const endWalkthrough = useCallback(() => {
+    closeWalkthrough();
+  }, [closeWalkthrough]);
 
   return (
     <WalkthroughContext.Provider
       value={{
-        isActive,
+        isOpen,
         currentStepIndex,
         currentStep,
-        totalSteps: WALKTHROUGH_STEPS.length,
-        startWalkthrough,
-        endWalkthrough,
+        totalSteps: MASTER_WALKTHROUGH_STEPS.length,
+        steps: MASTER_WALKTHROUGH_STEPS,
+        activeCategory,
+        viewMode,
+        searchQuery,
+        hasCompleted,
+        openWalkthrough,
+        closeWalkthrough,
         nextStep,
         prevStep,
-        goToStep
+        goToStep,
+        setActiveCategory,
+        setViewMode,
+        setSearchQuery,
+        markCompleted,
+        startWalkthrough,
+        endWalkthrough
       }}
     >
       {children}

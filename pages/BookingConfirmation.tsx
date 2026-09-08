@@ -5,6 +5,7 @@ import { useBooking } from "../context/BookingContext";
 import { bookingService } from "../services/bookingService";
 import { pitchService } from "../services/pitchService";
 import { Turf } from "../types";
+import { formatBookingDate } from "../lib/dateUtils";
 import { 
   Check, 
   ShieldCheck, 
@@ -128,10 +129,11 @@ export const BookingConfirmation: React.FC = () => {
 
   const bookingRef = (booking.id || id || "").slice(-6).toUpperCase();
   const slotText = (booking.slots && booking.slots.length > 0 ? booking.slots[0] : booking.time) || "18:00";
-  const endHour = parseInt(slotText.split(":")[0] || "18") + (booking.duration || 2);
+  const duration = booking.duration && booking.duration > 0 ? booking.duration : (booking.slots ? booking.slots.length : 1);
+  const endHour = (parseInt(slotText.split(":")[0] || "18", 10) + duration) % 24;
   const formattedEndTime = `${String(endHour).padStart(2, "0")}:00`;
   const formattedPrice = ((booking as any).totalPrice || booking.price || 0).toLocaleString();
-  const formattedDate = new Date(booking.date).toLocaleDateString('en-US', { 
+  const formattedDate = formatBookingDate(booking.date, { 
     weekday: 'short', 
     month: 'short', 
     day: 'numeric', 

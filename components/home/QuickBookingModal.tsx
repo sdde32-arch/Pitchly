@@ -62,7 +62,7 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
       duration: duration.toString(),
       deposit: paymentOption === "deposit" ? "true" : "false",
     });
-    navigate(`/checkout/${pitch.id}?${queryParams.toString()}`);
+    navigate(`/turf/${pitch.id}/book?${queryParams.toString()}`);
   };
 
   const handleViewFullDetails = () => {

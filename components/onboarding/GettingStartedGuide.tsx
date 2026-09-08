@@ -38,7 +38,7 @@ export const GettingStartedGuide: React.FC<GettingStartedGuideProps> = ({
       subtitle: "Locate certified pitches across Kampala with real distance & night floodlight filters.",
       icon: <Search className="w-5 h-5 text-primary-lime" />,
       actionText: "Interactive Radar Tour",
-      onClick: () => startWalkthrough(0),
+      onClick: () => startWalkthrough(1),
       highlightBg: "from-lime-500/10 to-transparent",
       features: [
         "Interactive radar map with GPS proximity",
@@ -70,7 +70,7 @@ export const GettingStartedGuide: React.FC<GettingStartedGuideProps> = ({
       subtitle: "Connect with local squads in your district, schedule friendlies, and split match fees automatically.",
       icon: <Users className="w-5 h-5 text-primary-lime" />,
       actionText: "Interactive Squads Tour",
-      onClick: () => startWalkthrough(5),
+      onClick: () => startWalkthrough(7),
       highlightBg: "from-emerald-500/10 to-transparent",
       features: [
         "Squad matchmaking & player rosters",

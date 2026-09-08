@@ -14,6 +14,7 @@ import { matchInvitationService } from "../services/matchInvitationService";
 import { Layout } from "../components/Layout";
 import { Loader2 } from "lucide-react";
 import { MatchWeatherWidget } from "../components/weather/MatchWeatherWidget";
+import { formatBookingDate } from "../lib/dateUtils";
 
 export const BookPitch: React.FC = () => {
   const { id } = useParams();
@@ -517,7 +518,7 @@ export const BookPitch: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-text-secondary text-xs mb-0.5">
-                    {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {formatBookingDate(selectedDate, { month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
                   <div className="text-text-primary font-bold text-[15px]">
                     {selectedTimes[0]} - {parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1}:00

@@ -23,5 +23,16 @@ export const storageService = {
 
     await uploadBytes(storageRef, file);
     return await getDownloadURL(storageRef);
+  },
+
+  uploadPitchPhoto: async (userId: string, file: File): Promise<string> => {
+    const ext = (file.name || 'image.jpg').split('.').pop() || 'jpg';
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+    const storageRef = ref(storage, `pitch-photos/${userId}/${fileName}`);
+
+    await uploadBytes(storageRef, file, {
+      contentType: file.type || 'image/jpeg'
+    });
+    return await getDownloadURL(storageRef);
   }
 };

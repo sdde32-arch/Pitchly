@@ -9,7 +9,11 @@ import {
   User as FirebaseUser
 } from 'firebase/auth';
 import { 
-  getFirestore, doc, collection, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit 
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  doc, collection, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit 
 } from 'firebase/firestore';
 
 // 1. Firebase Initialization
@@ -27,7 +31,23 @@ const firebaseConfig = {
 
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
-export const db = getFirestore(app, firebaseAppletConfig.firestoreDatabaseId);
+
+// Enable persistent multi-tab offline caching for Firestore
+const databaseId = firebaseAppletConfig.firestoreDatabaseId || '(default)';
+let firestoreInstance: ReturnType<typeof getFirestore>;
+try {
+  firestoreInstance = initializeFirestore(
+    app,
+    {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    },
+    databaseId
+  );
+} catch {
+  firestoreInstance = getFirestore(app, databaseId);
+}
+
+export const db = firestoreInstance;
 
 export type ConnectionStatus = 'CONNECTED' | 'BAD_CREDENTIALS' | 'MISSING_TABLES' | 'NETWORK_ERROR';
 

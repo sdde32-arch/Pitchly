@@ -321,7 +321,7 @@ export const BusinessSettings: React.FC = () => {
       </div>
 
       {/* SECTION 3: MOBILE MONEY PAYOUT ACCOUNTS */}
-      <div className="bg-surface-card rounded-2xl p-4 sm:p-6 border border-border-subtle space-y-5 shadow-sm">
+      <div className="bg-surface-card rounded-2xl p-5 sm:p-6 border border-border-subtle space-y-6 shadow-sm">
         <div className="border-b border-border-subtle pb-3">
           <h2 className="text-sm sm:text-base font-extrabold text-text-primary flex items-center gap-2">
             <Smartphone size={16} className="text-[#FACC15]" />
@@ -332,89 +332,120 @@ export const BusinessSettings: React.FC = () => {
           </p>
         </div>
 
-        {/* MTN MoMo */}
-        <div className="space-y-2 p-3.5 bg-surface-raised rounded-xl border border-border-subtle">
-          <span className="text-xs font-bold text-[#FACC15] uppercase tracking-wider block">
-            MTN Mobile Money
-          </span>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input
-              type="text"
-              placeholder="MTN Phone (e.g. 0772 000 111)"
-              value={formData.paymentDetails?.mtnNumber || ""}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  paymentDetails: {
-                    ...prev.paymentDetails!,
-                    mtnNumber: e.target.value,
-                  },
-                }))
-              }
-              className="bg-surface-card rounded-xl px-3.5 py-2.5 border border-border-subtle text-xs sm:text-sm font-bold text-text-primary outline-none focus:border-[#FACC15] placeholder:text-text-tertiary"
-            />
-            <input
-              type="text"
-              placeholder="Registered Name (e.g. JOHN DOE)"
-              value={formData.paymentDetails?.mtnAccountName || ""}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  paymentDetails: {
-                    ...prev.paymentDetails!,
-                    mtnAccountName: e.target.value,
-                  },
-                }))
-              }
-              className="bg-surface-card rounded-xl px-3.5 py-2.5 border border-border-subtle text-xs sm:text-sm font-bold text-text-primary outline-none focus:border-[#FACC15] placeholder:text-text-tertiary"
-            />
+        {/* Payment Channels Grid */}
+        <div className="space-y-5">
+          {/* MTN MoMo */}
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#EAB308]" />
+              <span className="text-xs font-bold text-text-primary uppercase tracking-wider">
+                MTN Mobile Money
+              </span>
+              <span className="text-[10px] text-text-tertiary">· Uganda (256)</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-medium text-text-secondary block mb-1">
+                  Phone Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 0772 000 111"
+                  value={formData.paymentDetails?.mtnNumber || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      paymentDetails: {
+                        ...prev.paymentDetails!,
+                        mtnNumber: e.target.value,
+                      },
+                    }))
+                  }
+                  className="w-full bg-surface-raised rounded-lg px-3.5 h-11 border border-border-subtle text-xs sm:text-sm font-bold text-text-primary outline-none focus:border-[#EAB308] focus:ring-1 focus:ring-[#EAB308]/20 placeholder:text-text-tertiary transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-text-secondary block mb-1">
+                  Registered Account Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. JOHN DOE"
+                  value={formData.paymentDetails?.mtnAccountName || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      paymentDetails: {
+                        ...prev.paymentDetails!,
+                        mtnAccountName: e.target.value,
+                      },
+                    }))
+                  }
+                  className="w-full bg-surface-raised rounded-lg px-3.5 h-11 border border-border-subtle text-xs sm:text-sm font-bold text-text-primary outline-none focus:border-[#EAB308] focus:ring-1 focus:ring-[#EAB308]/20 placeholder:text-text-tertiary transition-all"
+                />
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Airtel Money */}
-        <div className="space-y-2 p-3.5 bg-surface-raised rounded-xl border border-border-subtle">
-          <span className="text-xs font-bold text-[#EF4444] uppercase tracking-wider block">
-            Airtel Money
-          </span>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input
-              type="text"
-              placeholder="Airtel Phone (e.g. 0752 000 222)"
-              value={formData.paymentDetails?.airtelNumber || ""}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  paymentDetails: {
-                    ...prev.paymentDetails!,
-                    airtelNumber: e.target.value,
-                  },
-                }))
-              }
-              className="bg-surface-card rounded-xl px-3.5 py-2.5 border border-border-subtle text-xs sm:text-sm font-bold text-text-primary outline-none focus:border-[#EF4444] placeholder:text-text-tertiary"
-            />
-            <input
-              type="text"
-              placeholder="Registered Name (e.g. JANE DOE)"
-              value={formData.paymentDetails?.airtelAccountName || ""}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  paymentDetails: {
-                    ...prev.paymentDetails!,
-                    airtelAccountName: e.target.value,
-                  },
-                }))
-              }
-              className="bg-surface-card rounded-xl px-3.5 py-2.5 border border-border-subtle text-xs sm:text-sm font-bold text-text-primary outline-none focus:border-[#EF4444] placeholder:text-text-tertiary"
-            />
+          <div className="border-t border-border-subtle pt-4 space-y-2.5">
+            {/* Airtel Money */}
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
+              <span className="text-xs font-bold text-text-primary uppercase tracking-wider">
+                Airtel Money
+              </span>
+              <span className="text-[10px] text-text-tertiary">· Uganda (256)</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-medium text-text-secondary block mb-1">
+                  Phone Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 0752 000 222"
+                  value={formData.paymentDetails?.airtelNumber || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      paymentDetails: {
+                        ...prev.paymentDetails!,
+                        airtelNumber: e.target.value,
+                      },
+                    }))
+                  }
+                  className="w-full bg-surface-raised rounded-lg px-3.5 h-11 border border-border-subtle text-xs sm:text-sm font-bold text-text-primary outline-none focus:border-[#EF4444] focus:ring-1 focus:ring-[#EF4444]/20 placeholder:text-text-tertiary transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-text-secondary block mb-1">
+                  Registered Account Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. JANE DOE"
+                  value={formData.paymentDetails?.airtelAccountName || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      paymentDetails: {
+                        ...prev.paymentDetails!,
+                        airtelAccountName: e.target.value,
+                      },
+                    }))
+                  }
+                  className="w-full bg-surface-raised rounded-lg px-3.5 h-11 border border-border-subtle text-xs sm:text-sm font-bold text-text-primary outline-none focus:border-[#EF4444] focus:ring-1 focus:ring-[#EF4444]/20 placeholder:text-text-tertiary transition-all"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Cash on Arrival Toggle */}
-        <div className="pt-2 border-t border-border-subtle">
-          <label className="flex items-center justify-between p-3.5 bg-surface-raised rounded-xl border border-border-subtle cursor-pointer select-none">
+        <div className="pt-4 border-t border-border-subtle">
+          <label className="flex items-center justify-between p-4 bg-surface-raised rounded-xl border border-border-subtle hover:border-border-prominent transition-all cursor-pointer select-none">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-surface-card flex items-center justify-center text-[#22C55E] border border-border-subtle">
+              <div className="w-9 h-9 rounded-lg bg-surface-card flex items-center justify-center text-[#16A34A] border border-border-subtle shrink-0">
                 <Banknote size={18} />
               </div>
               <div>
@@ -427,7 +458,7 @@ export const BusinessSettings: React.FC = () => {
               </div>
             </div>
 
-            <div className="relative inline-flex items-center">
+            <div className="relative inline-flex items-center shrink-0 ml-4">
               <input
                 type="checkbox"
                 checked={formData.paymentDetails?.acceptsCash || false}
@@ -450,7 +481,7 @@ export const BusinessSettings: React.FC = () => {
                 }`}
               />
               <div
-                className={`absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-xs ${
+                className={`absolute left-0.5 top-0.5 w-5 h-5 bg-black rounded-full transition-transform shadow-xs ${
                   formData.paymentDetails?.acceptsCash ? "translate-x-5" : ""
                 }`}
               />

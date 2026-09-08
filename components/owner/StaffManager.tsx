@@ -106,15 +106,15 @@ export const StaffManager: React.FC = () => {
         {staff.map((member) => (
           <div 
             key={member.id} 
-            className="bg-surface-card p-4 rounded-2xl border border-border-subtle hover:border-border-prominent transition-all flex flex-col justify-between gap-3 shadow-sm"
+            className="bg-surface-card p-4 sm:p-5 rounded-2xl border border-border-subtle hover:border-border-prominent transition-all flex flex-col justify-between gap-4 shadow-sm"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-12 h-12 bg-surface-raised rounded-xl flex items-center justify-center text-[#A78BFA] shrink-0 border border-border-subtle overflow-hidden">
+                <div className="w-11 h-11 bg-surface-raised rounded-xl flex items-center justify-center text-[#A78BFA] shrink-0 border border-border-subtle overflow-hidden">
                   {member.avatar ? (
                     <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
                   ) : (
-                    <UserCheck size={22} />
+                    <UserCheck size={20} />
                   )}
                 </div>
                 <div className="min-w-0">
@@ -135,22 +135,22 @@ export const StaffManager: React.FC = () => {
 
               <button 
                 onClick={() => handleDeleteStaff(member.id)}
-                className="w-8 h-8 rounded-lg bg-surface-raised hover:bg-[#EF4444]/10 text-text-tertiary hover:text-[#EF4444] border border-border-subtle flex items-center justify-center transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg bg-surface-raised hover:bg-[#EF4444]/10 text-text-tertiary hover:text-[#EF4444] border border-border-subtle flex items-center justify-center transition-colors cursor-pointer shrink-0"
                 title="Remove Member"
               >
                 <Trash2 size={14} />
               </button>
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-border-subtle text-xs">
-              <span className="text-text-secondary font-medium">
+            <div className="flex items-center justify-between pt-3 border-t border-border-subtle text-xs">
+              <span className="text-text-secondary font-medium truncate">
                 {member.phone}
               </span>
               <a
                 href={`tel:${member.phone}`}
-                className="px-2.5 py-1 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-lg text-[11px] font-bold text-text-primary flex items-center gap-1 transition-all"
+                className="px-3 h-8 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-lg text-xs font-bold text-text-primary flex items-center gap-1.5 transition-all shrink-0"
               >
-                <Phone size={11} />
+                <Phone size={12} />
                 <span>Call</span>
               </a>
             </div>
@@ -160,15 +160,15 @@ export const StaffManager: React.FC = () => {
       
       {/* Add Staff Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
           <div className="bg-surface-card border border-border-subtle w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-border-subtle">
+            <div className="flex justify-between items-center pb-3 border-b border-border-subtle">
               <h3 className="text-sm font-extrabold text-text-primary uppercase tracking-wider">
                 Add New Staff Member
               </h3>
               <button 
                 onClick={() => setShowModal(false)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary bg-surface-raised"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary bg-surface-raised cursor-pointer"
               >
                 <X size={15} />
               </button>
@@ -184,7 +184,7 @@ export const StaffManager: React.FC = () => {
                   value={newStaff.name} 
                   onChange={e => setNewStaff({ ...newStaff, name: e.target.value })} 
                   placeholder="e.g. Samuel Okello"
-                  className="w-full bg-surface-raised border border-border-subtle rounded-xl px-3.5 py-2.5 text-xs font-bold text-text-primary outline-none focus:border-[#38BDF8]"
+                  className="w-full bg-surface-raised border border-border-subtle rounded-lg px-3.5 h-10 text-xs font-bold text-text-primary outline-none focus:border-border-prominent"
                 />
               </div>
 
@@ -197,7 +197,7 @@ export const StaffManager: React.FC = () => {
                   value={newStaff.phone} 
                   onChange={e => setNewStaff({ ...newStaff, phone: e.target.value })} 
                   placeholder="e.g. 0772 123 456"
-                  className="w-full bg-surface-raised border border-border-subtle rounded-xl px-3.5 py-2.5 text-xs font-bold text-text-primary outline-none focus:border-[#38BDF8]"
+                  className="w-full bg-surface-raised border border-border-subtle rounded-lg px-3.5 h-10 text-xs font-bold text-text-primary outline-none focus:border-border-prominent"
                 />
               </div>
 
@@ -208,7 +208,7 @@ export const StaffManager: React.FC = () => {
                 <select 
                   value={newStaff.role} 
                   onChange={e => setNewStaff({ ...newStaff, role: e.target.value })} 
-                  className="w-full bg-surface-raised border border-border-subtle rounded-xl px-3 py-2.5 text-xs font-bold text-text-primary outline-none focus:border-[#38BDF8]"
+                  className="w-full bg-surface-raised border border-border-subtle rounded-lg px-3 h-10 text-xs font-bold text-text-primary outline-none focus:border-border-prominent"
                 >
                   <option value="CARETAKER">Caretaker (Slot Locks & Check-ins)</option>
                   <option value="MANAGER">Manager (Full Facility Oversight)</option>
@@ -218,7 +218,7 @@ export const StaffManager: React.FC = () => {
               <button 
                 onClick={handleAddStaff} 
                 disabled={isSubmitting || !newStaff.name || !newStaff.phone} 
-                className="w-full bg-primary-lime hover:bg-[#96E600] text-accent-text py-2.5 rounded-xl font-extrabold text-xs uppercase tracking-wider shadow-sm mt-3 flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer active:scale-95 transition-all"
+                className="w-full bg-primary-lime hover:bg-[#96E600] text-accent-text h-10 rounded-lg font-extrabold text-xs uppercase tracking-wider shadow-sm mt-3 flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer active:scale-95 transition-all"
               >
                 {isSubmitting ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -236,10 +236,10 @@ export const StaffManager: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
           <div className="bg-surface-card border border-border-subtle w-full max-w-sm rounded-2xl p-5 shadow-2xl text-center space-y-4">
-            <div className="w-12 h-12 bg-[#EF4444]/10 text-[#EF4444] rounded-2xl flex items-center justify-center mx-auto border border-[#EF4444]/20">
-              <Trash2 size={24} />
+            <div className="w-12 h-12 bg-[#EF4444]/10 text-[#EF4444] rounded-xl flex items-center justify-center mx-auto border border-[#EF4444]/20">
+              <Trash2 size={22} />
             </div>
             <div>
               <h3 className="text-base font-extrabold text-text-primary">
@@ -253,13 +253,13 @@ export const StaffManager: React.FC = () => {
             <div className="flex gap-2.5 pt-2">
               <button 
                 onClick={() => setShowDeleteConfirm(null)}
-                className="flex-1 py-2.5 rounded-xl text-xs font-bold text-text-secondary bg-surface-raised hover:bg-border-subtle transition-colors cursor-pointer"
+                className="flex-1 h-10 rounded-lg text-xs font-bold text-text-secondary bg-surface-raised hover:bg-border-subtle transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button 
                 onClick={confirmDelete}
-                className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-[#EF4444] hover:bg-[#EF4444]/90 transition-colors cursor-pointer shadow-sm"
+                className="flex-1 h-10 rounded-lg text-xs font-bold text-white bg-[#EF4444] hover:bg-[#EF4444]/90 transition-colors cursor-pointer shadow-sm"
               >
                 Confirm Remove
               </button>

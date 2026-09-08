@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "../components/Layout";
+import { formatBookingDate } from "../lib/dateUtils";
 import { useBooking } from "../context/BookingContext";
 import { useUser } from "../context/UserContext";
 import { db } from "../lib/firebase";
@@ -417,7 +418,7 @@ export const MatchSummary: React.FC = () => {
               <Calendar size={18} className="mx-auto mb-2 text-primary-lime" />
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#71717A]">Date</p>
               <p className="text-[13px] font-bold text-slate-800 dark:text-zinc-200 mt-1 truncate">
-                {new Date(booking.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                {formatBookingDate(booking.date, { month: "short", day: "numeric" })}
               </p>
             </div>
             <div className="bg-surface-card p-4 rounded-[20px] border border-border-subtle text-center shadow-sm">

@@ -2,6 +2,7 @@ import { Booking, SlotAvailability } from '../types/firebase';
 import { BookingStatus } from '../types';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, runTransaction, writeBatch, onSnapshot } from 'firebase/firestore';
+import { offlineCacheService } from './offlineCacheService';
 
 export const bookingService = {
   collectionPath: 'bookings',
@@ -125,10 +126,16 @@ export const bookingService = {
       });
       const bookings = Array.from(bookingsMap.values());
       // Sort in memory to avoid needing composite indexes if missing
-      return bookings.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
+      const sorted = bookings.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
+      if (sorted.length > 0) {
+        offlineCacheService.cacheUserBookings(playerId, sorted);
+        return sorted;
+      }
+      const cached = offlineCacheService.getCachedUserBookings(playerId);
+      return cached.length > 0 ? cached : [];
     } catch (error) {
-      console.warn("Failed to fetch player bookings from Firestore", error);
-      return [];
+      console.warn("Failed to fetch player bookings from Firestore, using offline cache", error);
+      return offlineCacheService.getCachedUserBookings(playerId);
     }
   },
 
@@ -153,10 +160,16 @@ export const bookingService = {
           userName: raw.userName || raw.playerName || "Player",
         } as Booking);
       });
-      return bookings.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
+      const sorted = bookings.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
+      if (sorted.length > 0) {
+        offlineCacheService.cacheOwnerBookings(ownerId, sorted);
+        return sorted;
+      }
+      const cached = offlineCacheService.getCachedOwnerBookings(ownerId);
+      return cached.length > 0 ? cached : [];
     } catch (error) {
-      console.warn("Failed to fetch owner bookings from Firestore", error);
-      return [];
+      console.warn("Failed to fetch owner bookings from Firestore, using offline cache", error);
+      return offlineCacheService.getCachedOwnerBookings(ownerId);
     }
   },
 
@@ -186,16 +199,21 @@ export const bookingService = {
               userName: raw.userName || raw.playerName || "Player",
             } as Booking);
           });
-          bookings.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
-          onUpdate(bookings);
+          const sorted = bookings.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
+          offlineCacheService.cacheOwnerBookings(ownerId, sorted);
+          onUpdate(sorted);
         },
         (error) => {
-          console.warn("Error in owner booking subscription:", error);
+          console.warn("Error in owner booking subscription, falling back to cache:", error);
+          const cached = offlineCacheService.getCachedOwnerBookings(ownerId);
+          if (cached.length > 0) onUpdate(cached);
           if (onError) onError(error);
         }
       );
     } catch (err) {
-      console.warn("Failed to establish snapshot listener for owner bookings:", err);
+      console.warn("Failed to establish snapshot listener for owner bookings, using cache:", err);
+      const cached = offlineCacheService.getCachedOwnerBookings(ownerId);
+      if (cached.length > 0) onUpdate(cached);
       if (onError) onError(err);
       return () => {};
     }

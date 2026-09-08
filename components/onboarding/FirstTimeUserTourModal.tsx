@@ -279,15 +279,15 @@ export const FirstTimeUserTourModal: React.FC<FirstTimeUserTourModalProps> = ({
           </button>
         </div>
 
-        {/* Live Interactive Walkthrough Launcher Card */}
+        {/* Master Walkthrough Launcher Card */}
         <div className="mx-5 mt-4 p-3 rounded-2xl bg-primary-lime/10 border border-primary-lime/30 flex items-center justify-between gap-3 text-left">
           <div className="space-y-0.5 min-w-0">
             <span className="text-[10px] font-black uppercase tracking-wider text-primary-lime flex items-center gap-1">
               <Zap className="w-3 h-3 fill-primary-lime" />
-              Live Interactive Spotlight
+              Master App Walkthrough
             </span>
             <p className="text-[11.5px] font-bold text-text-primary truncate">
-              Step-by-step element tour across the real app
+              Comprehensive 10-chapter guide to all key features &amp; details
             </p>
           </div>
           <button
@@ -297,7 +297,7 @@ export const FirstTimeUserTourModal: React.FC<FirstTimeUserTourModalProps> = ({
             }}
             className="px-3 py-1.5 rounded-xl bg-primary-lime hover:bg-primary-lime-hover text-accent-text text-[11px] font-black shrink-0 flex items-center gap-1 shadow-xs cursor-pointer transition-all active:scale-95"
           >
-            <span>Start Live Tour</span>
+            <span>Start Master Tour</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>

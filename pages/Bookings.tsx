@@ -7,6 +7,7 @@ import { ReportModal } from "../components/ReportModal";
 import { ReportTargetType, BookingStatus } from "../types";
 import { EmptyState } from "../components/ui/EmptyState";
 import { BookingCardSkeleton } from "../components/ui/Skeleton";
+import { formatBookingDate, formatBookingTime } from "../lib/dateUtils";
 
 export const Bookings: React.FC = () => {
   const navigate = useNavigate();
@@ -199,14 +200,11 @@ export const Bookings: React.FC = () => {
                   <div className="flex justify-between items-center pb-3 border-b border-border-subtle">
                     <div>
                       <p className="text-text-primary font-bold text-sm">
-                        {new Date(b.date).toLocaleDateString(undefined, {
-                          weekday: "short",
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric"
-                        })}
+                        {formatBookingDate(b.date)}
                       </p>
-                      <p className="text-text-secondary text-xs font-medium mt-0.5">{b.time}</p>
+                      <p className="text-text-secondary text-xs font-medium mt-0.5">
+                        {formatBookingTime(b.time, (b as any).slots, (b as any).duration)}
+                      </p>
                     </div>
                     <div className="text-right flex flex-col items-end gap-1.5">
                       <p className="text-text-primary font-black text-sm">

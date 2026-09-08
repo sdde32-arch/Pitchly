@@ -25,6 +25,9 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { Moon, Sun, Sparkles } from "lucide-react";
 import { useMatchReminder } from "../context/MatchReminderContext";
+import { PWAInstallButton } from "../components/PWAInstallButton";
+import { offlineCacheService } from "../services/offlineCacheService";
+import { Database, RefreshCw, Wifi } from "lucide-react";
 
 export const Settings: React.FC = () => {
   const { isEcoMode, toggleEcoMode, theme, toggleTheme } = useTheme();
@@ -45,6 +48,21 @@ export const Settings: React.FC = () => {
     sms: false,
     upcomingMatches: true,
   });
+  const [offlineStats, setOfflineStats] = useState(() => offlineCacheService.getSummary(user?.uid));
+  const [cacheRefreshing, setCacheRefreshing] = useState(false);
+
+  const handleRefreshCache = async () => {
+    setCacheRefreshing(true);
+    try {
+      const { pitchService } = await import("../services/pitchService");
+      await pitchService.listPublic();
+      setOfflineStats(offlineCacheService.getSummary(user?.uid));
+    } catch (e) {
+      console.warn("Failed to refresh offline cache:", e);
+    } finally {
+      setTimeout(() => setCacheRefreshing(false), 500);
+    }
+  };
 
   React.useEffect(() => {
     if (user) {
@@ -140,25 +158,7 @@ export const Settings: React.FC = () => {
           </div>
         </div>
         <div className="p-4 max-w-xl mx-auto mt-4">
-          {isInstallable && (
-            <div className="mb-6 bg-primary-lime/5 border border-primary-lime/20 rounded-2xl p-4 shadow-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary-lime/10 to-transparent pointer-events-none"></div>
-              <div className="flex items-center justify-between relative z-10">
-                <div>
-                  <h3 className="font-bold text-[15px] text-text-primary mb-0.5">Install App</h3>
-                  <p className="text-primary-lime/80 text-[11px] font-medium">
-                    Get the full Pitchly experience
-                  </p>
-                </div>
-                <button
-                  onClick={installApp}
-                  className="bg-primary-lime text-accent-text px-4 py-2.5 rounded-full font-bold text-[12px] shadow-sm shadow-primary-lime/20 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <Download size={14} /> Install
-                </button>
-              </div>
-            </div>
-          )}
+          <PWAInstallButton variant="full" className="mb-6" />
           
           <SectionHeader title="Appearance & Performance" />
           <div className="overflow-hidden rounded-2xl border border-border-subtle shadow-sm mb-6">
@@ -174,6 +174,37 @@ export const Settings: React.FC = () => {
               title="Eco Mode"
               description="Reduce animations and power usage"
               action={<Toggle checked={isEcoMode} onChange={toggleEcoMode} />}
+            />
+          </div>
+
+          <SectionHeader title="Offline & Connectivity" />
+          <div className="overflow-hidden rounded-2xl border border-border-subtle shadow-sm mb-6">
+            <SettingItem
+              icon={Wifi}
+              title="Service Worker Caching"
+              description="Critical assets & shells cached for offline usage"
+              action={
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary-lime/10 text-primary-lime border border-primary-lime/30">
+                  Active
+                </span>
+              }
+            />
+            <div className="border-t border-border-subtle" />
+            <SettingItem
+              icon={Database}
+              title="Cached Pitchly Records"
+              description={`${offlineStats.pitchesCount} pitches & ${offlineStats.userBookingsCount} bookings saved`}
+              action={
+                <button
+                  onClick={handleRefreshCache}
+                  disabled={cacheRefreshing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-raised hover:bg-border-subtle text-text-primary text-xs font-bold transition-all border border-border-subtle cursor-pointer disabled:opacity-50"
+                  title="Update cached data from network"
+                >
+                  <RefreshCw size={12} className={cacheRefreshing ? "animate-spin text-primary-lime" : ""} />
+                  <span>{cacheRefreshing ? "Syncing..." : "Sync"}</span>
+                </button>
+              }
             />
           </div>
           

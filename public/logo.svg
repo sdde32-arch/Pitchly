@@ -6,28 +6,16 @@
   <g transform="translate(10, 20)">
     <!-- Bold Black Letter P in Sora Font Style -->
     <text
-      x="140"
+      x="145"
       y="380"
-      fill="#0D0D0D"
+      fill="#0F172A"
       font-family="Sora, system-ui, -apple-system, sans-serif"
       font-size="340"
       font-weight="800"
-      letter-spacing="-0.04em"
+      letter-spacing="-0.035em"
     >p</text>
-    
-    <!-- Bouncing Arc Line -->
-    <path 
-      d="M 120 180 Q 220 10 320 95" 
-      fill="none" 
-      stroke="#22C55E" 
-      stroke-width="18" 
-      stroke-linecap="round"
-    />
 
-    <!-- Vibrant Neon Green Circle, no glow filter -->
-    <g transform="translate(320, 95)">
-      <!-- Lime Ball Base -->
-      <circle cx="0" cy="0" r="48" fill="#22C55E" />
-    </g>
+    <!-- Solid Darker Green Ball directly on top of letter P (no glare, no glow, no shadow) -->
+    <circle cx="310" cy="115" r="46" fill="#15803D" />
   </g>
 </svg>

@@ -33,12 +33,17 @@ import {
   Wifi, 
   HelpCircle,
   CreditCard,
-  Building2
+  Building2,
+  Camera,
+  Star,
+  RefreshCw,
+  Smartphone
 } from 'lucide-react';
 import { pitchService } from '../../services/pitchService';
 import { collection, doc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { LocationPicker } from '../../components/LocationPicker';
+import { optimizeAndUploadPitchPhoto } from '../../utils/imageOptimizer';
 
 // Preset High Quality Turf Gallery Images for instant selection & testing
 const PRESET_TURF_IMAGES = [
@@ -60,7 +65,7 @@ const PRESET_TURF_IMAGES = [
   {
     title: 'Goalmouth & Goal Net',
     category: 'Pitch Detail',
-    url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&auto=format&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?w=1200&auto=format&fit=crop&q=80',
   },
   {
     title: 'Indoor Futsal & Training',
@@ -158,6 +163,13 @@ export const AddPitch: React.FC = () => {
 
   const [newRuleInput, setNewRuleInput] = useState('');
   const [newImageInput, setNewImageInput] = useState('');
+
+  // Image Upload States
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [showCoverUrlInput, setShowCoverUrlInput] = useState(false);
+  const [showGalleryUrlInput, setShowGalleryUrlInput] = useState(false);
+  const [isCoverDragging, setIsCoverDragging] = useState(false);
+  const [isGalleryDragging, setIsGalleryDragging] = useState(false);
 
   // Load existing pitch if in edit mode
   useEffect(() => {
@@ -285,6 +297,64 @@ export const AddPitch: React.FC = () => {
     }));
   };
 
+  const handleSetAsCover = (index: number) => {
+    const selectedImg = formData.additionalImages[index];
+    const oldCover = formData.coverImage;
+    if (!selectedImg) return;
+    setFormData(prev => ({
+      ...prev,
+      coverImage: selectedImg,
+      additionalImages: oldCover
+        ? [oldCover, ...prev.additionalImages.filter((_, i) => i !== index)]
+        : prev.additionalImages.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleCoverFileUpload = async (file: File) => {
+    if (!file) return;
+    setIsUploadingImage(true);
+    try {
+      const url = await optimizeAndUploadPitchPhoto(file, user?.uid);
+      setFormData(prev => ({ ...prev, coverImage: url }));
+    } catch (err: any) {
+      console.error('Failed to process cover photo:', err);
+      setError('Could not process cover photo. Please choose another image.');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleGalleryFilesUpload = async (files: File[]) => {
+    if (!files || files.length === 0) return;
+    setIsUploadingImage(true);
+    try {
+      const newUrls: string[] = [];
+      for (const file of files) {
+        const url = await optimizeAndUploadPitchPhoto(file, user?.uid);
+        newUrls.push(url);
+      }
+
+      setFormData(prev => {
+        if (!prev.coverImage && newUrls.length > 0) {
+          return {
+            ...prev,
+            coverImage: newUrls[0],
+            additionalImages: [...prev.additionalImages, ...newUrls.slice(1)]
+          };
+        }
+        return {
+          ...prev,
+          additionalImages: [...prev.additionalImages, ...newUrls]
+        };
+      });
+    } catch (err: any) {
+      console.error('Failed to process gallery photos:', err);
+      setError('Could not process some photos. Please try again.');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const isCriticalFieldChanged = (original: any, current: typeof formData): boolean => {
     if (original.name !== current.name) return true;
     if (original.location !== current.location) return true;
@@ -360,15 +430,15 @@ export const AddPitch: React.FC = () => {
           name: formData.name.trim(),
           location: formData.location.trim(),
           contactPhone: formData.contactPhone.trim(),
-          contactEmail: formData.contactEmail.trim() || undefined,
+          contactEmail: formData.contactEmail.trim() || '',
           description: formData.description.trim(),
-          landmark: formData.landmark.trim() || undefined,
+          landmark: formData.landmark.trim() || '',
           pricePerHour: Number(formData.pricePerHour),
-          peakPricePerHour: formData.peakPricePerHour ? Number(formData.peakPricePerHour) : undefined,
+          ...(formData.peakPricePerHour ? { peakPricePerHour: Number(formData.peakPricePerHour) } : {}),
           depositPercentage: Number(formData.depositPercentage),
           acceptedPaymentMethods: formData.acceptedPaymentMethods,
-          paymentPhone: formData.paymentPhone.trim() || undefined,
-          paymentAccountName: formData.paymentAccountName.trim() || undefined,
+          paymentPhone: formData.paymentPhone.trim() || '',
+          paymentAccountName: formData.paymentAccountName.trim() || '',
           images: allImages,
           amenities: formData.amenities,
           surfaceType: formData.surfaceType,
@@ -404,15 +474,15 @@ export const AddPitch: React.FC = () => {
           name: formData.name.trim(),
           location: formData.location.trim(),
           contactPhone: formData.contactPhone.trim(),
-          contactEmail: formData.contactEmail.trim() || undefined,
+          contactEmail: formData.contactEmail.trim() || '',
           description: formData.description.trim(),
-          landmark: formData.landmark.trim() || undefined,
+          landmark: formData.landmark.trim() || '',
           pricePerHour: Number(formData.pricePerHour),
-          peakPricePerHour: formData.peakPricePerHour ? Number(formData.peakPricePerHour) : undefined,
+          ...(formData.peakPricePerHour ? { peakPricePerHour: Number(formData.peakPricePerHour) } : {}),
           depositPercentage: Number(formData.depositPercentage),
           acceptedPaymentMethods: formData.acceptedPaymentMethods,
-          paymentPhone: formData.paymentPhone.trim() || undefined,
-          paymentAccountName: formData.paymentAccountName.trim() || undefined,
+          paymentPhone: formData.paymentPhone.trim() || '',
+          paymentAccountName: formData.paymentAccountName.trim() || '',
           images: allImages,
           amenities: formData.amenities,
           surfaceType: formData.surfaceType,
@@ -1134,57 +1204,333 @@ export const AddPitch: React.FC = () => {
 
             {/* SECTION 7: PHOTO GALLERY & MEDIA */}
             {(activeTab === 'media' || activeTab === 'preview') && (
-              <div className="bg-surface-card border border-border-subtle p-5 sm:p-6 rounded-2xl shadow-sm space-y-5">
+              <div className="bg-surface-card border border-border-subtle p-5 sm:p-6 rounded-2xl shadow-sm space-y-6">
                 <div className="flex items-center justify-between border-b border-border-subtle pb-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5">
                     <span className="p-2 bg-[#A78BFA]/10 text-[#A78BFA] rounded-xl border border-[#A78BFA]/30">
                       <ImageIcon size={18} />
                     </span>
                     <div>
                       <h2 className="text-base font-extrabold text-text-primary">Photo Gallery & Facility Showcase</h2>
-                      <p className="text-xs text-text-secondary">High quality pitch photos attract up to 3x more match bookings</p>
+                      <p className="text-xs text-text-secondary">High quality pitch photos attract more match bookings</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Primary Cover Image */}
-                <div className="space-y-2">
-                  <label className="text-[11px] font-extrabold text-text-secondary uppercase tracking-wider block">
-                    Primary Cover Photo URL <span className="text-primary-lime">*</span>
-                  </label>
-                  <input
-                    type="url"
-                    name="coverImage"
-                    required
-                    value={formData.coverImage}
-                    onChange={handleInputChange}
-                    placeholder="https://images.unsplash.com/photo-..."
-                    className="w-full bg-surface-raised border border-border-subtle rounded-xl px-4 py-3 text-sm font-bold text-text-primary focus:border-primary-lime outline-none transition-all placeholder:text-text-tertiary"
-                  />
-
-                  {formData.coverImage && (
-                    <div className="relative h-48 sm:h-56 rounded-2xl overflow-hidden border border-border-subtle mt-2 group">
-                      <img
-                        src={formData.coverImage}
-                        alt="Pitch Cover Preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800';
-                        }}
-                      />
-                      <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-md px-3 py-1 rounded-lg text-[11px] font-extrabold text-white flex items-center gap-1.5 border border-white/20">
-                        <Sparkles size={12} className="text-primary-lime" />
-                        <span>Cover Photo Preview</span>
-                      </div>
+                {/* 1. PRIMARY COVER PHOTO */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-[11px] font-extrabold text-text-secondary uppercase tracking-wider block">
+                        Primary Cover Photo <span className="text-primary-lime">*</span>
+                      </label>
+                      <span className="text-[10px] text-text-tertiary">The main photo displayed in player search and card banners</span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowCoverUrlInput(!showCoverUrlInput)}
+                      className="text-[11px] text-primary-lime font-bold hover:underline cursor-pointer"
+                    >
+                      {showCoverUrlInput ? 'Hide URL input' : 'Paste photo URL instead'}
+                    </button>
+                  </div>
+
+                  {/* Manual URL input toggle */}
+                  {showCoverUrlInput && (
+                    <input
+                      type="url"
+                      name="coverImage"
+                      value={formData.coverImage}
+                      onChange={handleInputChange}
+                      placeholder="https://images.unsplash.com/photo-..."
+                      className="w-full bg-surface-raised border border-border-subtle rounded-xl px-4 py-3 text-xs font-bold text-text-primary focus:border-primary-lime outline-none transition-all placeholder:text-text-tertiary"
+                    />
                   )}
+
+                  {/* Cover Photo Dropzone / Upload Area */}
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsCoverDragging(true);
+                    }}
+                    onDragLeave={() => setIsCoverDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsCoverDragging(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) handleCoverFileUpload(file);
+                    }}
+                    className={`relative rounded-2xl border-2 border-dashed transition-all overflow-hidden ${
+                      isCoverDragging
+                        ? 'border-primary-lime bg-primary-lime/10'
+                        : 'border-border-subtle bg-surface-raised hover:border-primary-lime/50'
+                    }`}
+                  >
+                    {formData.coverImage ? (
+                      <div className="relative group min-h-[220px] sm:min-h-[260px]">
+                        <img
+                          src={formData.coverImage}
+                          alt="Cover preview"
+                          className="w-full h-56 sm:h-64 object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-between p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="bg-black/70 backdrop-blur-md px-3 py-1 rounded-lg text-[11px] font-extrabold text-white flex items-center gap-1.5 border border-white/20">
+                              <Sparkles size={12} className="text-primary-lime" />
+                              <span>Primary Cover</span>
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-2">
+                            <label
+                              htmlFor="cover-photo-upload"
+                              className={`px-3.5 py-2 bg-primary-lime hover:bg-primary-lime/90 text-black rounded-xl text-xs font-extrabold cursor-pointer flex items-center gap-1.5 shadow transition-all ${
+                                isUploadingImage ? 'opacity-70 pointer-events-none' : ''
+                              }`}
+                            >
+                              {isUploadingImage ? (
+                                <>
+                                  <Loader2 size={14} className="animate-spin" />
+                                  <span>Uploading...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Camera size={14} />
+                                  <span>Replace from Gallery</span>
+                                </>
+                              )}
+                            </label>
+                            <input
+                              id="cover-photo-upload"
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={isUploadingImage}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleCoverFileUpload(file);
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, coverImage: '' }))}
+                              className="p-2 bg-black/70 hover:bg-error text-white rounded-xl transition-colors cursor-pointer"
+                              title="Remove cover"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center flex flex-col items-center justify-center space-y-3">
+                        <div className="w-14 h-14 rounded-2xl bg-primary-lime/10 border border-primary-lime/30 text-primary-lime flex items-center justify-center">
+                          <Camera size={26} />
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-sm font-extrabold text-text-primary">Add Your Pitch Cover Photo</h3>
+                          <p className="text-xs text-text-secondary max-w-sm mx-auto">
+                            Upload a photo from your gallery or drag and drop here.
+                          </p>
+                        </div>
+                        <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5">
+                          <label
+                            htmlFor="cover-photo-upload-empty"
+                            className={`px-4 py-2.5 bg-primary-lime hover:bg-primary-lime/90 text-black rounded-xl text-xs font-extrabold cursor-pointer flex items-center gap-2 shadow transition-all ${
+                              isUploadingImage ? 'opacity-70 pointer-events-none' : ''
+                            }`}
+                          >
+                            {isUploadingImage ? (
+                              <>
+                                <Loader2 size={15} className="animate-spin" />
+                                <span>Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Smartphone size={15} />
+                                <span>Select Photo from Gallery</span>
+                              </>
+                            )}
+                          </label>
+                          <input
+                            id="cover-photo-upload-empty"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={isUploadingImage}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleCoverFileUpload(file);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Quick Presets Selector */}
-                <div className="space-y-2 pt-2">
-                  <span className="text-[11px] font-extrabold text-text-secondary uppercase tracking-wider block">
-                    Quick Preset Turf Library (Tap to Add to Gallery)
-                  </span>
+                {/* 2. ADDITIONAL GALLERY PHOTOS */}
+                <div className="space-y-3 pt-4 border-t border-border-subtle">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <label className="text-[11px] font-extrabold text-text-secondary uppercase tracking-wider block">
+                        Additional Gallery Photos ({formData.additionalImages.length})
+                      </label>
+                      <span className="text-[10px] text-text-tertiary">Select photos from your device gallery</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <label
+                        htmlFor="gallery-photos-upload"
+                        className={`px-3.5 py-2 bg-surface-raised hover:bg-border-subtle border border-primary-lime/40 text-text-primary rounded-xl text-xs font-extrabold cursor-pointer flex items-center gap-1.5 transition-all ${
+                          isUploadingImage ? 'opacity-50 pointer-events-none' : ''
+                        }`}
+                      >
+                        {isUploadingImage ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin text-primary-lime" />
+                            <span>Uploading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Camera size={14} className="text-primary-lime" />
+                            <span>Add from Gallery</span>
+                          </>
+                        )}
+                      </label>
+                      <input
+                        id="gallery-photos-upload"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        disabled={isUploadingImage}
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          if (files.length > 0) handleGalleryFilesUpload(files);
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Multi-Dropzone for Gallery */}
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsGalleryDragging(true);
+                    }}
+                    onDragLeave={() => setIsGalleryDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsGalleryDragging(false);
+                      const files = Array.from(e.dataTransfer.files || []);
+                      if (files.length > 0) handleGalleryFilesUpload(files);
+                    }}
+                    className={`p-4 rounded-xl border-2 border-dashed text-center transition-all ${
+                      isGalleryDragging
+                        ? 'border-primary-lime bg-primary-lime/10'
+                        : 'border-border-subtle bg-surface-raised/40 hover:border-border-strong'
+                    }`}
+                  >
+                    <p className="text-[11px] text-text-secondary font-medium">
+                      Drag and drop multiple photos here or tap <span className="font-extrabold text-primary-lime">Add from Gallery</span> above.
+                    </p>
+                  </div>
+
+                  {/* Gallery Photos Grid */}
+                  {formData.additionalImages.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-2">
+                      {formData.additionalImages.map((imgUrl, i) => (
+                        <div
+                          key={i}
+                          className="relative h-32 rounded-xl overflow-hidden border border-border-subtle group bg-surface-raised"
+                        >
+                          <img
+                            src={imgUrl}
+                            alt={`Gallery ${i}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                            <div className="flex justify-between items-center">
+                              <span className="bg-black/60 backdrop-blur-sm text-[9px] font-extrabold text-white px-1.5 py-0.5 rounded">
+                                Photo {i + 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveGalleryImage(i)}
+                                className="w-6 h-6 rounded-lg bg-black/80 text-white hover:text-error flex items-center justify-center cursor-pointer transition-colors"
+                                title="Remove photo"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleSetAsCover(i)}
+                              className="w-full py-1 bg-primary-lime hover:bg-primary-lime/90 text-black text-[10px] font-extrabold rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-all shadow"
+                            >
+                              <Star size={11} fill="currentColor" />
+                              <span>Set as Cover</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Paste URL for additional photo (collapsible) */}
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowGalleryUrlInput(!showGalleryUrlInput)}
+                      className="text-[10px] text-text-tertiary hover:text-primary-lime font-bold cursor-pointer"
+                    >
+                      {showGalleryUrlInput ? 'Hide photo URL input' : '+ Or add via image link'}
+                    </button>
+                    {showGalleryUrlInput && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <input
+                          type="url"
+                          value={newImageInput}
+                          onChange={(e) => setNewImageInput(e.target.value)}
+                          placeholder="https://..."
+                          className="flex-1 bg-surface-raised border border-border-subtle rounded-xl px-4 py-2 text-xs font-bold text-text-primary focus:border-primary-lime outline-none transition-all"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddGalleryImage(newImageInput);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddGalleryImage(newImageInput)}
+                          className="px-3.5 py-2 bg-surface-raised hover:bg-border-subtle text-text-primary border border-border-subtle rounded-xl text-xs font-extrabold flex items-center gap-1 cursor-pointer transition-all"
+                        >
+                          <Plus size={13} />
+                          <span>Add</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. QUICK TURF PRESET LIBRARY */}
+                <div className="space-y-2 pt-4 border-t border-border-subtle">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-extrabold text-text-secondary uppercase tracking-wider block">
+                      Quick Preset Turf Library (Tap to Add to Gallery)
+                    </span>
+                    <span className="text-[10px] text-text-tertiary">Sample images for instant setup</span>
+                  </div>
+
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                     {PRESET_TURF_IMAGES.map((preset, idx) => (
                       <div
@@ -1198,63 +1544,20 @@ export const AddPitch: React.FC = () => {
                         }}
                         className="relative rounded-xl overflow-hidden border border-border-subtle h-24 cursor-pointer group hover:scale-[1.02] transition-transform"
                       >
-                        <img src={preset.url} alt={preset.title} className="w-full h-full object-cover" />
+                        <img
+                          src={preset.url}
+                          alt={preset.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800';
+                          }}
+                        />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2">
                           <span className="text-[10px] font-bold text-white leading-tight truncate">{preset.title}</span>
                           <span className="text-[9px] text-primary-lime font-extrabold">{preset.category}</span>
                         </div>
                       </div>
                     ))}
-                  </div>
-                </div>
-
-                {/* Additional Gallery Photos */}
-                <div className="space-y-3 pt-2 border-t border-border-subtle">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-extrabold text-text-secondary uppercase tracking-wider block">
-                      Additional Gallery Photos ({formData.additionalImages.length})
-                    </label>
-                  </div>
-
-                  {formData.additionalImages.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {formData.additionalImages.map((imgUrl, i) => (
-                        <div key={i} className="relative h-28 rounded-xl overflow-hidden border border-border-subtle group">
-                          <img src={imgUrl} alt={`Gallery ${i}`} className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveGalleryImage(i)}
-                            className="absolute top-2 right-2 w-7 h-7 rounded-lg bg-black/80 text-white hover:text-error flex items-center justify-center cursor-pointer transition-colors"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="url"
-                      value={newImageInput}
-                      onChange={(e) => setNewImageInput(e.target.value)}
-                      placeholder="Add another photo URL..."
-                      className="flex-1 bg-surface-raised border border-border-subtle rounded-xl px-4 py-2.5 text-xs font-bold text-text-primary focus:border-primary-lime outline-none transition-all"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddGalleryImage(newImageInput);
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleAddGalleryImage(newImageInput)}
-                      className="px-4 py-2.5 bg-surface-raised hover:bg-border-subtle text-text-primary border border-border-subtle rounded-xl text-xs font-extrabold flex items-center gap-1 cursor-pointer transition-all"
-                    >
-                      <Plus size={14} />
-                      <span>Add Photo</span>
-                    </button>
                   </div>
                 </div>
               </div>

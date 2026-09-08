@@ -13,9 +13,12 @@
     <meta property="og:image" content="/logo.svg" />
     <link rel="canonical" href="https://pitchly.app" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pitchly">
+    <meta name="application-name" content="Pitchly">
     <title>Pitchly</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -273,8 +276,6 @@
             color: rgb(var(--color-text-primary));
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
             text-rendering: optimizeLegibility;
         }
         .glass-card {
@@ -338,7 +339,25 @@
             );
         }
         ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(140, 140, 140, 0.25);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(140, 140, 140, 0.45);
+        }
+        .no-scrollbar::-webkit-scrollbar {
             display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
         html, body, #root {
             height: 100dvh;

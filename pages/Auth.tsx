@@ -18,6 +18,10 @@ import {
   Eye,
   EyeOff,
   Database,
+  Copy,
+  Check,
+  ExternalLink,
+  Zap,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
 import { Card } from "../components/ui/Card";
@@ -45,6 +49,8 @@ export const Auth: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [isUnauthorizedDomain, setIsUnauthorizedDomain] = useState(false);
+  const [copiedDomain, setCopiedDomain] = useState(false);
   const [seedMessage, setSeedMessage] = useState<{
     text: string;
     type: "success" | "error";
@@ -250,30 +256,113 @@ export const Auth: React.FC = () => {
         return;
       }
       console.error("Google sign-in error:", err);
-      setError(err.message || "Failed to sign in with Google. Please try again.");
+      const isUnauthDomain =
+        err.code === "auth/unauthorized-domain" ||
+        (typeof err.message === "string" && err.message.toLowerCase().includes("unauthorized-domain"));
+      
+      if (isUnauthDomain) {
+        setIsUnauthorizedDomain(true);
+        setError(null);
+      } else {
+        setError(err.message || "Failed to sign in with Google. Please try again.");
+      }
     } finally {
       setIsGoogleLoading(false);
     }
   };
 
+  const handleQuickDemoLogin = async (targetRole: "PLAYER" | "OWNER") => {
+    setLoading(true);
+    setIsSubmitting(true);
+    setError(null);
+    setIsUnauthorizedDomain(false);
+
+    const demoEmail = targetRole === "OWNER" ? "demo.owner@pitchly.ug" : "demo.player@pitchly.ug";
+    const demoPassword = "PitchlyDemo2026!";
+    const demoName = targetRole === "OWNER" ? "Kigozi Turf Manager" : "Brian Mukasa";
+
+    try {
+      localStorage.setItem("pitchly_pending_role", targetRole);
+      localStorage.setItem("pitchly_pending_name", demoName);
+      localStorage.setItem("pitchly_pending_phone", "+256 700 123456");
+
+      let userCred;
+      try {
+        userCred = await signInWithEmailAndPassword(auth, demoEmail, demoPassword);
+      } catch (signInErr: any) {
+        if (
+          signInErr.code === "auth/user-not-found" ||
+          signInErr.code === "auth/invalid-credential" ||
+          signInErr.code === "auth/invalid-login-credentials"
+        ) {
+          userCred = await createUserWithEmailAndPassword(auth, demoEmail, demoPassword);
+        } else {
+          throw signInErr;
+        }
+      }
+
+      if (userCred?.user) {
+        const docRef = doc(db, "users", userCred.user.uid);
+        const userDoc = await getDoc(docRef);
+        if (!userDoc.exists()) {
+          await setDoc(
+            docRef,
+            {
+              id: userCred.user.uid,
+              name: demoName,
+              email: demoEmail,
+              phone: "+256 700 123456",
+              avatar:
+                targetRole === "OWNER"
+                  ? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200"
+                  : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200",
+              avatarId: targetRole === "OWNER" ? "avatar_01" : "avatar_05",
+              bio:
+                targetRole === "OWNER"
+                  ? "Owner & Director at Kampala Arena Turf."
+                  : "Striker & Pitchly Player in Kampala.",
+              role: targetRole,
+              roles: targetRole === "OWNER" ? ["OWNER", "PLAYER"] : ["PLAYER"],
+              hasCompletedOnboarding: true,
+              createdAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        }
+      }
+    } catch (err: any) {
+      console.error("Demo login error:", err);
+      setError(err.message || "Demo login encountered an issue. Please try manual email signup.");
+    } finally {
+      setLoading(false);
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="min-h-[100dvh] bg-[#fafafa] dark:bg-[#0e0f12] flex flex-col justify-center p-4 sm:p-12 animate-fadeIn font-body relative overflow-hidden text-text-primary">
+    <div
+      className="fixed inset-0 h-full w-full bg-[#fafafa] dark:bg-[#0e0f12] overflow-y-auto overflow-x-hidden p-3 sm:p-6 animate-fadeIn font-body relative text-text-primary"
+      style={{
+        WebkitOverflowScrolling: "touch",
+        touchAction: "pan-y",
+      }}
+    >
       {/* Visual Background Elements */}
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary-lime/5 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary-lime/5 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="fixed bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
       
-      <div className="max-w-md w-full mx-auto relative z-10">
-        <div className="mb-10 text-center animate-slideUp">
+      <div className="max-w-md w-full mx-auto py-2 sm:py-6 pb-28 relative z-10 flex flex-col">
+        <div className="mb-3 text-center animate-slideUp">
           <button
             onClick={() =>
               mode === "FORGOT_PASSWORD"
                 ? setMode("SIGN_IN")
                 : navigate("/onboarding")
             }
-            className="mb-8 inline-flex items-center gap-2 text-text-secondary hover:text-primary-lime transition-all text-xs font-bold uppercase tracking-widest group"
+            className="mb-2 inline-flex items-center gap-1.5 text-text-secondary hover:text-primary-lime transition-all text-xs font-bold uppercase tracking-widest group cursor-pointer"
           >
             <ArrowLeft
-              size={16}
+              size={15}
               className="group-hover:-translate-x-1 transition-transform"
             />
             {mode === "FORGOT_PASSWORD"
@@ -281,22 +370,22 @@ export const Auth: React.FC = () => {
               : "Back to Intro"}
           </button>
           <Logo
-            size={80}
+            size={44}
             showText={true}
             showTagline={true}
             className="mx-auto"
           />
         </div>
         
-        <div className="p-4 rounded-2xl bg-surface-card shadow-xl shadow-slate-200/50 dark:shadow-black/50 border border-border-subtle animate-slideUp">
+        <div className="p-4 sm:p-5 rounded-2xl bg-surface-card shadow-xl shadow-slate-200/50 dark:shadow-black/50 border border-border-subtle animate-slideUp">
           {mode !== "FORGOT_PASSWORD" && (
-            <div className="flex gap-2 bg-surface-raised p-1.5 rounded-full mb-6">
+            <div className="flex gap-2 bg-surface-raised p-1 rounded-full mb-4">
               <button
                 onClick={() => {
                   setMode("SIGN_IN");
                   setError(null);
                 }}
-                className={`flex-1 py-3 text-[12px] font-bold uppercase tracking-widest rounded-full transition-all ${mode === "SIGN_IN" ? "bg-primary-lime text-accent-text shadow-sm shadow-primary-lime/20" : "text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"}`}
+                className={`flex-1 py-2.5 text-[11.5px] font-bold uppercase tracking-widest rounded-full transition-all ${mode === "SIGN_IN" ? "bg-primary-lime text-accent-text shadow-sm shadow-primary-lime/20" : "text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"}`}
               >
                 Log In
               </button>
@@ -305,7 +394,7 @@ export const Auth: React.FC = () => {
                   setMode("SIGN_UP");
                   setError(null);
                 }}
-                className={`flex-1 py-3 text-[12px] font-bold uppercase tracking-widest rounded-full transition-all ${mode === "SIGN_UP" ? "bg-primary-lime text-accent-text shadow-sm shadow-primary-lime/20" : "text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"}`}
+                className={`flex-1 py-2.5 text-[11.5px] font-bold uppercase tracking-widest rounded-full transition-all ${mode === "SIGN_UP" ? "bg-primary-lime text-accent-text shadow-sm shadow-primary-lime/20" : "text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"}`}
               >
                 Register
               </button>
@@ -313,21 +402,21 @@ export const Auth: React.FC = () => {
           )}
 
           {mode !== "FORGOT_PASSWORD" && (
-            <div className="space-y-4 mb-6">
+            <div className="space-y-3 mb-4">
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isGoogleLoading || loading || isSubmitting}
-                className="w-full flex items-center justify-center gap-3 bg-surface-raised hover:bg-surface-card border border-border-subtle hover:border-primary-lime/40 text-text-primary py-3.5 px-4 rounded-full font-bold text-[13.5px] transition-all duration-200 active:scale-[0.98] shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-3 bg-surface-raised hover:bg-surface-card border border-border-subtle hover:border-primary-lime/40 text-text-primary py-2.5 px-4 rounded-full font-bold text-[13px] transition-all duration-200 active:scale-[0.98] shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isGoogleLoading ? (
                   <>
-                    <Loader2 className="animate-spin text-primary-lime" size={18} />
+                    <Loader2 className="animate-spin text-primary-lime" size={17} />
                     <span>Signing in with Google...</span>
                   </>
                 ) : (
                   <>
-                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                       <path
                         fill="#4285F4"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -362,12 +451,88 @@ export const Auth: React.FC = () => {
             </div>
           )}
           
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {isUnauthorizedDomain && (
+            <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl space-y-3 mb-4 animate-fadeIn text-left">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={17} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                    Google Sign-In: Domain Whitelist Required
+                  </p>
+                  <p className="text-[11px] text-text-secondary mt-0.5 leading-relaxed">
+                    Firebase Auth requires this preview domain to be added to Authorized Domains in your Firebase Console.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 bg-surface-card p-2 rounded-xl border border-border-subtle">
+                <code className="text-[11px] font-mono font-semibold text-text-primary truncate flex-1 px-1">
+                  {typeof window !== "undefined" ? window.location.hostname : ""}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      navigator.clipboard.writeText(window.location.hostname);
+                      setCopiedDomain(true);
+                      setTimeout(() => setCopiedDomain(false), 2500);
+                    }
+                  }}
+                  className="flex items-center gap-1 text-[10.5px] font-bold px-2.5 py-1 rounded-lg bg-primary-lime/15 text-primary-lime hover:bg-primary-lime/25 transition-colors shrink-0 cursor-pointer"
+                >
+                  {copiedDomain ? (
+                    <>
+                      <Check size={12} />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={12} />
+                      <span>Copy Domain</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="text-[11px] text-text-secondary space-y-1 pl-1">
+                <p className="font-semibold text-text-primary text-[10.5px] uppercase tracking-wider">
+                  How to authorize:
+                </p>
+                <ol className="list-decimal list-inside space-y-0.5 text-[10.5px]">
+                  <li>Open Firebase Console Settings (link below)</li>
+                  <li>Under <strong>Authorized domains</strong>, click <strong>Add domain</strong></li>
+                  <li>Paste the copied domain and click <strong>Save</strong></li>
+                </ol>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                <a
+                  href="https://console.firebase.google.com/project/pitchlink-c4df3/authentication/settings"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-surface-card border border-border-subtle text-text-primary text-[11px] font-bold hover:border-amber-500/40 transition-colors"
+                >
+                  <span>Open Firebase Settings</span>
+                  <ExternalLink size={12} />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin(isOwner ? "OWNER" : "PLAYER")}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-primary-lime text-accent-text text-[11px] font-bold hover:bg-[#96E600] transition-colors shadow-xs cursor-pointer"
+                >
+                  <Zap size={12} />
+                  <span>Instant Demo ({isOwner ? "Owner" : "Player"})</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-3">
             {error && (
-              <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-4 rounded-2xl flex items-center gap-3 animate-shake">
+              <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-3 rounded-2xl flex items-center gap-2.5 animate-shake">
                 <AlertCircle
                   className="text-red-500 shrink-0 mt-0.5"
-                  size={18}
+                  size={16}
                 />
                 <p className="text-[11px] font-bold text-red-600 dark:text-red-400 leading-relaxed uppercase tracking-widest">
                   {error}
@@ -375,10 +540,10 @@ export const Auth: React.FC = () => {
               </div>
             )}
             {successMessage && (
-              <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 p-4 rounded-2xl flex items-center gap-3 animate-fadeIn">
+              <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 p-3 rounded-2xl flex items-center gap-2.5 animate-fadeIn">
                 <Shield
                   className="text-emerald-500 shrink-0 mt-0.5"
-                  size={18}
+                  size={16}
                 />
                 <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 leading-relaxed uppercase tracking-widest">
                   {successMessage}
@@ -389,8 +554,8 @@ export const Auth: React.FC = () => {
               <>
                 <div className="relative group">
                   <UserIcon
-                    className={`absolute left-5 top-1/2 -translate-y-1/2 transition-colors ${fullName ? "text-primary-lime" : "text-[#71717A]"}`}
-                    size={18}
+                    className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${fullName ? "text-primary-lime" : "text-[#71717A]"}`}
+                    size={16}
                   />
                   <input
                     type="text"
@@ -398,28 +563,28 @@ export const Auth: React.FC = () => {
                     placeholder="Full Name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-4 pl-12 pr-5 text-[14px] font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
+                    className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-2.5 pl-10 pr-4 text-[13px] font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
                   />
                 </div>
                 <div className="relative group">
                   <Phone
-                    className={`absolute left-5 top-1/2 -translate-y-1/2 transition-colors ${phone ? "text-primary-lime" : "text-[#71717A]"}`}
-                    size={18}
+                    className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${phone ? "text-primary-lime" : "text-[#71717A]"}`}
+                    size={16}
                   />
                   <input
                     type="tel"
                     placeholder="Phone Number (Optional)"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-4 pl-12 pr-5 text-[14px] font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
+                    className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-2.5 pl-10 pr-4 text-[13px] font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
                   />
                 </div>
               </>
             )}
             <div className="relative group">
               <Mail
-                className={`absolute left-5 top-1/2 -translate-y-1/2 transition-colors ${validateEmail(email) ? "text-primary-lime" : "text-[#71717A]"}`}
-                size={18}
+                className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${validateEmail(email) ? "text-primary-lime" : "text-[#71717A]"}`}
+                size={16}
               />
               <input
                 type="email"
@@ -427,14 +592,14 @@ export const Auth: React.FC = () => {
                 placeholder="Email Address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-4 pl-12 pr-5 text-[14px] font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
+                className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-2.5 pl-10 pr-4 text-[13px] font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
               />
             </div>
             {mode !== "FORGOT_PASSWORD" && (
               <div className="relative group">
                 <Lock
-                  className={`absolute left-5 top-1/2 -translate-y-1/2 transition-colors ${password.length >= 6 ? "text-primary-lime" : "text-[#71717A]"}`}
-                  size={18}
+                  className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${password.length >= 6 ? "text-primary-lime" : "text-[#71717A]"}`}
+                  size={16}
                 />
                 <input
                   type={showPassword ? "text" : "password"}
@@ -442,19 +607,19 @@ export const Auth: React.FC = () => {
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-4 pl-12 pr-12 text-[14px] font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
+                  className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-2.5 pl-10 pr-10 text-[13px] font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary-lime"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary-lime"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             )}
             {mode === "SIGN_UP" && (
-              <div className="flex items-center gap-4 bg-surface-raised p-4 rounded-2xl border border-border-subtle">
+              <div className="flex items-center gap-3 bg-surface-raised p-3 rounded-2xl border border-border-subtle">
                 <div className="flex-1">
                   <p className="text-text-primary text-[11px] font-black uppercase tracking-widest">
                     Turf Owner Account?
@@ -466,10 +631,10 @@ export const Auth: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsOwner(!isOwner)}
-                  className={`w-12 h-6 rounded-full p-1 transition-colors border ${isOwner ? "bg-primary-lime border-primary-lime" : "bg-surface-card border-border-subtle"}`}
+                  className={`w-11 h-6 rounded-full p-1 transition-colors border cursor-pointer ${isOwner ? "bg-primary-lime border-primary-lime" : "bg-surface-card border-border-subtle"}`}
                 >
                   <div
-                    className={`w-4 h-4 rounded-full transition-transform ${isOwner ? "translate-x-6 bg-app-base" : "translate-x-0 bg-slate-400"}`}
+                    className={`w-4 h-4 rounded-full transition-transform ${isOwner ? "translate-x-5 bg-app-base" : "translate-x-0 bg-slate-400"}`}
                   />
                 </button>
               </div>
@@ -478,17 +643,17 @@ export const Auth: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting || loading || !isFormValid()}
-              className="w-full flex items-center justify-center gap-3 mt-6 bg-primary-lime hover:bg-[#96E600] text-accent-text py-4 rounded-full font-bold text-[14px] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary-lime/20 active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 mt-4 bg-primary-lime hover:bg-[#96E600] text-accent-text py-3 rounded-full font-bold text-[13.5px] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary-lime/20 active:scale-[0.98] cursor-pointer"
             >
               {isSubmitting || loading ? (
                 <>
-                  <Loader2 className="animate-spin" size={18} />
+                  <Loader2 className="animate-spin" size={17} />
                   <span>{mode === "SIGN_UP" ? "Creating..." : "Loading..."}</span>
                 </>
               ) : mode === "SIGN_IN" ? (
                 "Enter Pitch"
               ) : mode === "SIGN_UP" ? (
-                "Register"
+                "Register Account"
               ) : (
                 "Reset Password"
               )}
@@ -503,6 +668,28 @@ export const Auth: React.FC = () => {
                 Forgot Password?
               </button>
             )}
+
+            <div className="pt-4 mt-2 border-t border-border-subtle flex flex-wrap items-center justify-center gap-2">
+              <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1">
+                <Zap size={11} className="text-primary-lime" /> Quick Demo:
+              </span>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("PLAYER")}
+                disabled={loading || isSubmitting}
+                className="text-[11px] font-bold text-text-primary hover:text-primary-lime cursor-pointer bg-surface-raised hover:bg-surface-card border border-border-subtle px-2.5 py-1 rounded-full transition-colors active:scale-95 disabled:opacity-50"
+              >
+                Demo Player
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin("OWNER")}
+                disabled={loading || isSubmitting}
+                className="text-[11px] font-bold text-text-primary hover:text-primary-lime cursor-pointer bg-surface-raised hover:bg-surface-card border border-border-subtle px-2.5 py-1 rounded-full transition-colors active:scale-95 disabled:opacity-50"
+              >
+                Demo Turf Owner
+              </button>
+            </div>
           </form>
           
           {showSeedButton && (
@@ -530,7 +717,7 @@ export const Auth: React.FC = () => {
           )}
         </div>
         
-        <p className="mt-8 text-center text-[10px] font-bold text-[#71717A] uppercase tracking-[0.2em] flex items-center justify-center gap-2">
+        <p className="mt-4 text-center text-[10px] font-bold text-[#71717A] uppercase tracking-[0.2em] flex items-center justify-center gap-2">
           <Shield size={12} className="text-primary-lime" /> End-to-End Encrypted Session
         </p>
       </div>
