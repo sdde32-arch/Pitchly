@@ -17,6 +17,7 @@ import {
   ExternalLink,
   ArrowRightCircle,
   Eye,
+  Trophy,
 } from "lucide-react";
 import { Logo } from "../../../components/Logo";
 import { PlayerAvatar } from "../../../components/PlayerAvatars";
@@ -36,6 +37,11 @@ export const AdminLayout: React.FC = () => {
       path: "/admin/overview",
       label: "Overview",
       icon: <LayoutDashboard size={18} />,
+    },
+    {
+      path: "/admin/tournaments",
+      label: "Tournament Manager",
+      icon: <Trophy size={18} />,
     },
     { 
       path: "/admin/pitches", 

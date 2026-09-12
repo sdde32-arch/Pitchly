@@ -50,6 +50,8 @@ import { ChatList } from './pages/ChatList';
 import { ChatRoom } from './pages/ChatRoom';
 import { Invitations } from './pages/Invitations';
 import { DesignSystemTest } from './pages/DesignSystemTest';
+import { TournamentHub } from './pages/tournament/TournamentHub';
+import { TournamentManager } from './pages/admin/TournamentManager';
 
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
@@ -128,6 +130,10 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/auth" element={<PageTransition><Auth /></PageTransition>} />
         <Route path="/design-system" element={<PageTransition><DesignSystemTest /></PageTransition>} />
         
+        {/* Public Tournament Hub Routes (No Auth Required) */}
+        <Route path="/tournament" element={<Navigate to="/tournament/wehat-s2-w1" replace />} />
+        <Route path="/tournament/:tournamentId" element={<PageTransition><TournamentHub /></PageTransition>} />
+        
         {/* Protected User Routes */}
         <Route path="/home" element={<RequireAuth><PageTransition><Home /></PageTransition></RequireAuth>} />
         <Route path="/turf/:id" element={<RequireAuth blockAdmin><PageTransition><TurfDetail /></PageTransition></RequireAuth>} />
@@ -156,6 +162,7 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/admin" element={<RequireAdmin><PageTransition><AdminLayout /></PageTransition></RequireAdmin>}>
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<Overview />} />
+          <Route path="tournaments" element={<TournamentManager />} />
           <Route path="pitches" element={<PitchReviews />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="owners" element={<OwnerManagement />} />

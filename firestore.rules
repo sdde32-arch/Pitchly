@@ -376,5 +376,20 @@ service cloud.firestore {
         && request.resource.data.date is string
         && request.resource.data.time is string;
     }
+
+    // ==========================================
+    // TOURNAMENT HUB (WEHAT & PUBLIC TOURNAMENTS)
+    // ==========================================
+    match /tournamentFixtures/{fixtureId} {
+      allow read, write: if true;
+    }
+
+    match /tournamentScorers/{scorerId} {
+      allow read, write: if true;
+    }
+
+    match /tournamentNominees/{nomineeId} {
+      allow read, write: if true;
+    }
   }
 }
