@@ -78,7 +78,7 @@ export const OwnerProfile: React.FC = () => {
 
   return (
     <Layout>
-      <div className="min-h-[100dvh] bg-app-base text-text-primary font-sans p-3 sm:p-4 md:p-6 max-w-4xl mx-auto pb-24 animate-fadeIn">
+      <div className="min-h-full bg-app-base text-text-primary font-sans p-3 sm:p-4 md:p-6 max-w-4xl mx-auto pb-24 animate-fadeIn">
         {/* Navigation */}
         <button
           onClick={() => navigate('/owner')}

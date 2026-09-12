@@ -117,7 +117,7 @@ export const ManagePitches: React.FC = () => {
 
   return (
     <Layout>
-      <div className="min-h-[100dvh] bg-app-base text-text-primary font-sans p-3 sm:p-4 md:p-6 max-w-7xl mx-auto pb-24">
+      <div className="min-h-full bg-app-base text-text-primary font-sans p-3 sm:p-4 md:p-6 max-w-7xl mx-auto pb-24">
         {/* Navigation & Header */}
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>

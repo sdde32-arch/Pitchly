@@ -57,7 +57,7 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
     >
       <div>
         {/* Pitch Stadium Image Frame */}
-        <div className="relative w-full aspect-[16/10] overflow-hidden bg-surface-raised select-none border-b border-border-subtle">
+        <div className="relative w-full h-32 overflow-hidden bg-surface-raised select-none border-b border-border-subtle">
           <img
             src={primaryImage}
             alt={pitch.name || "Football Pitch"}
@@ -72,7 +72,7 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
             {/* Format & Surface Pill */}
             <div className="flex items-center gap-1.5 pointer-events-auto">
               <span className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase text-white border border-white/10 shadow-xs flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary-lime animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-primary-lime " />
                 {formatBadge}
               </span>
               <span className="hidden sm:inline-block bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase text-white/90 border border-white/10">
@@ -117,7 +117,7 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
         </div>
 
         {/* Card Content Body */}
-        <div className="p-4 sm:p-5 space-y-4">
+        <div className="p-3 sm:p-4 space-y-3">
           {/* Title & Location */}
           <div className="space-y-1">
             <div className="flex items-start justify-between gap-2">

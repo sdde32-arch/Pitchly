@@ -84,7 +84,7 @@ export const MatchdayDateStrip: React.FC<MatchdayDateStripProps> = ({
                 {day.isToday && (
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
-                      isSelected ? "bg-accent-text" : "bg-primary-lime animate-pulse"
+                      isSelected ? "bg-accent-text" : "bg-primary-lime "
                     }`}
                     title="Live matchday"
                   />

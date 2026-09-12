@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Users, User as UserIcon, MessageSquare } from 'lucide-react';
 import { userService } from '../services/userService';
 import { EmptyState } from '../components/ui/EmptyState';
+import { ChatListSkeleton } from '../components/ui/Skeleton';
 
 export const ChatList: React.FC = () => {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export const ChatList: React.FC = () => {
 
   return (
     <Layout>
-      <div className="min-h-[100dvh] bg-[#fafafa] dark:bg-[#0e0f12] font-body text-text-primary pb-24">
+      <div className="min-h-full bg-[#fafafa] dark:bg-[#0e0f12] font-body text-text-primary pb-24">
         <div className="max-w-xl mx-auto p-4">
           <div className="flex items-center gap-3 mb-6">
             <h1 className="text-[24px] font-black tracking-tight">Messages</h1>
@@ -54,7 +55,7 @@ export const ChatList: React.FC = () => {
           </div>
 
           {loading ? (
-            <div className="text-center text-[13px] font-medium text-text-secondary py-10">Loading conversations...</div>
+            <ChatListSkeleton />
           ) : filteredConvs.length === 0 ? (
             <EmptyState
               icon={MessageSquare}

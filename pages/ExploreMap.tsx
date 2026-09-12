@@ -299,7 +299,7 @@ export const ExploreMap: React.FC = () => {
 
   return (
     <Layout>
-      <div className="min-h-[100dvh] bg-app-base text-text-primary font-sans pb-28">
+      <div className="min-h-full bg-app-base text-text-primary font-sans pb-28">
         <div className="max-w-4xl mx-auto p-4 space-y-5">
           
           {/* Header */}

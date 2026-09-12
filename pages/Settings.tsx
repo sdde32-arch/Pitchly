@@ -143,7 +143,7 @@ export const Settings: React.FC = () => {
   );
   return (
     <Layout>
-      <div className="min-h-[100dvh] bg-app-base pb-32 font-body text-text-primary">
+      <div className="min-h-full bg-app-base pb-32 font-body text-text-primary">
         <div className="p-4 border-b border-border-subtle sticky top-0 z-30 bg-app-base/90 backdrop-blur-md">
           <div className="flex items-center max-w-xl mx-auto">
             <button

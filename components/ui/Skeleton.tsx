@@ -253,7 +253,7 @@ export const MatchdayDateStripSkeleton: React.FC = () => {
 
 export const BookingCardSkeleton: React.FC = () => {
   return (
-    <div className="rounded-2xl bg-surface-card border border-border-subtle p-4 space-y-4 animate-pulse">
+    <div className="rounded-2xl bg-surface-card border border-border-subtle p-4 space-y-4 ">
       {/* Header row */}
       <div className="flex justify-between items-center pb-3 border-b border-border-subtle">
         <div className="space-y-1.5">
@@ -286,7 +286,7 @@ export const BookingCardSkeleton: React.FC = () => {
 
 export const OwnerSlotGridSkeleton: React.FC = () => {
   return (
-    <div className="rounded-2xl bg-surface-card border border-border-subtle p-4 space-y-6 animate-pulse">
+    <div className="rounded-2xl bg-surface-card border border-border-subtle p-4 space-y-6 ">
       <div className="flex justify-between items-center pb-4 border-b border-border-subtle">
         <div className="space-y-1.5">
           <Skeleton className="h-4 w-48 rounded-md" />
@@ -314,7 +314,7 @@ export const OwnerSlotGridSkeleton: React.FC = () => {
 
 export const TurfDetailSkeleton: React.FC = () => {
   return (
-    <div className="bg-app-base text-text-primary font-sans pb-32 min-h-screen animate-pulse">
+    <div className="bg-app-base text-text-primary font-sans pb-32 min-h-screen ">
       {/* Hero Banner Skeleton */}
       <div className="w-full h-[280px] sm:h-[360px] bg-surface-card relative border-b border-border-subtle">
         <div className="absolute top-4 left-4 w-10 h-10 rounded-xl bg-surface-raised" />
@@ -399,7 +399,7 @@ export const TurfDetailSkeleton: React.FC = () => {
 
 export const CheckoutSkeleton: React.FC = () => {
   return (
-    <div className="max-w-xl mx-auto px-4 space-y-6 animate-pulse">
+    <div className="max-w-xl mx-auto px-4 space-y-6 ">
       {/* Selected Slot Card Skeleton */}
       <div className="rounded-2xl bg-surface-card border border-border-subtle p-4 space-y-4">
         <Skeleton className="h-3.5 w-28 rounded-md" />
@@ -443,6 +443,107 @@ export const CheckoutSkeleton: React.FC = () => {
 
       {/* Bottom Button Skeleton */}
       <Skeleton className="h-12 w-full rounded-xl" />
+    </div>
+  );
+};
+
+export const MatchCardSkeleton: React.FC = () => {
+  return (
+    <div className="bg-surface-card rounded-2xl p-4 border border-border-subtle space-y-4 shadow-sm">
+      <div className="flex justify-between items-center">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-4 w-20 rounded-md" />
+          </div>
+          <Skeleton className="h-5 w-40 rounded-md" />
+        </div>
+        <Skeleton className="w-8 h-8 rounded-full" />
+      </div>
+      <div className="bg-surface-raised rounded-[10px] p-3 space-y-2 border border-border-subtle">
+        <Skeleton className="h-4 w-3/4 rounded-md bg-border-subtle" />
+        <Skeleton className="h-4 w-1/2 rounded-md bg-border-subtle" />
+      </div>
+      <div className="flex items-center justify-between pt-1">
+        <Skeleton className="h-6 w-32 rounded-lg" />
+        <Skeleton className="h-8 w-20 rounded-full" />
+      </div>
+    </div>
+  );
+};
+
+export const SquadCardSkeleton: React.FC = () => {
+  return (
+    <div className="bg-surface-card rounded-2xl p-4 border border-border-subtle space-y-4 shadow-sm">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-[10px]" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-5 w-32 rounded-md" />
+            <Skeleton className="h-4 w-24 rounded-md" />
+          </div>
+        </div>
+        <Skeleton className="w-8 h-8 rounded-full" />
+      </div>
+      <div className="pt-2 border-t border-border-subtle flex justify-between items-center">
+        <div className="space-y-1">
+          <Skeleton className="h-3 w-16 rounded-md" />
+          <div className="flex -space-x-2">
+            <Skeleton className="w-6 h-6 rounded-full border-2 border-surface-card" />
+            <Skeleton className="w-6 h-6 rounded-full border-2 border-surface-card" />
+            <Skeleton className="w-6 h-6 rounded-full border-2 border-surface-card" />
+          </div>
+        </div>
+        <Skeleton className="h-8 w-20 rounded-full" />
+      </div>
+    </div>
+  );
+};
+
+export const ChatListSkeleton: React.FC = () => {
+  return (
+    <div className="flex flex-col gap-3">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex items-center gap-3 p-3 bg-surface-card rounded-2xl border border-border-subtle shadow-xs">
+          <Skeleton className="w-12 h-12 rounded-full shrink-0" />
+          <div className="flex-1 space-y-2 min-w-0">
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-4 w-32 rounded-md" />
+              <Skeleton className="h-3 w-12 rounded-md" />
+            </div>
+            <Skeleton className="h-3 w-48 rounded-md" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export const MatchInvitationsSkeleton: React.FC = () => {
+  return (
+    <div className="flex flex-col gap-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-surface-card rounded-2xl border border-border-subtle p-4 sm:p-5 shadow-xs space-y-4">
+          <div className="flex justify-between items-start gap-3">
+            <div className="space-y-2 flex-1">
+              <div className="flex gap-2 items-center">
+                <Skeleton className="h-5 w-16 rounded-md" />
+                <Skeleton className="h-4 w-24 rounded-md" />
+              </div>
+              <Skeleton className="h-5 w-48 rounded-md" />
+            </div>
+            <Skeleton className="w-8 h-8 rounded-full" />
+          </div>
+          <div className="bg-surface-raised rounded-xl p-3 border border-border-subtle grid grid-cols-2 gap-2">
+            <Skeleton className="h-4 w-24 rounded-md" />
+            <Skeleton className="h-4 w-20 rounded-md" />
+          </div>
+          <div className="flex justify-between items-center pt-2">
+            <Skeleton className="h-6 w-32 rounded-lg" />
+            <Skeleton className="h-10 w-28 rounded-xl" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

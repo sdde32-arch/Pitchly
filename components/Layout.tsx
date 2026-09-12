@@ -423,7 +423,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex h-[100dvh] w-full bg-app-base text-text-primary font-body overflow-hidden selection:bg-primary-lime/30">
+    <div className="flex h-full w-full bg-app-base text-text-primary font-body overflow-hidden selection:bg-primary-lime/30">
       {/* DESKTOP SIDEBAR */}
       {!hideDesktopSidebar && (
         <aside className="hidden lg:flex flex-col w-64 bg-surface-card border-r border-border-subtle h-full shrink-0 z-30 shadow-xs select-none">

@@ -144,7 +144,7 @@ export const BookingConfirmation: React.FC = () => {
 
   return (
     <Layout>
-      <div className="min-h-[100dvh] bg-app-base text-text-primary flex flex-col">
+      <div className="min-h-full bg-app-base text-text-primary flex flex-col">
         {/* Navigation Header */}
         <div className="sticky top-0 z-40 bg-surface-card/90 backdrop-blur-md border-b border-border-subtle px-4 py-3 flex items-center justify-between">
           <button

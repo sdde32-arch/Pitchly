@@ -206,7 +206,7 @@ export const Profile: React.FC = () => {
 
   return (
     <Layout>
-      <div className="min-h-[100dvh] bg-app-base text-text-primary font-body pb-24">
+      <div className="min-h-full bg-app-base text-text-primary font-body pb-24">
         {/* Header */}
         <div className="max-w-xl mx-auto p-4 flex items-center justify-between sticky top-0 bg-app-base/90 backdrop-blur-md z-40 border-b border-border-subtle">
           <button
@@ -225,22 +225,20 @@ export const Profile: React.FC = () => {
         </div>
 
         {/* Profile Card Summary */}
-        <div className="max-w-xl mx-auto p-4 space-y-3">
-          <div className="bg-surface-card border border-border-subtle rounded-xl p-4 text-center shadow-xs space-y-2.5">
-            <div className="w-[72px] h-[72px] rounded-full mx-auto p-1 bg-surface-raised border-2 border-primary-lime flex items-center justify-center overflow-hidden">
+        <div className="max-w-xl mx-auto p-4 space-y-4">
+          <div className="bg-surface-card border border-border-subtle rounded-2xl p-5 flex flex-col items-center justify-center text-center shadow-xs">
+            <div className="w-16 h-16 rounded-full mx-auto bg-surface-raised border border-primary-lime/50 flex items-center justify-center overflow-hidden mb-3">
               <PlayerAvatar id={userProfile?.avatarId || editAvatarId} className="w-full h-full" />
             </div>
-            <div>
-              <h2 className="text-[16px] font-black text-text-primary">
-                {userProfile?.name || "Player"}
-              </h2>
-              <p className="text-[12px] font-medium text-text-secondary mt-0.5">
-                {userProfile?.phone || userProfile?.email || user?.email || "No contact info"}
-              </p>
-            </div>
+            <h2 className="text-[16px] font-black text-text-primary tracking-tight">
+              {userProfile?.name || "Player"}
+            </h2>
+            <p className="text-[12px] font-medium text-text-secondary mt-0.5 mb-4">
+              {userProfile?.phone || userProfile?.email || user?.email || ""}
+            </p>
             <button
               onClick={() => setActiveModal("personal_info")}
-              className="px-4 h-11 rounded-full bg-primary-lime hover:bg-[#96E600] text-accent-text text-[12px] font-bold transition-colors cursor-pointer shadow-xs active:scale-95 mt-1"
+              className="px-5 py-2 rounded-full bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-primary text-[12px] font-bold transition-colors cursor-pointer shadow-xs active:scale-95"
             >
               Edit Profile
             </button>

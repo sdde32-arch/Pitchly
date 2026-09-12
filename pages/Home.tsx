@@ -33,11 +33,9 @@ import { TURFS } from "../constants";
 import { Skeleton, PitchCardSkeleton } from "../components/ui/Skeleton";
 import { FirstTimeUserTourModal } from "../components/onboarding/FirstTimeUserTourModal";
 import { SmartDashboard } from "../components/dashboard/SmartDashboard";
-import { HomeActionGrid } from "../components/dashboard/HomeActionGrid";
 import { HomeCommunityPickups } from "../components/dashboard/HomeCommunityPickups";
 import { MatchdayDateStrip } from "../components/home/MatchdayDateStrip";
 import { FootballPitchCard } from "../components/home/FootballPitchCard";
-import { SpotlightCarousel } from "../components/home/SpotlightCarousel";
 import { MatchdayBanner } from "../components/home/MatchdayBanner";
 import { QuickBookingModal } from "../components/home/QuickBookingModal";
 
@@ -189,6 +187,7 @@ export const Home: React.FC = () => {
   };
 
   useEffect(() => {
+    
     if (!loading) {
       fetchPitches();
       fetchUserUpcomingBooking();
@@ -486,7 +485,7 @@ export const Home: React.FC = () => {
     return (
       <div
         id="home-discover-screen"
-        className="min-h-[100dvh] bg-app-base text-text-primary pb-28 font-sans selection:bg-primary-lime/30"
+        className="min-h-full bg-app-base text-text-primary pb-28 font-sans selection:bg-primary-lime/30"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -541,10 +540,6 @@ export const Home: React.FC = () => {
                 <span className="font-semibold text-text-secondary">{greeting}, </span>
                 <span className="text-primary-lime font-black">{firstName}</span>
               </h1>
-
-              <p className="text-xs sm:text-sm text-text-secondary leading-relaxed max-w-xl font-medium">
-                Book verified artificial turfs and grass pitches in seconds. Direct 1-tap slots and mobile money payment.
-              </p>
             </div>
 
             {/* Matchday Date Selector Strip */}
@@ -554,26 +549,10 @@ export const Home: React.FC = () => {
             />
           </div>
 
-          {/* 2. CORE FOOTBALL QUICK ACTIONS */}
-          <HomeActionGrid
-            onExplorePitches={() => smoothScrollToSection("pitches-booking-section", 16)}
-            onFilterInstant={() => {
-              setActiveCollectionTab("floodlit");
-              smoothScrollToSection("pitches-booking-section", 16);
-            }}
-          />
-
           {/* 3. DUAL-COLUMN MATCHDAY DASHBOARD GRID */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             {/* PRIMARY COLUMN: DISCOVERY & BOOKING (8 cols on desktop) */}
             <div className="lg:col-span-8 space-y-7 sm:space-y-8 min-w-0">
-              {/* Featured Stadium Venues (Spotlight Carousel) */}
-              <SpotlightCarousel
-                pitches={spotlightPitches}
-                onSelectSlot={(pitch, slot) => handleOpenQuickBooking(pitch, slot)}
-                loading={loadingPitches}
-              />
-
               {/* Available Pitches & Direct Slot Booking (CORE PURPOSE) */}
               <motion.section
                 id="pitches-booking-section"
@@ -590,7 +569,7 @@ export const Home: React.FC = () => {
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <div className="relative flex items-center justify-center">
                         <span className="w-2.5 h-2.5 rounded-full bg-primary-lime shrink-0 shadow-[0_0_8px_rgba(22,163,74,0.5)]" />
-                        <span className="w-2.5 h-2.5 rounded-full bg-primary-lime animate-ping absolute opacity-40" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-primary-lime  absolute opacity-40" />
                       </div>
                       <h2 className="text-lg sm:text-xl font-black text-text-primary tracking-tight font-display uppercase">
                         Available Pitches
@@ -599,9 +578,6 @@ export const Home: React.FC = () => {
                         {filteredPitches.length} {filteredPitches.length === 1 ? "ground" : "grounds"}
                       </span>
                     </div>
-                    <p className="text-xs text-text-secondary font-medium">
-                      Select a slot directly on any card to book with mobile money
-                    </p>
                   </div>
 
                   {/* Filters & Sort Controls */}

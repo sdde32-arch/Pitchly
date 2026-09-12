@@ -102,9 +102,6 @@ export const HomeActionGrid: React.FC<HomeActionGridProps> = ({
                 </h3>
                 <ArrowUpRight size={14} className="text-text-tertiary group-hover:text-primary-lime group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0" />
               </div>
-              <p className="text-[11px] text-text-secondary mt-0.5 line-clamp-1 font-medium">
-                {item.desc}
-              </p>
             </div>
           </motion.button>
         );

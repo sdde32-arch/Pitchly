@@ -44,7 +44,7 @@ export const Support: React.FC = () => {
   };
   return (
     <Layout>
-      <div className="min-h-[100dvh] bg-app-base pb-32 font-body text-text-primary">
+      <div className="min-h-full bg-app-base pb-32 font-body text-text-primary">
         {/* Header */}
         <div className="bg-surface-card p-4 border-b border-border-subtle mb-8 sticky top-0 z-50">
           <div className="max-w-xl mx-auto flex items-center">

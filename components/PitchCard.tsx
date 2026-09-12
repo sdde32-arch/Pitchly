@@ -47,7 +47,7 @@ export const PitchCard: React.FC<PitchCardProps> = ({
       className="group cursor-pointer rounded-2xl bg-surface-card border border-border-subtle hover:border-border-prominent hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between"
     >
       {/* Top Image with Overlaid Badges */}
-      <div className="relative w-full h-44 bg-surface-raised overflow-hidden">
+      <div className="relative w-full h-32 bg-surface-raised overflow-hidden">
         <img
           src={pitchImage}
           alt={pitch.name || 'Football pitch'}
@@ -87,7 +87,7 @@ export const PitchCard: React.FC<PitchCardProps> = ({
       </div>
 
       {/* Details & Colored Facilities Badges */}
-      <div className="p-3.5 space-y-2.5 flex-1 flex flex-col justify-between">
+      <div className="p-3 space-y-2 flex-1 flex flex-col justify-between">
         <div className="space-y-1">
           <div className="flex justify-between items-start gap-2">
             <h3 className="text-[14px] font-bold text-text-primary truncate group-hover:text-primary-lime transition-colors">

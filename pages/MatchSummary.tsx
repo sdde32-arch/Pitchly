@@ -275,7 +275,7 @@ export const MatchSummary: React.FC = () => {
 
   return (
     <Layout>
-      <div className="min-h-[100dvh] bg-[#fafafa] dark:bg-[#0e0f12] text-text-primary font-body pb-32">
+      <div className="min-h-full bg-[#fafafa] dark:bg-[#0e0f12] text-text-primary font-body pb-32">
         {/* Navigation Header */}
         <div className="p-4 flex items-center justify-between max-w-xl mx-auto sticky top-0 bg-[#fafafa]/90 dark:bg-[#0e0f12]/90 backdrop-blur-md z-40">
           <button 

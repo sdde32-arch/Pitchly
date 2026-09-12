@@ -73,7 +73,7 @@ export const ChatRoom: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-app-base font-body max-w-xl mx-auto border-x border-border-subtle relative shadow-xl">
+    <div className="flex flex-col h-full bg-app-base font-body max-w-xl mx-auto border-x border-border-subtle relative shadow-xl">
       {/* Header */}
       <div className="px-4 py-4 flex items-center gap-3 bg-surface-card/90 backdrop-blur-md border-b border-border-subtle sticky top-0 z-50 shadow-sm">
         <button 

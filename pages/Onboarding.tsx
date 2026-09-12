@@ -138,7 +138,7 @@ export const Onboarding: React.FC = () => {
   const Icon = activeSlide.icon;
 
   return (
-    <div className="relative min-h-[100dvh] w-full flex flex-col bg-app-base text-text-primary selection:bg-primary-lime/30 overflow-x-hidden">
+    <div className="relative min-h-full w-full flex flex-col bg-app-base text-text-primary selection:bg-primary-lime/30 overflow-x-hidden">
       {/* Visual Ambient Glows */}
       <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-primary-lime/[0.04] rounded-full blur-[140px] pointer-events-none -mr-32 -mt-32" />
       <div className="absolute bottom-0 left-0 w-[550px] h-[550px] bg-[#38BDF8]/[0.04] rounded-full blur-[140px] pointer-events-none -ml-32 -mb-32" />

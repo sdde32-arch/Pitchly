@@ -176,7 +176,7 @@ export const TurfDetail: React.FC = () => {
 
   if (!turf || ((turf.status as string) !== "ACTIVE" && (turf.status as string) !== "approved"))
     return (
-      <div className="flex flex-col min-h-[100dvh] items-center justify-center bg-[#F3F3F3] dark:bg-app-base p-4 text-center px-4">
+      <div className="flex flex-col min-h-full items-center justify-center bg-[#F3F3F3] dark:bg-app-base p-4 text-center px-4">
         <h2 className="text-h2 font-display font-semibold text-accent-text dark:text-white mb-2">
           Pitch Not Available
         </h2>
@@ -194,7 +194,7 @@ export const TurfDetail: React.FC = () => {
 
   return (
     <Layout>
-      <div className="bg-app-base text-text-primary font-sans pb-32 min-h-[100dvh] transition-colors relative">
+      <div className="bg-app-base text-text-primary font-sans pb-32 min-h-full transition-colors relative">
         {/* HERO BANNER & ABSOLUTE HEADER */}
         <div className="relative w-full h-[400px] sm:h-[480px] overflow-hidden" id="turf-hero-banner">
           <TurfImageGallery 

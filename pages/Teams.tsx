@@ -27,6 +27,7 @@ import { AuthPromptModal } from "../components/AuthPromptModal";
 import { useNavigate } from "react-router-dom";
 import { chatService } from "../services/chatService";
 import { EmptyState } from "../components/ui/EmptyState";
+import { MatchCardSkeleton, SquadCardSkeleton } from "../components/ui/Skeleton";
 
 const parseTime = (timeStr: string) => {
   const [time, modifier] = timeStr.split(" ");
@@ -230,7 +231,7 @@ export const Teams: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"MATCHES" | "TEAMS">("MATCHES");
   const [teams, setTeams] = useState<Team[]>(INITIAL_TEAMS);
   const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCreateMatchModal, setShowCreateMatchModal] = useState(false);
   const [showJoinPayModal, setShowJoinPayModal] = useState<Match | null>(null);
@@ -262,16 +263,24 @@ export const Teams: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      try {
-        const localTeams = localStorage.getItem(`pitchly_teams_${user.uid}`);
-        if (localTeams) setTeams(JSON.parse(localTeams));
-        const localMatches = localStorage.getItem(`pitchly_matches_${user.uid}`);
-        if (localMatches) setMatches(JSON.parse(localMatches));
-      } catch (e) {
-        console.warn("Could not load local data", e);
+    setLoading(true);
+    const loadData = () => {
+      if (user) {
+        try {
+          const localTeams = localStorage.getItem(`pitchly_teams_${user.uid}`);
+          if (localTeams) setTeams(JSON.parse(localTeams));
+          const localMatches = localStorage.getItem(`pitchly_matches_${user.uid}`);
+          if (localMatches) setMatches(JSON.parse(localMatches));
+        } catch (e) {
+          console.warn("Could not load local data", e);
+        }
       }
-    }
+      setLoading(false);
+    };
+    
+    // Simulate network latency for a smoother premium feel
+    const timer = setTimeout(loadData, 800);
+    return () => clearTimeout(timer);
   }, [user]);
 
   const handleStartCreate = () => {
@@ -764,7 +773,7 @@ export const Teams: React.FC = () => {
       )}
 
       {/* MAIN SCREEN */}
-      <div id="walkthrough-teams-hub" className="min-h-[100dvh] bg-app-base text-text-primary font-body pb-24 scroll-mt-24">
+      <div id="walkthrough-teams-hub" className="min-h-full bg-app-base text-text-primary font-body pb-24 scroll-mt-24">
         <div className="max-w-xl mx-auto p-4 space-y-5">
           {/* Top Header */}
           <div className="flex justify-between items-center">
@@ -772,9 +781,6 @@ export const Teams: React.FC = () => {
               <h1 className="text-base font-medium text-text-primary">
                 Squads & Matches
               </h1>
-              <p className="text-xs text-text-secondary">
-                Organize pick-up games and manage your squad roster
-              </p>
             </div>
             <button
               onClick={handleStartCreate}
@@ -812,7 +818,11 @@ export const Teams: React.FC = () => {
           {/* OPEN MATCHES TAB */}
           {activeTab === "MATCHES" && (
             <div className="space-y-3">
-              {matches.length === 0 ? (
+              {loading ? (
+                Array.from({ length: 3 }).map((_, idx) => (
+                  <MatchCardSkeleton key={idx} />
+                ))
+              ) : matches.length === 0 ? (
                 <div className="py-12 px-4 text-center bg-surface-card border border-border-subtle rounded-2xl space-y-2">
                   <Target size={28} className="mx-auto text-slate-400" />
                   <p className="text-xs font-medium text-text-primary">
@@ -1000,7 +1010,11 @@ export const Teams: React.FC = () => {
           {/* MY SQUADS TAB */}
           {activeTab === "TEAMS" && (
             <div className="space-y-3">
-              {teams.length === 0 ? (
+              {loading ? (
+                Array.from({ length: 3 }).map((_, idx) => (
+                  <SquadCardSkeleton key={idx} />
+                ))
+              ) : teams.length === 0 ? (
                 <div className="py-12 px-4 text-center bg-surface-card border border-border-subtle rounded-2xl space-y-2">
                   <Shield size={28} className="mx-auto text-slate-400" />
                   <p className="text-xs font-medium text-text-primary">

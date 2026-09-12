@@ -80,7 +80,7 @@ export const AdminLayout: React.FC = () => {
   ];
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-app-base flex flex-col lg:flex-row text-text-primary font-sans">
+    <div className="h-full overflow-hidden bg-app-base flex flex-col lg:flex-row text-text-primary font-sans">
       {/* Desktop Sidebar matching Player Portal Design */}
       <aside className="hidden lg:flex flex-col w-72 bg-surface-card border-r border-border-subtle h-full shrink-0 p-4 shadow-xs">
         {/* Brand & Role Header */}

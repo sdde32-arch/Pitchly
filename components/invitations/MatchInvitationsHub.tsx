@@ -16,6 +16,8 @@ import { matchInvitationService } from '../../services/matchInvitationService';
 import { MatchInvitationCard } from './MatchInvitationCard';
 import { CreateMatchProposalModal } from './CreateMatchProposalModal';
 
+import { MatchInvitationsSkeleton } from '../ui/Skeleton';
+
 interface MatchInvitationsHubProps {
   currentUser: User | null;
   onBookProposal?: (proposal: MatchInvitation) => void;
@@ -234,10 +236,7 @@ export const MatchInvitationsHub: React.FC<MatchInvitationsHubProps> = ({
 
       {/* Main Grid & Responsive Cards */}
       {loading ? (
-        <div className="py-16 sm:py-20 flex flex-col items-center justify-center gap-3">
-          <div className="w-10 h-10 border-3 border-primary-lime border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-xs font-semibold text-text-tertiary">Loading match proposals...</span>
-        </div>
+        <MatchInvitationsSkeleton />
       ) : !currentUser ? (
         <div className="bg-surface-card rounded-3xl p-6 sm:p-8 md:p-10 text-center border border-border-subtle max-w-md mx-auto space-y-4 shadow-sm">
           <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-surface-raised border border-border-subtle flex items-center justify-center text-text-tertiary mx-auto">

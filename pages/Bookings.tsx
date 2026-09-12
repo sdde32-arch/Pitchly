@@ -123,7 +123,7 @@ export const Bookings: React.FC = () => {
 
   return (
     <Layout>
-      <div className="min-h-[100dvh] bg-app-base text-text-primary font-sans pb-24 relative">
+      <div className="min-h-full bg-app-base text-text-primary font-sans pb-24 relative">
         {/* Dynamic Toast Feedback */}
         {feedbackToast && (
           <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm">
@@ -143,18 +143,18 @@ export const Bookings: React.FC = () => {
           </div>
         )}
         {/* Header */}
-        <div className="p-4 flex items-center justify-between sticky top-0 bg-app-base/90 backdrop-blur-md z-40 max-w-4xl mx-auto mb-2 border-b border-border-subtle">
+        <div className="max-w-xl mx-auto p-4 flex items-center justify-between sticky top-0 bg-app-base/90 backdrop-blur-md z-40 border-b border-border-subtle">
           <button 
             onClick={() => navigate(-1)} 
-            className="w-10 h-10 rounded-xl bg-surface-card border border-border-subtle flex items-center justify-center text-text-primary hover:bg-surface-raised transition-colors cursor-pointer"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-text-primary hover:bg-surface-raised transition-colors cursor-pointer"
             title="Back"
           >
-            <ChevronLeft size={20} strokeWidth={2.5} />
+            <ChevronLeft size={18} strokeWidth={2.5} />
           </button>
-          <h1 className="text-lg font-bold text-text-primary">
+          <h1 className="text-[15px] font-bold text-text-primary">
             My Bookings
           </h1>
-          <div className="w-10 h-10"></div>
+          <div className="w-9 h-9"></div>
         </div>
 
         <div className="max-w-xl mx-auto p-4 space-y-6">
