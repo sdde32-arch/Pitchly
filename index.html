@@ -359,12 +359,15 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-        html, body, #root {
-            height: 100%;
+        html, body {
+            min-height: 100%;
             width: 100%;
-            overflow: hidden;
             margin: 0;
             padding: 0;
+        }
+        #root {
+            min-height: 100%;
+            width: 100%;
         }
         input:focus { outline: none; }
         .safe-area-pt { padding-top: env(safe-area-inset-top, 0px); }

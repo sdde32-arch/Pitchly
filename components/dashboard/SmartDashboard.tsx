@@ -81,7 +81,7 @@ export const SmartDashboard: React.FC<SmartDashboardProps> = ({
   };
 
   return (
-    <div id="home-smart-dashboard" className="scroll-mt-20">
+    <div id="home-smart-dashboard" className="scroll-mt-24">
       <div className="bg-surface-card rounded-2xl border border-border-subtle hover:border-border-prominent p-4.5 sm:p-6 shadow-xs transition-all duration-200">
         {/* Header Segmented Tabs */}
         <div className="flex items-center justify-between gap-3 border-b border-border-subtle pb-3.5 mb-5">
@@ -136,7 +136,7 @@ export const SmartDashboard: React.FC<SmartDashboardProps> = ({
                   </div>
                 </div>
 
-                <h3 className="text-base sm:text-lg font-bold text-text-primary tracking-tight truncate">
+                <h3 id="heading-next-matchday" className="text-base sm:text-lg font-bold text-text-primary tracking-tight truncate scroll-mt-24">
                   {upcomingBooking
                     ? `Match at ${upcomingBooking.pitchName || "Turf Ground"}`
                     : "Playmakers FC vs Naguru Stars"}

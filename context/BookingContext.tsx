@@ -5,6 +5,7 @@ import { useUser } from './UserContext';
 import { db } from '../lib/firebase';
 import { collection, getDocs, addDoc, query, where, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { slotAlertService } from '../services/slotAlertService';
+import { pitchService, markPitchAsDeleted } from '../services/pitchService';
 
 interface BookingContextType { turfs: Turf[]; bookings: Booking[]; loading: boolean; updateTurf: (id: string, updates: Partial<Turf>) => void; addTurf: (turf: Turf) => void; deleteTurf: (id: string) => void; addBooking: (booking: Partial<Booking>) => Promise<{success: boolean, error?: string}>; updateBookingStatus: (id: string, status: Booking['status']) => Promise<void>; updateBooking: (id: string, updates: Partial<Booking>) => Promise<void>; removeBooking: (id: string) => Promise<void>; toggleBlockDate: (turfId: string, date: string) => void;
 }
@@ -43,10 +44,36 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (authLoading) return;
     try {
       setLoading(true);
-      // Load turfs from Firestore
-      const turfsSnap = await getDocs(query(collection(db, 'pitches'), where("status", "==", "ACTIVE")));
-      const firestoreTurfs = turfsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Turf)); 
-      setTurfs(firestoreTurfs.length > 0 ? firestoreTurfs : TURFS); 
+      // Load researched turfs and active pitches via pitchService
+      const publicPitches = await pitchService.listPublic();
+      const mappedTurfs: Turf[] = publicPitches.map((p) => ({
+        id: p.id,
+        ownerId: p.ownerId,
+        name: p.name,
+        location: p.location,
+        fullAddress: p.fullAddress || p.formattedAddress,
+        formattedAddress: p.formattedAddress,
+        coordinates: p.coordinates || [p.latitude, p.longitude],
+        latitude: p.latitude,
+        longitude: p.longitude,
+        pricePerHour: p.pricePerHour,
+        image: p.images?.[0] || "",
+        images: p.images,
+        amenities: p.amenities,
+        distance: (p as any).distance || "2.5 km",
+        openingHour: p.openingHour,
+        closingHour: p.closingHour,
+        blockedDates: [],
+        status: p.status,
+        isVerified: p.isVerified,
+        contactPhone: p.contactPhone,
+        contactEmail: p.contactEmail,
+        description: p.description,
+        type: p.pitchFormats?.[0] || "7-a-side",
+        pitchFormats: p.pitchFormats,
+        rating: (p as any).rating || 4.8,
+      }));
+      setTurfs(mappedTurfs.length > 0 ? mappedTurfs : TURFS);
       
       // Load bookings if logged in 
       if (user) { 
@@ -167,7 +194,11 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 const updateTurf = (id: string, updates: Partial<Turf>) => setTurfs(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
 const addTurf = (turf: Turf) => setTurfs(prev => [turf, ...prev]);
-const deleteTurf = (id: string) => setTurfs(prev => prev.filter(t => t.id !== id));
+const deleteTurf = (id: string) => {
+  markPitchAsDeleted(id);
+  pitchService.delete(id).catch(console.warn);
+  setTurfs(prev => prev.filter(t => t.id !== id));
+};
 const toggleBlockDate = (turfId: string, date: string) => { setTurfs(prev => prev.map(t => { if (t.id !== turfId) return t;
 const blocked = t.blockedDates?.includes(date) ? t.blockedDates.filter(d => d !== date) : [...(t.blockedDates || []), date]; updateDoc(doc(db, 'pitches', turfId), { blockedDates: blocked }).catch(console.error);
 return { ...t, blockedDates: blocked }; })); };

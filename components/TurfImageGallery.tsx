@@ -14,11 +14,11 @@ interface TurfImageGalleryProps {
 }
 
 const DEFAULT_DEMO_PITCH_IMAGES = [
-  "https://images.unsplash.com/photo-1529900245534-47fbf59f4820?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80",
   "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80",
   "https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=1200&q=80",
   "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1200&q=80",
 ];
 
 export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({ 

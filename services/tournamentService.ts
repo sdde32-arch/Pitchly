@@ -29,151 +29,215 @@ const DEFAULT_WEHAT_FIXTURES: TournamentFixture[] = [
   {
     id: "wehat_fix_1",
     tournamentId: "wehat-s2-w1",
-    time: "1:30 PM",
-    homeTeam: "Tal Olympic FC",
-    awayTeam: "Bayern Munyonyo",
-    homeScore: 2,
+    time: "1:00 PM",
+    homeTeam: "WEHAT FC",
+    awayTeam: "DODGE AMO FC",
+    homeScore: 3,
     awayScore: 1,
     status: "finished",
-    pitchVenue: "Tal Olympic - Pitch 1",
-    round: "Group A • Match 1",
+    pitchVenue: "Tal Olympic Stadium",
+    round: "Week 1 Results",
+    group: "Group A",
+    homeScorers: ["Mark", "Doyo", "Raymond"],
+    awayScorers: ["Joshua Alom"],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: "wehat_fix_2",
     tournamentId: "wehat-s2-w1",
-    time: "2:30 PM",
-    homeTeam: "Kabalagala Kings",
-    awayTeam: "Nsambya United",
+    time: "1:45 PM",
+    homeTeam: "GENTLE FC",
+    awayTeam: "INVESTORS FC",
     homeScore: 3,
-    awayScore: 2,
-    status: "live",
-    pitchVenue: "Tal Olympic - Pitch 2",
-    round: "Group A • Match 2",
+    awayScore: 4,
+    status: "finished",
+    pitchVenue: "Tal Olympic Stadium",
+    round: "Week 1 Results",
+    group: "Group A",
+    homeScorers: ["Yawe", "Mukisa", "Kibirige"],
+    awayScorers: ["Nyanzi Shafik (4)"],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: "wehat_fix_3",
     tournamentId: "wehat-s2-w1",
-    time: "3:45 PM",
-    homeTeam: "Munyonyo Strikers",
-    awayTeam: "Muyenga Lions",
-    homeScore: null,
-    awayScore: null,
-    status: "upcoming",
-    pitchVenue: "Tal Olympic - Pitch 1",
-    round: "Group B • Match 1",
+    time: "2:30 PM",
+    homeTeam: "BUNGA FC",
+    awayTeam: "PRO PERFORMERS FC",
+    homeScore: 5,
+    awayScore: 3,
+    status: "finished",
+    pitchVenue: "Tal Olympic Stadium",
+    round: "Week 1 Results",
+    group: "Group B",
+    homeScorers: ["Mark Jordan", "Magala Hassan", "Wasusimbi", "Own goal", "Ssempijja"],
+    awayScorers: ["Latif", "Emir", "Shehu"],
+    notes: "Heritiers (Red Card)",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: "wehat_fix_4",
     tournamentId: "wehat-s2-w1",
-    time: "5:00 PM",
-    homeTeam: "Makindye All-Stars",
-    awayTeam: "Ggaba Waves",
-    homeScore: null,
-    awayScore: null,
-    status: "upcoming",
-    pitchVenue: "Tal Olympic - Pitch 2",
-    round: "Group B • Match 2",
+    time: "3:15 PM",
+    homeTeam: "LEGENDS FC",
+    awayTeam: "SENIOR PLAYERS",
+    homeScore: 2,
+    awayScore: 0,
+    status: "finished",
+    pitchVenue: "Tal Olympic Stadium",
+    round: "Week 1 Results",
+    group: "Group B",
+    homeScorers: ["Shafik Buranik", "Joshua Aronda"],
+    awayScorers: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "wehat_fix_5",
+    tournamentId: "wehat-s2-w1",
+    time: "4:00 PM",
+    homeTeam: "KIRUDDU FC",
+    awayTeam: "BUSABALA FC",
+    homeScore: 1,
+    awayScore: 5,
+    status: "finished",
+    pitchVenue: "Tal Olympic Stadium",
+    round: "Week 1 Results",
+    group: "Group C",
+    homeScorers: ["Ntege Peter"],
+    awayScorers: ["David (2)", "Walele June", "Ssembatya Ashirf", "Bogere Sam"],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "wehat_fix_6",
+    tournamentId: "wehat-s2-w1",
+    time: "4:45 PM",
+    homeTeam: "WEHAT SELECT",
+    awayTeam: "BROTHER LOVE FC",
+    homeScore: 4,
+    awayScore: 0,
+    status: "finished",
+    pitchVenue: "Tal Olympic Stadium",
+    round: "Week 1 Results",
+    group: "Group C",
+    homeScorers: ["Ladonia", "Jackson (3)"],
+    awayScorers: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "wehat_fix_7",
+    tournamentId: "wehat-s2-w1",
+    time: "5:30 PM",
+    homeTeam: "PURE HEARTS",
+    awayTeam: "HMK",
+    homeScore: 2,
+    awayScore: 1,
+    status: "finished",
+    pitchVenue: "Tal Olympic Stadium",
+    round: "Week 1 Results",
+    group: "Group D",
+    homeScorers: ["Paco", "Elijah"],
+    awayScorers: ["Hussein"],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "wehat_fix_8",
+    tournamentId: "wehat-s2-w1",
+    time: "6:15 PM",
+    homeTeam: "GOOD FRIENDS",
+    awayTeam: "IMDAD FC",
+    homeScore: 0,
+    awayScore: 1,
+    status: "finished",
+    pitchVenue: "Tal Olympic Stadium",
+    round: "Week 1 Results",
+    group: "Group D",
+    homeScorers: [],
+    awayScorers: ["Mark"],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
 ];
 
 const DEFAULT_WEHAT_SCORERS: TournamentScorer[] = [
-  {
-    id: "wehat_scr_1",
-    tournamentId: "wehat-s2-w1",
-    playerName: "Hakim 'Kaka' Ssekandi",
-    teamName: "Kabalagala Kings",
-    goals: 4,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "wehat_scr_2",
-    tournamentId: "wehat-s2-w1",
-    playerName: "Denis Mukasa",
-    teamName: "Tal Olympic FC",
-    goals: 3,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "wehat_scr_3",
-    tournamentId: "wehat-s2-w1",
-    playerName: "Brian Otim",
-    teamName: "Nsambya United",
-    goals: 2,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "wehat_scr_4",
-    tournamentId: "wehat-s2-w1",
-    playerName: "Ivan 'Hazard' Kato",
-    teamName: "Bayern Munyonyo",
-    goals: 1,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "wehat_scr_5",
-    tournamentId: "wehat-s2-w1",
-    playerName: "Paul Mugisha",
-    teamName: "Kabalagala Kings",
-    goals: 1,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
+  { id: "scr_1", tournamentId: "wehat-s2-w1", playerName: "Nyanzi Shafik", teamName: "INVESTORS FC", goals: 4 },
+  { id: "scr_2", tournamentId: "wehat-s2-w1", playerName: "Jackson", teamName: "WEHAT SELECT", goals: 3 },
+  { id: "scr_3", tournamentId: "wehat-s2-w1", playerName: "David", teamName: "BUSABALA FC", goals: 2 },
+  { id: "scr_4", tournamentId: "wehat-s2-w1", playerName: "Mark", teamName: "WEHAT FC", goals: 1 },
+  { id: "scr_5", tournamentId: "wehat-s2-w1", playerName: "Joshua Alom", teamName: "DODGE AMO FC", goals: 1 },
+  { id: "scr_6", tournamentId: "wehat-s2-w1", playerName: "Doyo", teamName: "WEHAT FC", goals: 1 },
+  { id: "scr_7", tournamentId: "wehat-s2-w1", playerName: "Raymond", teamName: "WEHAT FC", goals: 1 },
+  { id: "scr_8", tournamentId: "wehat-s2-w1", playerName: "Yawe", teamName: "GENTLE FC", goals: 1 },
+  { id: "scr_9", tournamentId: "wehat-s2-w1", playerName: "Mukisa", teamName: "GENTLE FC", goals: 1 },
+  { id: "scr_10", tournamentId: "wehat-s2-w1", playerName: "Kibirige", teamName: "GENTLE FC", goals: 1 },
+  { id: "scr_11", tournamentId: "wehat-s2-w1", playerName: "Mark Jordan", teamName: "BUNGA FC", goals: 1 },
+  { id: "scr_12", tournamentId: "wehat-s2-w1", playerName: "Magala Hassan", teamName: "BUNGA FC", goals: 1 },
+  { id: "scr_13", tournamentId: "wehat-s2-w1", playerName: "Wasusimbi", teamName: "BUNGA FC", goals: 1 },
+  { id: "scr_14", tournamentId: "wehat-s2-w1", playerName: "Ssempijja", teamName: "BUNGA FC", goals: 1 },
+  { id: "scr_15", tournamentId: "wehat-s2-w1", playerName: "Latif", teamName: "PRO PERFORMERS FC", goals: 1 },
+  { id: "scr_16", tournamentId: "wehat-s2-w1", playerName: "Emir", teamName: "PRO PERFORMERS FC", goals: 1 },
+  { id: "scr_17", tournamentId: "wehat-s2-w1", playerName: "Shehu", teamName: "PRO PERFORMERS FC", goals: 1 },
+  { id: "scr_18", tournamentId: "wehat-s2-w1", playerName: "Shafik Buranik", teamName: "LEGENDS FC", goals: 1 },
+  { id: "scr_19", tournamentId: "wehat-s2-w1", playerName: "Joshua Aronda", teamName: "LEGENDS FC", goals: 1 },
+  { id: "scr_20", tournamentId: "wehat-s2-w1", playerName: "Ntege Peter", teamName: "KIRUDDU FC", goals: 1 },
+  { id: "scr_21", tournamentId: "wehat-s2-w1", playerName: "Walele June", teamName: "BUSABALA FC", goals: 1 },
+  { id: "scr_22", tournamentId: "wehat-s2-w1", playerName: "Ssembatya Ashirf", teamName: "BUSABALA FC", goals: 1 },
+  { id: "scr_23", tournamentId: "wehat-s2-w1", playerName: "Bogere Sam", teamName: "BUSABALA FC", goals: 1 },
+  { id: "scr_24", tournamentId: "wehat-s2-w1", playerName: "Ladonia", teamName: "WEHAT SELECT", goals: 1 },
+  { id: "scr_25", tournamentId: "wehat-s2-w1", playerName: "Paco", teamName: "PURE HEARTS", goals: 1 },
+  { id: "scr_26", tournamentId: "wehat-s2-w1", playerName: "Elijah", teamName: "PURE HEARTS", goals: 1 },
+  { id: "scr_27", tournamentId: "wehat-s2-w1", playerName: "Hussein", teamName: "HMK", goals: 1 },
+  { id: "scr_28", tournamentId: "wehat-s2-w1", playerName: "Mark", teamName: "IMDAD FC", goals: 1 },
 ];
 
 const DEFAULT_WEHAT_NOMINEES: TournamentNominee[] = [
   {
     id: "wehat_motm_1",
     tournamentId: "wehat-s2-w1",
-    nomineeName: "Hakim 'Kaka' Ssekandi",
-    teamName: "Kabalagala Kings",
-    position: "Attacking Midfielder",
+    nomineeName: "Nyanzi Shafik",
+    teamName: "INVESTORS FC",
+    position: "Striker (4 Goals)",
     photoUrl: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=150&auto=format&fit=crop&q=80",
-    voteCount: 22,
+    voteCount: 38,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: "wehat_motm_2",
     tournamentId: "wehat-s2-w1",
-    nomineeName: "Denis Mukasa",
-    teamName: "Tal Olympic FC",
-    position: "Striker",
+    nomineeName: "Jackson",
+    teamName: "WEHAT SELECT",
+    position: "Forward (Hat-trick)",
     photoUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80",
-    voteCount: 17,
+    voteCount: 29,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: "wehat_motm_3",
     tournamentId: "wehat-s2-w1",
-    nomineeName: "Emmanuel Kigozi",
-    teamName: "Bayern Munyonyo",
-    position: "Goalkeeper",
+    nomineeName: "David",
+    teamName: "BUSABALA FC",
+    position: "Forward (2 Goals)",
     photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-    voteCount: 11,
+    voteCount: 21,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: "wehat_motm_4",
     tournamentId: "wehat-s2-w1",
-    nomineeName: "Brian Otim",
-    teamName: "Nsambya United",
-    position: "Winger",
+    nomineeName: "Mark Jordan",
+    teamName: "BUNGA FC",
+    position: "Midfielder (1 Goal)",
     photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-    voteCount: 8,
+    voteCount: 14,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -195,7 +259,7 @@ function getLocalFixtures(tournamentId: string): TournamentFixture[] {
     // Check localStorage
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(`tourn_fixtures_${tournamentId}`);
-      if (saved) {
+      if (saved && saved.includes("INVESTORS FC")) {
         try {
           memoryStore.fixtures.set(tournamentId, JSON.parse(saved));
         } catch {
@@ -209,6 +273,9 @@ function getLocalFixtures(tournamentId: string): TournamentFixture[] {
           tournamentId,
           tournamentId === "wehat-s2-w1" ? [...DEFAULT_WEHAT_FIXTURES] : []
         );
+        if (tournamentId === "wehat-s2-w1") {
+          localStorage.setItem(`tourn_fixtures_${tournamentId}`, JSON.stringify(DEFAULT_WEHAT_FIXTURES));
+        }
       }
     } else {
       memoryStore.fixtures.set(
@@ -237,7 +304,7 @@ function getLocalScorers(tournamentId: string): TournamentScorer[] {
   if (!memoryStore.scorers.has(tournamentId)) {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(`tourn_scorers_${tournamentId}`);
-      if (saved) {
+      if (saved && saved.includes("Nyanzi Shafik")) {
         try {
           memoryStore.scorers.set(tournamentId, JSON.parse(saved));
         } catch {
@@ -251,6 +318,9 @@ function getLocalScorers(tournamentId: string): TournamentScorer[] {
           tournamentId,
           tournamentId === "wehat-s2-w1" ? [...DEFAULT_WEHAT_SCORERS] : []
         );
+        if (tournamentId === "wehat-s2-w1") {
+          localStorage.setItem(`tourn_scorers_${tournamentId}`, JSON.stringify(DEFAULT_WEHAT_SCORERS));
+        }
       }
     } else {
       memoryStore.scorers.set(
@@ -279,7 +349,7 @@ function getLocalNominees(tournamentId: string): TournamentNominee[] {
   if (!memoryStore.nominees.has(tournamentId)) {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(`tourn_nominees_${tournamentId}`);
-      if (saved) {
+      if (saved && saved.includes("Nyanzi Shafik")) {
         try {
           memoryStore.nominees.set(tournamentId, JSON.parse(saved));
         } catch {
@@ -293,6 +363,9 @@ function getLocalNominees(tournamentId: string): TournamentNominee[] {
           tournamentId,
           tournamentId === "wehat-s2-w1" ? [...DEFAULT_WEHAT_NOMINEES] : []
         );
+        if (tournamentId === "wehat-s2-w1") {
+          localStorage.setItem(`tourn_nominees_${tournamentId}`, JSON.stringify(DEFAULT_WEHAT_NOMINEES));
+        }
       }
     } else {
       memoryStore.nominees.set(

@@ -258,11 +258,11 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
   const displayRating = hoveredRating !== null ? hoveredRating : rating;
 
   return (
-    <div className="w-full space-y-6" id="turf-reviews-section">
+    <div className="w-full space-y-6 scroll-mt-24" id="turf-reviews-section">
       {/* SECTION HEADER & SUMMARY */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-text-primary flex items-center gap-2">
+          <h2 id="heading-turf-reviews" className="text-base sm:text-lg font-bold text-text-primary flex items-center gap-2 scroll-mt-24">
             <MessageSquare size={18} className="text-primary-lime" />
             Player Ratings & Reviews
           </h2>
@@ -337,15 +337,15 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
               exit={{ opacity: 0, y: -8 }}
               className="w-full"
             >
-              <Card className="p-4 sm:p-5 bg-surface-card border border-primary-lime/40 shadow-[0_8px_30px_rgba(168,255,0,0.06)] rounded-xl relative overflow-hidden">
+              <Card id="write-review-card" className="p-4 sm:p-5 bg-surface-card border border-primary-lime/40 shadow-[0_8px_30px_rgba(168,255,0,0.06)] rounded-xl relative overflow-hidden scroll-mt-24">
                 {/* Header with verified badge */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-border-subtle">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-border-subtle">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-primary-lime/10 border border-primary-lime/30 flex items-center justify-center text-primary-lime">
                       <ShieldCheck size={16} />
                     </div>
                     <div>
-                      <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-1.5">
+                      <h3 id="heading-write-review" className="font-display font-bold text-sm text-text-primary flex items-center gap-1.5 scroll-mt-24">
                         Write a Verified Review
                         <span className="text-[10px] bg-primary-lime/15 text-primary-lime border border-primary-lime/30 px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider">
                           Verified Player

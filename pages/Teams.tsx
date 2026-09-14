@@ -778,7 +778,7 @@ export const Teams: React.FC = () => {
           {/* Top Header */}
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-base font-medium text-text-primary">
+              <h1 id="heading-squads-matches" className="text-base font-medium text-text-primary scroll-mt-24">
                 Squads & Matches
               </h1>
             </div>
@@ -792,7 +792,7 @@ export const Teams: React.FC = () => {
           </div>
 
           {/* Tab Switcher */}
-          <div className="p-1 bg-surface-raised rounded-[12px] flex gap-1 border border-border-subtle">
+          <div id="teams-tab-switcher" className="p-1 bg-surface-raised rounded-[12px] flex gap-1 border border-border-subtle scroll-mt-24">
             <button
               onClick={() => setActiveTab("MATCHES")}
               className={`flex-1 py-1.5 rounded-[10px] text-xs font-semibold tracking-wide transition-colors cursor-pointer text-center ${

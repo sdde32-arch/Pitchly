@@ -11,6 +11,10 @@ export interface TournamentFixture {
   status: FixtureStatus;
   pitchVenue?: string; // e.g. "Tal Olympic, Bayern Munyonyo"
   round?: string; // e.g. "Group Stage - Match 1"
+  group?: string; // e.g. "Group A"
+  homeScorers?: string[];
+  awayScorers?: string[];
+  notes?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -37,6 +41,21 @@ export interface TournamentNominee {
   updatedAt?: string;
 }
 
+export interface TournamentTeamStanding {
+  position: number;
+  team: string;
+  group?: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+  form: ("W" | "D" | "L")[];
+}
+
 export interface TournamentInfo {
   id: string;
   name: string;
@@ -54,5 +73,5 @@ export const DEFAULT_TOURNAMENT: TournamentInfo = {
   week: "Week 1",
   date: "12 Sept 2026",
   venue: "Tal Olympic, Bayern Munyonyo",
-  description: "Official real-time tournament hub with live scores, golden boot standings, and Man of the Match fan voting.",
+  description: "Official match center: live standings, scores, and goal scorers.",
 };

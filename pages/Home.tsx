@@ -37,20 +37,23 @@ import { HomeCommunityPickups } from "../components/dashboard/HomeCommunityPicku
 import { MatchdayDateStrip } from "../components/home/MatchdayDateStrip";
 import { FootballPitchCard } from "../components/home/FootballPitchCard";
 import { MatchdayBanner } from "../components/home/MatchdayBanner";
+import { TournamentBanner } from "../components/home/TournamentBanner";
 import { QuickBookingModal } from "../components/home/QuickBookingModal";
 
 // Kampala Neighborhood Hubs
 const KAMPALA_HUBS = [
   "All Kampala",
+  "Kololo",
+  "Bugolobi",
   "Lugogo",
   "Naguru",
-  "Bugolobi",
+  "Nsambya",
+  "Kabalagala",
   "Ntinda",
   "Muyenga",
-  "Kansanga",
   "Kyanja",
-  "Nakawa",
-  "Kololo",
+  "Munyonyo",
+  "Ggaba",
 ];
 
 const AMENITIES_LIST = [
@@ -70,9 +73,9 @@ const SORT_OPTIONS: { id: "recommended" | "rating" | "price-asc" | "price-desc";
   { id: "price-desc", label: "Price: High to Low", shortLabel: "Highest Price" },
 ];
 
-// Fallback pitches mapped from TURFS for complete sports consistency
+// Researched pitches mapped from TURFS for complete sports consistency
 const FALLBACK_PITCHES: Partial<Pitch>[] = TURFS.map((t) => ({
-  id: `pitch-${t.id}`,
+  id: t.id,
   name: t.name,
   location: t.location,
   formattedAddress: t.formattedAddress || t.fullAddress,
@@ -146,7 +149,6 @@ export const Home: React.FC = () => {
   const [startY, setStartY] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [justUpdated, setJustUpdated] = useState(false);
-  const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Fetch Firestore Pitches
   const fetchPitches = async () => {
@@ -295,36 +297,6 @@ export const Home: React.FC = () => {
       window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
     }
   };
-
-  // Scroll listener for back to top
-  useEffect(() => {
-    const scrollContainer =
-      document.getElementById("main-content-scroll") ||
-      document.querySelector("main.overflow-y-auto") ||
-      window;
-
-    const handleScroll = () => {
-      const scrollY =
-        scrollContainer === window
-          ? window.scrollY
-          : (scrollContainer as HTMLElement).scrollTop;
-      setShowScrollTop(scrollY > 280);
-    };
-
-    if (scrollContainer === window) {
-      window.addEventListener("scroll", handleScroll, { passive: true });
-    } else {
-      (scrollContainer as HTMLElement).addEventListener("scroll", handleScroll, { passive: true });
-    }
-
-    return () => {
-      if (scrollContainer === window) {
-        window.removeEventListener("scroll", handleScroll);
-      } else {
-        (scrollContainer as HTMLElement).removeEventListener("scroll", handleScroll);
-      }
-    };
-  }, []);
 
   // Close sort menu on click outside
   useEffect(() => {
@@ -481,7 +453,7 @@ export const Home: React.FC = () => {
   };
 
   // Customer Player Discover View
-  const DiscoverScreen = () => {
+  const renderDiscoverScreen = () => {
     return (
       <div
         id="home-discover-screen"
@@ -533,10 +505,10 @@ export const Home: React.FC = () => {
 
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-6 sm:space-y-8">
           {/* 1. MATCHDAY HERO HEADER & DATE SELECTOR */}
-          <div id="matchday-hero-header" className="space-y-4">
+          <div id="matchday-hero-header" className="space-y-4 scroll-mt-24">
             <div className="space-y-1.5 min-w-0">
               {/* Hero Title - Refined High-Appeal Greeting */}
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight font-display text-text-primary">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight font-display text-text-primary scroll-mt-24">
                 <span className="font-semibold text-text-secondary">{greeting}, </span>
                 <span className="text-primary-lime font-black">{firstName}</span>
               </h1>
@@ -549,19 +521,17 @@ export const Home: React.FC = () => {
             />
           </div>
 
+          <TournamentBanner />
+
           {/* 3. DUAL-COLUMN MATCHDAY DASHBOARD GRID */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             {/* PRIMARY COLUMN: DISCOVERY & BOOKING (8 cols on desktop) */}
             <div className="lg:col-span-8 space-y-7 sm:space-y-8 min-w-0">
               {/* Available Pitches & Direct Slot Booking (CORE PURPOSE) */}
-              <motion.section
+              <section
                 id="pitches-booking-section"
                 aria-label="Available Football Grounds"
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-20px" }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-                className="space-y-4 sm:space-y-5 scroll-mt-20"
+                className="space-y-4 sm:space-y-5 scroll-mt-24"
               >
                 {/* Section Heading & Sort Dropdown */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pt-1 border-b border-border-subtle pb-3.5">
@@ -571,7 +541,7 @@ export const Home: React.FC = () => {
                         <span className="w-2.5 h-2.5 rounded-full bg-primary-lime shrink-0 shadow-[0_0_8px_rgba(22,163,74,0.5)]" />
                         <span className="w-2.5 h-2.5 rounded-full bg-primary-lime  absolute opacity-40" />
                       </div>
-                      <h2 className="text-lg sm:text-xl font-black text-text-primary tracking-tight font-display uppercase">
+                      <h2 id="heading-available-pitches" className="text-lg sm:text-xl font-black text-text-primary tracking-tight font-display uppercase scroll-mt-24">
                         Available Pitches
                       </h2>
                       <span className="px-2.5 py-0.5 rounded-full bg-primary-lime/10 text-primary-lime border border-primary-lime/25 text-[11px] font-bold tracking-tight shadow-2xs">
@@ -731,7 +701,7 @@ export const Home: React.FC = () => {
                     </div>
                   )}
                 </div>
-              </motion.section>
+              </section>
 
               {/* Community Open Pickup Matches */}
               <HomeCommunityPickups loading={loadingPitches} />
@@ -756,25 +726,6 @@ export const Home: React.FC = () => {
             </div>
           </div>
 
-          {/* BACK TO TOP FLOATING BUTTON */}
-          <AnimatePresence>
-            {showScrollTop && (
-              <motion.button
-                id="floating-scroll-top-btn"
-                type="button"
-                initial={{ opacity: 0, scale: 0.8, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8, y: 15 }}
-                transition={{ duration: 0.2 }}
-                onClick={() => smoothScrollToSection("matchday-hero-header", 0)}
-                className="fixed bottom-20 lg:bottom-8 right-5 z-40 w-11 h-11 rounded-full bg-surface-card/95 hover:bg-surface-raised text-primary-lime border border-border-subtle shadow-xl flex items-center justify-center cursor-pointer active:scale-90 transition-all backdrop-blur-md"
-                aria-label="Scroll to top"
-                title="Back to top"
-              >
-                <ArrowUp size={20} strokeWidth={2.5} />
-              </motion.button>
-            )}
-          </AnimatePresence>
         </div>
 
         {/* 8. QUICK BOOKING SLIDE-UP MODAL */}
@@ -946,7 +897,7 @@ export const Home: React.FC = () => {
   return (
     <Layout>
       {(() => {
-        if (role === "PLAYER") return <DiscoverScreen />;
+        if (role === "PLAYER") return renderDiscoverScreen();
         if (role === "OWNER") {
           return (
             <div className="p-4">

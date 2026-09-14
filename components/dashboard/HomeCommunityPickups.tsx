@@ -92,7 +92,7 @@ export const HomeCommunityPickups: React.FC<HomeCommunityPickupsProps> = ({
         <div className="flex items-center gap-2.5">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
           <div>
-            <h2 className="text-base sm:text-lg font-bold text-text-primary tracking-tight">
+            <h2 id="heading-open-pickups" className="text-base sm:text-lg font-bold text-text-primary tracking-tight scroll-mt-24">
               Open Pickup Matches
             </h2>
             <p className="text-xs text-text-secondary mt-0.5">

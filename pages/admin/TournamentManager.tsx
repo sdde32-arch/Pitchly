@@ -21,7 +21,8 @@ import {
   Calendar,
   MapPin,
 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
+import { ShareTournamentCard } from "../../components/tournament/ShareTournamentCard";
+
 import { tournamentService } from "../../services/tournamentService";
 import {
   TournamentFixture,
@@ -124,8 +125,8 @@ export const TournamentManager: React.FC = () => {
   }, [tournamentId]);
 
   const publicUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/tournament/${tournamentId}`
-    : `/tournament/${tournamentId}`;
+    ? `${window.location.origin}/#/tournament/${tournamentId}`
+    : `/#/tournament/${tournamentId}`;
 
   const showNotification = (msg: string) => {
     setActionStatus(msg);
@@ -136,16 +137,6 @@ export const TournamentManager: React.FC = () => {
   const showError = (err: any) => {
     setActionError(err?.message || "An error occurred");
     setTimeout(() => setActionError(null), 4000);
-  };
-
-  const handleCopyLink = async () => {
-    await navigator.clipboard.writeText(publicUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handlePrintFlyer = () => {
-    window.print();
   };
 
   const handleSeedKickoffData = async () => {
@@ -407,83 +398,13 @@ export const TournamentManager: React.FC = () => {
       )}
       {actionError && (
         <div className="bg-[#EF4444]/15 border border-[#EF4444]/40 text-[#EF4444] px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 animate-fadeIn">
-          <AlertCircle size={16} />
           <span>{actionError}</span>
         </div>
       )}
 
-      {/* 2. SHAREABLE LINK & QR CODE SECTION */}
-      <div className="bg-surface-card border border-border-subtle rounded-2xl p-5 sm:p-6 shadow-md relative overflow-hidden">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-3 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-primary-lime/15 text-primary-lime border border-primary-lime/30 text-[10px] font-black uppercase tracking-wider">
-                Spectator Portal
-              </span>
-              <span className="text-xs font-bold text-text-secondary">
-                Print Once • Covers Live Scores, Scorers & MOTM Voting
-              </span>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-black text-text-primary uppercase tracking-tight font-display">
-                Shareable Link & Print QR Code
-              </h2>
-              <p className="text-xs text-text-secondary mt-0.5">
-                Spectators scan this QR code or click this link to access all 3 live tabs without logging in.
-              </p>
-            </div>
-
-            {/* URL Display & Copy */}
-            <div className="flex items-center gap-2 bg-app-base border border-border-subtle rounded-xl p-1.5 max-w-xl">
-              <span className="text-xs font-mono text-text-secondary px-2 truncate flex-1 select-all">
-                {publicUrl}
-              </span>
-              <button
-                onClick={handleCopyLink}
-                className="px-3 py-1.5 rounded-lg bg-surface-card hover:bg-surface-raised border border-border-subtle text-xs font-bold text-text-primary flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
-              >
-                {copied ? (
-                  <>
-                    <Check size={13} className="text-primary-lime" />
-                    <span className="text-primary-lime">Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy size={13} className="text-text-secondary" />
-                    <span>Copy</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                onClick={handlePrintFlyer}
-                className="px-3 py-1.5 rounded-lg bg-surface-card hover:bg-surface-raised border border-border-subtle text-xs font-bold text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Printer size={13} />
-                <span>Print Pitchside Flyer</span>
-              </button>
-            </div>
-          </div>
-
-          {/* QR Code Container */}
-          <div
-            ref={qrRef}
-            className="p-3 bg-white rounded-2xl shadow-lg border border-border-subtle flex flex-col items-center justify-center shrink-0 self-center sm:self-start"
-          >
-            <QRCodeSVG
-              value={publicUrl}
-              size={130}
-              level="H"
-              includeMargin={false}
-            />
-            <span className="text-[10px] font-black text-black tracking-wider uppercase mt-1.5">
-              WEHAT Hub QR
-            </span>
-          </div>
-        </div>
+      {/* 1. SHARE PORTAL */}
+      <div className="mb-8">
+        <ShareTournamentCard tournamentId={tournamentId || ''} />
       </div>
 
       {/* 3. THREE MANAGEMENT COLUMNS / FORMS */}
@@ -1060,6 +981,6 @@ export const TournamentManager: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
   );
 };

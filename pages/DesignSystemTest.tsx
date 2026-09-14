@@ -45,7 +45,10 @@ export const DesignSystemTest: React.FC = () => {
   const [checkoutStep, setCheckoutStep] = useState<1 | 2 | 3 | 4>(1);
 
   return (
-    <div className="min-h-screen bg-app-base text-text-primary p-3  font-body">
+    <div
+      className="fixed inset-0 h-full w-full bg-app-base text-text-primary p-3 font-body overflow-y-auto overflow-x-hidden scroll-smooth"
+      style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+    >
       <div className="max-w-5xl mx-auto space-y-6">
         
         {/* Header & Screen Navigator */}

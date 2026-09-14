@@ -215,7 +215,7 @@ export const Profile: React.FC = () => {
           >
             <ChevronLeft size={18} strokeWidth={2.5} />
           </button>
-          <h1 className="text-[15px] font-bold text-text-primary">Profile</h1>
+          <h1 id="heading-user-profile" className="text-[15px] font-bold text-text-primary scroll-mt-24">Profile</h1>
           <button
             onClick={() => navigate("/settings")}
             className="w-9 h-9 rounded-full bg-surface-card border border-border-subtle flex items-center justify-center text-text-primary hover:bg-surface-raised transition-colors shadow-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime"
@@ -226,11 +226,11 @@ export const Profile: React.FC = () => {
 
         {/* Profile Card Summary */}
         <div className="max-w-xl mx-auto p-4 space-y-4">
-          <div className="bg-surface-card border border-border-subtle rounded-2xl p-5 flex flex-col items-center justify-center text-center shadow-xs">
+          <div id="profile-summary-card" className="bg-surface-card border border-border-subtle rounded-2xl p-5 flex flex-col items-center justify-center text-center shadow-xs scroll-mt-24">
             <div className="w-16 h-16 rounded-full mx-auto bg-surface-raised border border-primary-lime/50 flex items-center justify-center overflow-hidden mb-3">
               <PlayerAvatar id={userProfile?.avatarId || editAvatarId} className="w-full h-full" />
             </div>
-            <h2 className="text-[16px] font-black text-text-primary tracking-tight">
+            <h2 id="heading-player-name" className="text-[16px] font-black text-text-primary tracking-tight scroll-mt-24">
               {userProfile?.name || "Player"}
             </h2>
             <p className="text-[12px] font-medium text-text-secondary mt-0.5 mb-4">

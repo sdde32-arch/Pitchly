@@ -29,6 +29,44 @@ import { PWAInstallButton } from "../components/PWAInstallButton";
 import { offlineCacheService } from "../services/offlineCacheService";
 import { Database, RefreshCw, Wifi } from "lucide-react";
 
+
+const SectionHeader = ({ title }: { title: string }) => (
+  <h2 className="text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-3 mt-8 px-4">
+    {title}
+  </h2>
+);
+
+const SettingItem = ({
+  icon: Icon,
+  title,
+  description,
+  action,
+  destructive = false,
+}: any) => (
+  <div className="flex items-center justify-between p-4 bg-surface-card border-b border-border-subtle last:border-0 hover:bg-surface-raised/50 transition-colors">
+    <div className="flex items-center gap-4">
+      <div
+        className={`w-10 h-10 rounded-[14px] flex items-center justify-center ${destructive ? "bg-red-500/10 text-red-500 border border-red-500/20" : "bg-surface-raised border border-border-subtle text-text-secondary"}`}
+      >
+        <Icon size={18} />
+      </div>
+      <div>
+        <h3
+          className={`font-bold text-[15px] ${destructive ? "text-red-500" : "text-text-primary"}`}
+        >
+          {title}
+        </h3>
+        {description && (
+          <p className="text-[11px] font-medium text-text-secondary mt-0.5">
+            {description}
+          </p>
+        )}
+      </div>
+    </div>
+    <div className="flex items-center">{action}</div>
+  </div>
+);
+
 export const Settings: React.FC = () => {
   const { isEcoMode, toggleEcoMode, theme, toggleTheme } = useTheme();
   const { isInstallable, installApp } = usePWA();
@@ -106,41 +144,6 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const SectionHeader = ({ title }: { title: string }) => (
-    <h2 className="text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-3 mt-8 px-4">
-      {title}
-    </h2>
-  );
-  const SettingItem = ({
-    icon: Icon,
-    title,
-    description,
-    action,
-    destructive = false,
-  }: any) => (
-    <div className="flex items-center justify-between p-4 bg-surface-card border-b border-border-subtle last:border-0 hover:bg-surface-raised/50 transition-colors">
-      <div className="flex items-center gap-4">
-        <div
-          className={`w-10 h-10 rounded-[14px] flex items-center justify-center ${destructive ? "bg-red-500/10 text-red-500 border border-red-500/20" : "bg-surface-raised border border-border-subtle text-text-secondary"}`}
-        >
-          <Icon size={18} />
-        </div>
-        <div>
-          <h3
-            className={`font-bold text-[15px] ${destructive ? "text-red-500" : "text-text-primary"}`}
-          >
-            {title}
-          </h3>
-          {description && (
-            <p className="text-[11px] font-medium text-text-secondary mt-0.5">
-              {description}
-            </p>
-          )}
-        </div>
-      </div>
-      <div>{action}</div>
-    </div>
-  );
   return (
     <Layout>
       <div className="min-h-full bg-app-base pb-32 font-body text-text-primary">
@@ -352,5 +355,6 @@ export const Settings: React.FC = () => {
     </Layout>
   );
 };
+
 
 export default Settings;

@@ -356,7 +356,7 @@ export const BookPitch: React.FC = () => {
             <ArrowLeft size={18} className="text-text-primary" />
           </button>
           <div className="text-center">
-            <h1 className="text-text-primary font-bold tracking-tight">Book Pitch</h1>
+            <h1 id="heading-book-pitch" className="text-text-primary font-bold tracking-tight scroll-mt-24">Book Pitch</h1>
             <p className="text-text-secondary text-[11px] uppercase tracking-wider">{turf.name}</p>
           </div>
           <div className="w-10" />
@@ -399,7 +399,7 @@ export const BookPitch: React.FC = () => {
         {bookingStep === 1 && (
           <div id="walkthrough-slot-picker" className="space-y-6 scroll-mt-24">
             <div>
-              <h2 className="text-[14px] font-bold text-text-primary px-1 font-sans mb-3">Select Date</h2>
+              <h2 id="heading-select-date" className="text-[14px] font-bold text-text-primary px-1 font-sans mb-3 scroll-mt-24">Select Date</h2>
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 px-1">
                 {calendarDays.map((d) => {
                   const isSelected = selectedDate === d.fullDateStr;
@@ -448,7 +448,7 @@ export const BookPitch: React.FC = () => {
             />
 
             <div>
-              <h2 className="text-[14px] font-bold text-text-primary px-1 font-sans mb-3">Select Times</h2>
+              <h2 id="heading-select-times" className="text-[14px] font-bold text-text-primary px-1 font-sans mb-3 scroll-mt-24">Select Times</h2>
               {loadingBookings ? (
                 <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-primary-lime" /></div>
               ) : (
@@ -507,9 +507,9 @@ export const BookPitch: React.FC = () => {
 
         {bookingStep === 2 && (
           <div className="space-y-4">
-            <div className="bg-surface-card rounded-[20px] p-5 border border-border-subtle">
+            <div id="booking-summary-card" className="bg-surface-card rounded-[20px] p-5 border border-border-subtle scroll-mt-24">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-text-primary font-bold">Booking Summary</h3>
+                <h3 id="heading-booking-summary" className="text-text-primary font-bold scroll-mt-24">Booking Summary</h3>
                 <span className="text-primary-lime text-xs font-bold uppercase tracking-wider">{turf.name}</span>
               </div>
               <div className="flex items-center gap-4">
@@ -540,8 +540,8 @@ export const BookPitch: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-surface-card rounded-[20px] p-5 border border-border-subtle">
-              <h3 className="text-text-primary font-bold mb-4">Payment Summary</h3>
+            <div id="payment-summary-card" className="bg-surface-card rounded-[20px] p-5 border border-border-subtle scroll-mt-24">
+              <h3 id="heading-payment-summary" className="text-text-primary font-bold mb-4 scroll-mt-24">Payment Summary</h3>
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-text-secondary">Pitch Hire ({selectedTimes.length} hr)</span>

@@ -410,7 +410,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     return { label: "Player", color: "text-primary-lime", bg: "bg-primary-lime/10", border: "border-primary-lime/25" };
   };
 
-  const RoleBadge = () => {
+  const renderRoleBadge = () => {
     const badge = getRoleBadgeConfig();
     return (
       <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border ${badge.border} ${badge.bg}`}>
@@ -423,7 +423,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex h-full w-full bg-app-base text-text-primary font-body overflow-hidden selection:bg-primary-lime/30">
+    <div className="flex h-screen w-full bg-app-base text-text-primary font-body overflow-hidden selection:bg-primary-lime/30">
       {/* DESKTOP SIDEBAR */}
       {!hideDesktopSidebar && (
         <aside className="hidden lg:flex flex-col w-64 bg-surface-card border-r border-border-subtle h-full shrink-0 z-30 shadow-xs select-none">
@@ -444,7 +444,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <RoleBadge />
+              {renderRoleBadge()}
               <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
                 {isOwner ? "Portal" : "App"}
               </span>
@@ -564,7 +564,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   variant="auto"
                 />
               </div>
-              <RoleBadge />
+              {renderRoleBadge()}
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2">
               <button

@@ -372,7 +372,7 @@ export const OwnerOverview: React.FC = () => {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg sm:text-xl font-extrabold text-text-primary tracking-tight">
+              <h2 id="heading-setup-roadmap" className="text-lg sm:text-xl font-extrabold text-text-primary tracking-tight scroll-mt-24">
                 3 Steps to Live Match Bookings
               </h2>
               <p className="text-xs sm:text-sm text-text-secondary">
@@ -606,7 +606,7 @@ export const OwnerOverview: React.FC = () => {
               Live Operations
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-text-primary tracking-tight">
+          <h1 id="heading-facility-overview" className="text-xl sm:text-2xl font-extrabold text-text-primary tracking-tight scroll-mt-24">
             Facility Overview
           </h1>
           <p className="text-xs text-text-secondary">
@@ -685,13 +685,13 @@ export const OwnerOverview: React.FC = () => {
       <WeeklyOccupancyHeatmap pitches={pitches} bookings={bookings} />
 
       {/* Live Slot Toggle Matrix (Maintenance & Walk-ins) */}
-      <div className="bg-surface-card rounded-2xl p-4 sm:p-5 border border-border-subtle space-y-5 shadow-sm">
+      <div id="live-slot-control-section" className="bg-surface-card rounded-2xl p-4 sm:p-5 border border-border-subtle space-y-5 shadow-sm scroll-mt-24">
         {/* Header & Controls Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border-subtle">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <Wrench size={16} className="text-[#38BDF8]" />
-              <h2 className="text-base sm:text-lg font-bold text-text-primary tracking-tight">
+              <h2 id="heading-live-slot-control" className="text-base sm:text-lg font-bold text-text-primary tracking-tight scroll-mt-24">
                 Live Slot Control
               </h2>
             </div>
@@ -873,11 +873,11 @@ export const OwnerOverview: React.FC = () => {
       </div>
 
       {/* Today's Match Queue */}
-      <div className="bg-surface-card rounded-2xl p-4 sm:p-5 border border-border-subtle space-y-4 shadow-sm">
+      <div id="todays-matches-section" className="bg-surface-card rounded-2xl p-4 sm:p-5 border border-border-subtle space-y-4 shadow-sm scroll-mt-24">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CalendarDays size={18} className="text-primary-lime" />
-            <h2 className="text-base sm:text-lg font-bold text-text-primary tracking-tight">
+            <h2 id="heading-todays-matches" className="text-base sm:text-lg font-bold text-text-primary tracking-tight scroll-mt-24">
               Today's Scheduled Matches
             </h2>
           </div>

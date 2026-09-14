@@ -151,7 +151,7 @@ export const Bookings: React.FC = () => {
           >
             <ChevronLeft size={18} strokeWidth={2.5} />
           </button>
-          <h1 className="text-[15px] font-bold text-text-primary">
+          <h1 id="heading-my-bookings" className="text-[15px] font-bold text-text-primary scroll-mt-24">
             My Bookings
           </h1>
           <div className="w-9 h-9"></div>
@@ -159,7 +159,7 @@ export const Bookings: React.FC = () => {
 
         <div className="max-w-xl mx-auto p-4 space-y-6">
           {/* Segmented Filter Control */}
-          <div className="p-1 bg-surface-card rounded-2xl border border-border-subtle flex gap-1 items-center">
+          <div id="bookings-filter-control" className="p-1 bg-surface-card rounded-2xl border border-border-subtle flex gap-1 items-center scroll-mt-24">
             {(["upcoming", "completed", "cancelled"] as const).map((tab) => {
               const isActive = activeTab === tab;
               return (

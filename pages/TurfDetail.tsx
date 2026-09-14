@@ -70,6 +70,8 @@ export const TurfDetail: React.FC = () => {
         pricePerHour: realPitch.pricePerHour,
         type: realPitch.pitchFormats?.[0] || "11-a-side",
         image: realPitch.images?.[0] || "",
+        images: realPitch.images || [],
+        additionalImages: (realPitch as any).additionalImages || [],
         rating: 4.8,
         distance: "2.4km away",
         status: realPitch.status as any,
@@ -82,16 +84,17 @@ export const TurfDetail: React.FC = () => {
       TURFS.find((t) => t.id === id || t.id === normalizedId || `pitch-${t.id}` === id);
 
   const DEMO_GALLERY_FALLBACKS = [
-    { url: "https://images.unsplash.com/photo-1529900245534-47fbf59f4820?auto=format&fit=crop&w=1200&q=80", label: "Full Pitch Arena" },
-    { url: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80", label: "Floodlit Night View" },
-    { url: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80", label: "Turf Surface Quality" },
+    { url: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80", label: "Full Pitch Arena" },
+    { url: "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=1200&q=80", label: "Floodlit Night View" },
     { url: "https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=1200&q=80", label: "Goalpost & Net" },
-    { url: "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=1200&q=80", label: "Spectator Pavilion" },
+    { url: "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=1200&q=80", label: "Match Action" },
+    { url: "https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1200&q=80", label: "Spectator Pavilion & Dugout" },
   ];
 
   const galleryImages = React.useMemo(() => {
     const customImgs = [
       ...(realPitch?.images || []),
+      ...(turf?.images || []),
       ...(turf?.image ? [turf.image] : []),
       ...(turf?.additionalImages || [])
     ].filter((img, idx, self) => img && self.indexOf(img) === idx);
@@ -329,8 +332,8 @@ export const TurfDetail: React.FC = () => {
         {activeTab === "about" ? (
           <div className="space-y-5 pb-20">
             {/* Details Gray Box Grid */}
-            <section aria-label="Details Grid" className="bg-surface-card p-4 rounded-xl space-y-2.5 shadow-sm border border-border-subtle">
-              <h2 className="text-[13px] font-bold text-text-primary px-1">Details</h2>
+            <section id="pitch-details-grid-section" aria-label="Details Grid" className="bg-surface-card p-4 rounded-xl space-y-2.5 shadow-sm border border-border-subtle scroll-mt-24">
+              <h2 id="heading-pitch-details" className="text-[13px] font-bold text-text-primary px-1 scroll-mt-24">Details</h2>
               
               <div className="grid grid-cols-2 gap-2">
                 {/* Size */}
@@ -382,17 +385,17 @@ export const TurfDetail: React.FC = () => {
             </section>
             
             {/* COMPACT FACILITIES / DESCRIPTION SECTION */}
-            <section className="space-y-1 pt-0.5 px-1">
-              <h2 className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Facilities &amp; Amenities</h2>
+            <section id="pitch-facilities-section" className="space-y-1 pt-0.5 px-1 scroll-mt-24">
+              <h2 id="heading-facilities-amenities" className="text-xs font-bold text-text-tertiary uppercase tracking-wider scroll-mt-24">Facilities &amp; Amenities</h2>
               <p className="text-[11.5px] text-text-secondary leading-relaxed font-normal">
                 {turf.description || "Premium certified AstroTurf pitch with high-fidelity floodlights, spectator benches, secure parking, and clean locker amenities."}
               </p>
             </section>
 
             {/* PITCH PHOTO GALLERY & ANGLES */}
-            <section className="space-y-2 pt-1 px-1">
+            <section id="pitch-gallery-section" className="space-y-2 pt-1 px-1 scroll-mt-24">
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
+                <h2 id="heading-pitch-gallery" className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5 scroll-mt-24">
                   <span>Pitch Gallery</span>
                   <span className="text-[10px] bg-surface-card border border-border-subtle text-primary-lime px-2 py-0.5 rounded-full font-bold">
                     {galleryImages.length} Photos
@@ -442,7 +445,7 @@ export const TurfDetail: React.FC = () => {
             </section>
             
             {/* HOST / AGENT SECTION */}
-            <section className="flex items-center justify-between pt-3 border-t border-border-subtle">
+            <section id="pitch-manager-section" className="flex items-center justify-between pt-3 border-t border-border-subtle scroll-mt-24">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-border-subtle shadow-sm">
                   <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80" alt="Agent" className="w-full h-full object-cover" />
@@ -471,7 +474,7 @@ export const TurfDetail: React.FC = () => {
         ) : (
           <div className="space-y-6 pb-20">
             {/* REVIEWS SECTION */}
-            <section className="pt-2">
+            <section id="pitch-reviews-section" className="pt-2 scroll-mt-24">
               <TurfReviews 
                 pitchId={turf.id} 
                 onReviewAdded={async (avg, total) => {
