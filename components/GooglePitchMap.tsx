@@ -287,18 +287,26 @@ export const GooglePitchMap: React.FC<GooglePitchMapProps> = ({
 
       // Custom marker DOM element
       const markerElement = document.createElement('div');
-      markerElement.className = `custom-pitch-pin flex items-center gap-1.5 px-3 py-1 rounded-full cursor-pointer transition-all duration-200 shadow-lg select-none ${
+      markerElement.className = `custom-pitch-pin flex flex-col items-center justify-center cursor-pointer transition-all duration-300 drop-shadow-lg ${
         isSelected
-          ? 'bg-primary-lime text-accent-text ring-4 ring-primary-lime/40 font-black scale-110'
-          : 'bg-surface-card text-text-primary border border-border-subtle hover:border-primary-lime/70 font-bold hover:scale-105'
+          ? 'scale-125 z-50'
+          : 'hover:scale-110 z-10'
       }`;
-      markerElement.style.cssText = isSelected
-        ? 'background-color: #A8FF00; color: #0D0D0D; padding: 4px 10px; border-radius: 9999px; font-weight: 900; font-size: 11px; display: flex; align-items: center; gap: 4px; box-shadow: 0 4px 12px rgba(168,255,0,0.3); border: 2px solid #0D0D0D;'
-        : 'background-color: #161616; color: #F4F4F5; padding: 4px 10px; border-radius: 9999px; font-weight: 700; font-size: 11px; display: flex; align-items: center; gap: 4px; border: 1px solid #262626; box-shadow: 0 4px 10px rgba(0,0,0,0.5);';
-
+      
+      const pinColor = isSelected ? '#A8FF00' : '#ffffff';
+      const bgColor = isSelected ? '#A8FF00' : '#161616';
+      const iconColor = isSelected ? '#000000' : '#ffffff';
+      
       markerElement.innerHTML = `
-        <span style="font-size: 10px;">⚽</span>
-        <span>UGX ${priceFormatted}</span>
+        <div style="background-color: ${bgColor}; border: 2px solid ${pinColor}; border-radius: 50%; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+            <line x1="12" y1="4" x2="12" y2="20"></line>
+            <circle cx="12" cy="12" r="3"></circle>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="22" y1="12" x2="18" y2="12"></line>
+          </svg>
+        </div>
       `;
 
       let markerInstance: google.maps.marker.AdvancedMarkerElement | google.maps.Marker;

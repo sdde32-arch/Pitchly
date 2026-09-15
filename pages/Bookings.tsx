@@ -145,9 +145,10 @@ export const Bookings: React.FC = () => {
         {/* Header */}
         <div className="max-w-xl mx-auto p-4 flex items-center justify-between sticky top-0 bg-app-base/90 backdrop-blur-md z-40 border-b border-border-subtle">
           <button 
-            onClick={() => navigate(-1)} 
+            onClick={() => navigate("/home")} 
             className="w-9 h-9 rounded-full flex items-center justify-center text-text-primary hover:bg-surface-raised transition-colors cursor-pointer"
-            title="Back"
+            title="Back to Home"
+            aria-label="Back to Home"
           >
             <ChevronLeft size={18} strokeWidth={2.5} />
           </button>

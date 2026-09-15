@@ -47,6 +47,7 @@ export const Reports: React.FC = () => {
   // Update state
   const [resolutionNotes, setResolutionNotes] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
   const fetchReports = async () => {
@@ -129,7 +130,8 @@ export const Reports: React.FC = () => {
       fetchReports();
     } catch (err) {
       console.error(err);
-      alert("Failed to update report status.");
+      setErrorMessage("Failed to update report status.");
+      setTimeout(() => setErrorMessage(""), 3500);
     } finally {
       setIsUpdating(false);
     }
@@ -188,6 +190,20 @@ export const Reports: React.FC = () => {
           <span>Export CSV</span>
         </button>
       </div>
+
+      {successMessage && (
+        <div className="p-3.5 rounded-xl bg-primary-lime/15 border border-primary-lime/30 text-primary-lime text-xs font-bold flex items-center gap-2 animate-fadeIn">
+          <CheckCircle2 size={16} />
+          <span>{successMessage}</span>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="p-3.5 rounded-xl bg-red-500/15 border border-red-500/30 text-red-500 text-xs font-bold flex items-center gap-2 animate-fadeIn">
+          <AlertCircle size={16} />
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
       {/* Filter / Search Bar */}
       <div className="bg-surface-card rounded-2xl p-4 border border-border-subtle shadow-xs space-y-3">

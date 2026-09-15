@@ -149,9 +149,10 @@ export const BookingConfirmation: React.FC = () => {
         <div className="sticky top-0 z-40 bg-surface-card/90 backdrop-blur-md border-b border-border-subtle px-4 py-3 flex items-center justify-between">
           <button
             id="confirmation-back-btn"
-            onClick={() => navigate('/bookings')}
+            onClick={() => navigate('/home', { replace: true })}
             className="w-10 h-10 rounded-2xl bg-surface-raised hover:bg-border-subtle flex items-center justify-center text-text-primary transition-colors border border-border-subtle shadow-xs cursor-pointer active:scale-95"
-            title="Back to Bookings"
+            title="Back to Home"
+            aria-label="Back to Home"
           >
             <ChevronLeft size={20} strokeWidth={2.5} />
           </button>
@@ -313,7 +314,7 @@ export const BookingConfirmation: React.FC = () => {
             {/* Primary Action Button: View My Bookings */}
             <button
               id="view-my-bookings-btn"
-              onClick={() => navigate('/bookings')}
+              onClick={() => navigate('/bookings', { replace: true })}
               className="w-full h-13 sm:h-14 bg-primary-lime hover:bg-[#96E600] text-accent-text rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] font-black text-sm tracking-wide shadow-md shadow-primary-lime/20 cursor-pointer mb-3"
             >
               <span>View in My Bookings</span>
@@ -333,7 +334,7 @@ export const BookingConfirmation: React.FC = () => {
 
               <button
                 id="back-to-home-btn"
-                onClick={() => navigate('/home')}
+                onClick={() => navigate('/home', { replace: true })}
                 className="h-11 sm:h-12 bg-surface-card hover:bg-surface-raised border border-border-subtle text-text-primary rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-98 font-bold text-xs cursor-pointer shadow-xs"
               >
                 <Home size={15} />

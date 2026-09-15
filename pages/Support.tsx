@@ -49,8 +49,16 @@ export const Support: React.FC = () => {
         <div className="bg-surface-card p-4 border-b border-border-subtle mb-8 sticky top-0 z-50">
           <div className="max-w-xl mx-auto flex items-center">
             <button
-              onClick={() => navigate(-1)}
-              className="mr-4 w-10 h-10 flex items-center justify-center bg-surface-raised rounded-full text-text-primary hover:bg-slate-200 dark:hover:bg-zinc-800 transition-colors"
+              onClick={() => {
+                if (window.history.state && window.history.state.idx > 0) {
+                  navigate(-1);
+                } else {
+                  navigate("/home");
+                }
+              }}
+              className="mr-4 w-10 h-10 flex items-center justify-center bg-surface-raised rounded-full text-text-primary hover:bg-slate-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              title="Go back"
+              aria-label="Go back"
             >
               <ArrowLeft size={20} />
             </button>

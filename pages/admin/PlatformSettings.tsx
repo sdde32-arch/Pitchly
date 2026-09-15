@@ -43,6 +43,12 @@ export const PlatformSettings: React.FC = () => {
   const [nonConformingCount, setNonConformingCount] = useState<number | null>(null);
   const [totalBookingsCount, setTotalBookingsCount] = useState<number | null>(null);
   const [migrationResult, setMigrationResult] = useState<any>(null);
+  const [statusBanner, setStatusBanner] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+
+  const showStatus = (text: string, type: "success" | "error" | "info" = "info") => {
+    setStatusBanner({ type, text });
+    setTimeout(() => setStatusBanner(null), 4000);
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -83,17 +89,15 @@ export const PlatformSettings: React.FC = () => {
   };
 
   const handleRunMigration = async () => {
-    if (!window.confirm("Are you sure you want to run the database casing normalization migration?"))
-      return;
     setMigrationLoading(true);
     setMigrationResult(null);
     try {
       const res = await migrateBookings();
       setMigrationResult(res);
       await checkMigrationStatus();
-      alert(`Migration completed! Processed ${res.processed} bookings, updated ${res.updated}.`);
+      showStatus(`Migration completed! Processed ${res.processed} bookings, updated ${res.updated}.`, "success");
     } catch (error: any) {
-      alert(`Migration failed: ${error.message || error}`);
+      showStatus(`Migration failed: ${error.message || error}`, "error");
     } finally {
       setMigrationLoading(false);
     }
@@ -133,18 +137,16 @@ export const PlatformSettings: React.FC = () => {
     if (!user || (!isSuperAdmin && !isAdmin)) return;
 
     if (!isSuperAdmin) {
-      alert("Only Super Admins can update platform settings.");
+      showStatus("Only Super Admins can update platform settings.", "error");
       return;
     }
 
-    if (!window.confirm("Are you sure you want to update global platform settings?"))
-      return;
     setIsSaving(true);
     try {
       await adminService.updatePlatformSettings(user.uid, settings);
-      alert("Platform settings updated successfully!");
+      showStatus("Platform settings updated successfully!", "success");
     } catch (error) {
-      alert("Failed to update platform settings. See console for details.");
+      showStatus("Failed to update platform settings. See console for details.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -154,6 +156,25 @@ export const PlatformSettings: React.FC = () => {
 
   return (
     <div className="p-2 sm:p-4 max-w-5xl mx-auto space-y-6 pb-24 font-sans text-text-primary">
+      {statusBanner && (
+        <div
+          className={`p-4 rounded-xl border text-xs sm:text-sm font-bold flex items-center gap-2.5 animate-fadeIn shadow-xs ${
+            statusBanner.type === "success"
+              ? "bg-primary-lime/15 border-primary-lime/30 text-primary-lime"
+              : statusBanner.type === "error"
+              ? "bg-red-500/15 border-red-500/30 text-red-500"
+              : "bg-surface-raised border-border-subtle text-text-primary"
+          }`}
+        >
+          {statusBanner.type === "success" ? (
+            <CheckCircle size={18} />
+          ) : (
+            <AlertCircle size={18} />
+          )}
+          <span>{statusBanner.text}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">

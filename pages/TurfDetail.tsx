@@ -24,8 +24,9 @@ import {
   Lock,
   AlertCircle,
   Zap,
+  Home,
 } from "lucide-react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useBooking } from "../context/BookingContext";
 import { useUser } from "../context/UserContext";
 import { chatService } from "../services/chatService";
@@ -49,6 +50,7 @@ import { Layout } from "../components/Layout";
 export const TurfDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, userProfile } = useUser();
   const { turfs, loading: contextLoading } = useBooking();
   const [realPitch, setRealPitch] = useState<Pitch | null>(null);
@@ -59,6 +61,43 @@ export const TurfDetail: React.FC = () => {
   const [dynamicTotalReviews, setDynamicTotalReviews] = useState<number | null>(null);
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"about" | "reviews">("about");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const [isFavorite, setIsFavorite] = useState(() => {
+    try {
+      const favs = JSON.parse(localStorage.getItem("pitchly_favorites") || "[]");
+      const currentId = id?.replace(/^pitch-/, "") || id || "";
+      return Array.isArray(favs) && (favs.includes(currentId) || favs.includes(id || ""));
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleFavorite = () => {
+    try {
+      const currentId = id?.replace(/^pitch-/, "") || id || "";
+      const favs: string[] = JSON.parse(localStorage.getItem("pitchly_favorites") || "[]");
+      let nextFavs: string[];
+      if (favs.includes(currentId) || favs.includes(id || "")) {
+        nextFavs = favs.filter((f: string) => f !== currentId && f !== (id || ""));
+        setIsFavorite(false);
+        showToast("Removed from favorites", "info");
+      } else {
+        nextFavs = [...favs, currentId];
+        setIsFavorite(true);
+        showToast("Saved to your favorites!", "success");
+      }
+      localStorage.setItem("pitchly_favorites", JSON.stringify(nextFavs));
+    } catch {
+      setIsFavorite(prev => !prev);
+      showToast("Favorites updated!", "success");
+    }
+  };
 
   const normalizedId = id?.replace(/^pitch-/, "") || "";
   const turf: Turf | undefined = realPitch
@@ -92,22 +131,23 @@ export const TurfDetail: React.FC = () => {
   ];
 
   const galleryImages = React.useMemo(() => {
+    // If realPitch exists and has images, use them directly so updated pitch photos show at the top immediately
+    if (realPitch?.images && realPitch.images.length > 0) {
+      const valid = realPitch.images.filter(img => typeof img === "string" && img.trim().length > 0);
+      if (valid.length > 0) return valid;
+    }
+
     const customImgs = [
-      ...(realPitch?.images || []),
       ...(turf?.images || []),
       ...(turf?.image ? [turf.image] : []),
       ...(turf?.additionalImages || [])
-    ].filter((img, idx, self) => img && self.indexOf(img) === idx);
+    ].filter((img, idx, self) => img && typeof img === "string" && img.trim().length > 0 && self.indexOf(img) === idx);
 
-    const fallbacks = DEMO_GALLERY_FALLBACKS.map(f => f.url);
-    const combined = [...customImgs];
-    fallbacks.forEach(url => {
-      if (!combined.includes(url) && combined.length < 5) {
-        combined.push(url);
-      }
-    });
+    if (customImgs.length > 0) {
+      return customImgs;
+    }
 
-    return combined.length > 0 ? combined : fallbacks;
+    return DEMO_GALLERY_FALLBACKS.map(f => f.url);
   }, [realPitch, turf]);
 
   useEffect(() => {
@@ -150,15 +190,15 @@ export const TurfDetail: React.FC = () => {
 
   const handleMessageOwner = async () => {
     if (!user) {
-      alert("Please login to message the owner.");
+      showToast("Please login to message the owner.", "info");
       return;
     }
     if (!turf || !turf.ownerId) {
-      alert("Owner information not available.");
+      showToast("Owner information not available.", "error");
       return;
     }
     if (turf.ownerId === user.uid) {
-      alert("This is your pitch!");
+      showToast("This is your pitch!", "info");
       return;
     }
     try {
@@ -169,7 +209,7 @@ export const TurfDetail: React.FC = () => {
       navigate(`/chat/${convId}`);
     } catch (error) {
       console.error("Failed to start chat with owner", error);
-      alert("Failed to start chat.");
+      showToast("Failed to start chat.", "error");
     }
   };
 
@@ -198,8 +238,30 @@ export const TurfDetail: React.FC = () => {
   return (
     <Layout>
       <div className="bg-app-base text-text-primary font-sans pb-32 min-h-full transition-colors relative">
+        {/* Floating Toast Notification */}
+        {toast && (
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-surface-card/95 backdrop-blur-xl border border-border-prominent shadow-2xl text-xs sm:text-sm font-medium animate-in fade-in slide-in-from-top-4 duration-200">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                toast.type === "success"
+                  ? "bg-primary-lime shadow-[0_0_8px_rgba(168,255,0,0.8)]"
+                  : toast.type === "error"
+                  ? "bg-red-400"
+                  : "bg-blue-400"
+              }`}
+            />
+            <span className="text-text-primary">{toast.message}</span>
+            <button
+              onClick={() => setToast(null)}
+              className="ml-1 text-text-tertiary hover:text-text-primary cursor-pointer p-0.5"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* HERO BANNER & ABSOLUTE HEADER */}
-        <div className="relative w-full h-[400px] sm:h-[480px] overflow-hidden" id="turf-hero-banner">
+        <div className="relative w-full h-[400px] sm:h-[480px] overflow-hidden bg-surface-card" id="turf-hero-banner">
           <TurfImageGallery 
             images={galleryImages} 
             name={turf.name} 
@@ -207,6 +269,7 @@ export const TurfDetail: React.FC = () => {
             showPageCounter={true}
             showThumbnails={false}
             selectedIndex={currentImgIndex}
+            wrapperClassName="h-full w-full"
             className="h-full w-full rounded-none border-none bg-surface-card"
             onIndexChange={setCurrentImgIndex}
           />
@@ -214,7 +277,11 @@ export const TurfDetail: React.FC = () => {
           {/* Absolute Top Navigation Over Image */}
           <button
             onClick={() => {
-              if (window.history.state && window.history.state.idx > 0) {
+              if (location.state && (location.state as any).from === 'explore') {
+                navigate('/explore-map');
+              } else if (location.state && (location.state as any).from === 'bookings') {
+                navigate('/bookings');
+              } else if (window.history.state && window.history.state.idx > 0) {
                 navigate(-1);
               } else {
                 navigate("/home");
@@ -222,17 +289,34 @@ export const TurfDetail: React.FC = () => {
             }}
             className="absolute top-4 left-4 sm:left-6 w-11 h-11 rounded-full bg-app-base/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-text-primary hover:bg-app-base/80 transition-colors z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime cursor-pointer shadow-sm"
             aria-label="Go back"
+            title="Go back"
           >
             <ChevronLeft size={22} strokeWidth={2.5} />
           </button>
 
-          <div className="absolute top-4 right-4 sm:right-6 flex items-center gap-3 z-20">
-            <button 
-              onClick={() => alert("Added to favorites!")}
+          <div className="absolute top-4 right-4 sm:right-6 flex items-center gap-2 z-20">
+            <button
+              onClick={() => navigate("/home")}
               className="w-11 h-11 rounded-full bg-app-base/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-text-primary hover:bg-app-base/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime cursor-pointer shadow-sm"
-              title="Favorite facility"
+              title="Return to Home"
+              aria-label="Return to Home"
             >
-              <Heart size={20} className="text-text-primary hover:text-primary-lime" />
+              <Home size={18} />
+            </button>
+            <button 
+              onClick={toggleFavorite}
+              className={`w-11 h-11 rounded-full backdrop-blur-md border flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime cursor-pointer shadow-sm active:scale-95 ${
+                isFavorite
+                  ? "bg-red-500/20 border-red-500/40 text-red-500 hover:bg-red-500/30"
+                  : "bg-app-base/60 border-white/20 text-text-primary hover:bg-app-base/80"
+              }`}
+              title={isFavorite ? "Remove from favorites" : "Favorite facility"}
+              aria-label={isFavorite ? "Remove from favorites" : "Favorite facility"}
+            >
+              <Heart 
+                size={20} 
+                className={isFavorite ? "fill-red-500 text-red-500" : "text-text-primary hover:text-primary-lime"} 
+              />
             </button>
           </div>
 
@@ -406,7 +490,8 @@ export const TurfDetail: React.FC = () => {
 
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                 {galleryImages.map((img, idx) => {
-                  const fallbackLabel = DEMO_GALLERY_FALLBACKS[idx]?.label || `View ${idx + 1}`;
+                  const fallbackLabel = DEMO_GALLERY_FALLBACKS[idx]?.label 
+                    || (idx === 0 ? "Main Pitch" : idx === 1 ? "Goalmouth & Box" : idx === 2 ? "Floodlights" : idx === 3 ? "Touchline Angle" : idx === 4 ? "Pavilion View" : `Angle ${idx + 1}`);
                   const isSelected = currentImgIndex === idx;
                   return (
                     <button
@@ -427,6 +512,9 @@ export const TurfDetail: React.FC = () => {
                         alt={`${turf.name} photo ${idx + 1}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.src = DEMO_GALLERY_FALLBACKS[0].url;
+                        }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-1.5">
                         <span className="text-[9.5px] font-bold text-white leading-tight truncate">

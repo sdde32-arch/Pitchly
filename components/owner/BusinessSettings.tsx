@@ -14,7 +14,8 @@ import {
   Phone,
   Banknote,
   CheckCircle2,
-  Info
+  Info,
+  AlertCircle
 } from "lucide-react";
 import { OwnerService } from "../../services/owner";
 import { BusinessProfile } from "../../types";
@@ -24,6 +25,7 @@ export const BusinessSettings: React.FC = () => {
   const { loading: authLoading } = useUser();
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pricePerHour, setPricePerHour] = useState<number>(100000);
   const [pricingSuggestion, setPricingSuggestion] = useState<string>("");
@@ -112,13 +114,15 @@ export const BusinessSettings: React.FC = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
+    setSaveError(null);
     try {
       await OwnerService.updateBusinessProfile(formData);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
       console.error(e);
-      alert("Failed to save settings.");
+      setSaveError("Failed to save settings. Please try again.");
+      setTimeout(() => setSaveError(null), 4000);
     } finally {
       setIsSaving(false);
     }
@@ -166,6 +170,13 @@ export const BusinessSettings: React.FC = () => {
           <span>{isSaving ? "Saving..." : saved ? "Saved!" : "Save Changes"}</span>
         </button>
       </div>
+
+      {saveError && (
+        <div className="p-3.5 rounded-xl bg-red-500/15 border border-red-500/30 text-red-500 text-xs font-bold flex items-center gap-2 animate-fadeIn">
+          <AlertCircle size={16} />
+          <span>{saveError}</span>
+        </div>
+      )}
 
       {/* SECTION 1: BUSINESS & CONTACT INFO */}
       <div className="bg-surface-card rounded-2xl p-4 sm:p-6 border border-border-subtle space-y-5 shadow-sm">

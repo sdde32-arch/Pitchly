@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { 
-  ArrowLeft, CheckCircle2, Clock, UploadCloud, FileImage, CreditCard, ShieldCheck, Check, Wallet 
+  ArrowLeft, CheckCircle2, Clock, UploadCloud, FileImage, CreditCard, ShieldCheck, Check, Wallet, Home
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 import { pitchService } from "../services/pitchService";
@@ -175,12 +175,13 @@ export const BookPitch: React.FC = () => {
   };
 
   const handleSlotClick = (time: string) => {
+    setErrorMsg("");
     if (hasError) {
-      alert("Couldn't load current availability — please refresh before booking.");
+      setErrorMsg("Couldn't load current availability — please refresh before booking.");
       return;
     }
     if (isSlotPassed(time, selectedDate)) {
-      alert("This time slot has already passed. Please select a future time slot.");
+      setErrorMsg("This time slot has already passed. Please select a future time slot.");
       return;
     }
     setSelectedTimes(prev => {
@@ -193,7 +194,7 @@ export const BookPitch: React.FC = () => {
         } else if (currentIndex === indices[indices.length - 1]) {
           return prev.filter(t => t !== time);
         } else {
-          alert("Your selection must be consecutive. Deselecting this would leave a gap.");
+          setErrorMsg("Your selection must be consecutive. Deselecting this would leave a gap.");
           return prev;
         }
       } else {
@@ -204,7 +205,7 @@ export const BookPitch: React.FC = () => {
         if (isAdjacent) {
           return [...prev, time].sort((a, b) => timesList.indexOf(a) - timesList.indexOf(b));
         } else {
-          alert("Please select consecutive time slots.");
+          setErrorMsg("Please select consecutive time slots.");
           return prev;
         }
       }
@@ -298,7 +299,7 @@ export const BookPitch: React.FC = () => {
         }
       }
 
-      navigate(`/booking-confirmation/${bookingId}`);
+      navigate(`/booking-confirmation/${bookingId}`, { replace: true });
     } catch (err: any) {
       console.error("Booking failed:", err);
       const message = err?.message || "Failed to create booking.";
@@ -309,6 +310,20 @@ export const BookPitch: React.FC = () => {
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleBack = () => {
+    if (bookingStep > 1 && bookingStep < 4) {
+      setBookingStep((prev) => ((prev - 1) as 1 | 2 | 3));
+      return;
+    }
+
+    // Step 1: navigate back safely without re-pushing duplicate history
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate(id ? `/turf/${id}` : "/home", { replace: true });
     }
   };
 
@@ -331,8 +346,8 @@ export const BookPitch: React.FC = () => {
             This pitch schedule could not be loaded or is currently inactive.
           </p>
           <button
-            onClick={() => navigate("/home")}
-            className="px-6 py-2.5 rounded-xl bg-primary-lime text-accent-text font-bold text-sm"
+            onClick={() => navigate("/home", { replace: true })}
+            className="px-6 py-2.5 rounded-xl bg-primary-lime text-accent-text font-bold text-sm cursor-pointer"
           >
             Return to Explore
           </button>
@@ -347,11 +362,10 @@ export const BookPitch: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button 
-            onClick={() => {
-              if (bookingStep > 1 && bookingStep < 4) setBookingStep(bookingStep - 1 as any);
-              else navigate(`/turf/${id}`);
-            }}
+            onClick={handleBack}
             className="w-10 h-10 rounded-full bg-surface-card border border-border-subtle flex items-center justify-center hover:bg-surface-raised transition-colors cursor-pointer"
+            title="Go back"
+            aria-label="Go back"
           >
             <ArrowLeft size={18} className="text-text-primary" />
           </button>
@@ -359,7 +373,14 @@ export const BookPitch: React.FC = () => {
             <h1 id="heading-book-pitch" className="text-text-primary font-bold tracking-tight scroll-mt-24">Book Pitch</h1>
             <p className="text-text-secondary text-[11px] uppercase tracking-wider">{turf.name}</p>
           </div>
-          <div className="w-10" />
+          <button
+            onClick={() => navigate("/home")}
+            className="w-10 h-10 rounded-full bg-surface-card border border-border-subtle flex items-center justify-center hover:bg-surface-raised transition-colors cursor-pointer text-text-secondary hover:text-text-primary"
+            title="Return to Home"
+            aria-label="Return to Home"
+          >
+            <Home size={18} />
+          </button>
         </div>
 
         {/* Step Indicator */}

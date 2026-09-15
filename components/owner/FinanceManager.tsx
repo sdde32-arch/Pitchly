@@ -15,7 +15,8 @@ import {
   Layers,
   ArrowDownLeft,
   ChevronRight,
-  Info
+  Info,
+  AlertCircle
 } from "lucide-react";
 import { Payout, Transaction } from "../../types";
 
@@ -26,6 +27,7 @@ export const FinanceManager: React.FC = () => {
   const [payoutAmount, setPayoutAmount] = useState("");
   const [requesting, setRequesting] = useState(false);
   const [payoutSuccess, setPayoutSuccess] = useState(false);
+  const [payoutError, setPayoutError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"transactions" | "payouts">("transactions");
 
   useEffect(() => {
@@ -44,8 +46,9 @@ export const FinanceManager: React.FC = () => {
 
   const handleRequestPayout = async (customAmount?: number) => {
     const amount = customAmount ?? Number(payoutAmount);
+    setPayoutError(null);
     if (!amount || amount <= 0 || amount > (financials?.balance || 0)) {
-      alert("Please enter a valid amount within your available balance.");
+      setPayoutError("Please enter a valid amount within your available balance.");
       return;
     }
     setRequesting(true);
@@ -58,7 +61,7 @@ export const FinanceManager: React.FC = () => {
       setTimeout(() => setPayoutSuccess(false), 4000);
     } catch (e) {
       console.error(e);
-      alert("Failed to process payout request. Please try again.");
+      setPayoutError("Failed to process payout request. Please try again.");
     } finally {
       setRequesting(false);
     }
@@ -272,6 +275,13 @@ export const FinanceManager: React.FC = () => {
               <div className="p-3 rounded-lg bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-xs font-bold flex items-center gap-2 animate-fadeIn">
                 <CheckCircle2 size={16} />
                 <span>Payout request submitted successfully!</span>
+              </div>
+            )}
+
+            {payoutError && (
+              <div className="p-3 rounded-lg bg-red-500/15 border border-red-500/30 text-red-500 text-xs font-bold flex items-center gap-2 animate-fadeIn">
+                <AlertCircle size={16} />
+                <span>{payoutError}</span>
               </div>
             )}
 

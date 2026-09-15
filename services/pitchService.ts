@@ -130,8 +130,9 @@ export const pitchService = {
   async getById(id: string): Promise<Pitch | null> {
     if (getDeletedPitchIds().includes(id)) return null;
 
+    const cleanId = id.replace(/^pitch-/, "");
     // Check researched Kampala Turfs first
-    const researched = TURFS.find((t) => t.id === id);
+    const researched = TURFS.find((t) => t.id === id || t.id === cleanId || `pitch-${t.id}` === id);
     if (researched) {
       return turfToPitch(researched);
     }
@@ -143,7 +144,14 @@ export const pitchService = {
       if (docSnap.exists()) {
         const pitch = docSnap.data() as Pitch;
         if (!isLegacyTestPitch(pitch)) {
-          return pitch;
+          const rawImgs = Array.isArray(pitch.images) && pitch.images.length > 0
+            ? pitch.images
+            : (pitch as any).image ? [(pitch as any).image] : [];
+          return {
+            ...pitch,
+            images: rawImgs,
+            additionalImages: (pitch as any).additionalImages || (rawImgs.length > 1 ? rawImgs.slice(1) : []),
+          };
         }
       }
       return offlineCacheService.getCachedPitchById(id);

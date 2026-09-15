@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Pitchly user account entity supporting players, owners, and administrators.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["PLAYER", "OWNER", "admin", "super_admin"] },
+        "roles": { "type": "array", "items": { "type": "string" } },
+        "avatarId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "Pitch": {
+      "title": "Pitch",
+      "description": "Football facility / turf details including location, pricing, images, and amenities.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "location": { "type": "string" },
+        "pricePerHour": { "type": "number" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "ownerId": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "PENDING_APPROVAL", "DRAFT", "SUSPENDED"] },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" }
+      },
+      "required": ["id", "name", "pricePerHour", "status"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Match booking transaction and scheduled time reservation on a pitch.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "pitchId": { "type": "string" },
+        "playerId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "hours": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "status": { "type": "string", "enum": ["PENDING_PAYMENT", "PAYMENT_SUBMITTED", "CONFIRMED", "COMPLETED", "CANCELLED", "REJECTED"] }
+      },
+      "required": ["id", "pitchId", "playerId", "date", "time", "status"]
+    },
+    "SlotLock": {
+      "title": "SlotLock",
+      "description": "Temporary high-concurrency reservation lock preventing double bookings.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "pitchId": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "userId": { "type": "string" },
+        "expiresAt": { "type": "number" }
+      },
+      "required": ["pitchId", "date", "time", "userId", "expiresAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles and credentials"
+    },
+    "/pitches/{pitchId}": {
+      "schema": { "$ref": "#/entities/Pitch" },
+      "description": "Turf listings and details"
+    },
+    "/bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/Booking" },
+      "description": "Match bookings and transactions"
+    },
+    "/slotLocks/{lockId}": {
+      "schema": { "$ref": "#/entities/SlotLock" },
+      "description": "Slot concurrency locks"
+    }
+  }
+}

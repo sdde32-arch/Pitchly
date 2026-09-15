@@ -40,6 +40,7 @@ export interface Pitch {
   pitchFormats: string[]; // e.g. ["5-a-side", "7-a-side"]
   amenities: string[];
   images: string[];
+  additionalImages?: string[];
   openingHour: string;
   closingHour: string;
   isVerified: boolean;

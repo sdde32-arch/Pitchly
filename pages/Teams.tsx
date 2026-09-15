@@ -239,6 +239,12 @@ export const Teams: React.FC = () => {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [showAuthGate, setShowAuthGate] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "info" = "info") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const [newTeam, setNewTeam] = useState({
     name: "",
@@ -504,12 +510,26 @@ export const Teams: React.FC = () => {
       navigator.share({ title: match.title, text });
     } else {
       navigator.clipboard.writeText(text);
-      alert("Match details copied to clipboard!");
+      showToast("Match details copied to clipboard!", "success");
     }
   };
 
   return (
     <Layout>
+      {/* Floating Toast Notification */}
+      {toast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-surface-card/95 backdrop-blur-xl border border-border-prominent shadow-2xl text-xs sm:text-sm font-medium animate-in fade-in slide-in-from-top-4 duration-200">
+          <span className="w-2 h-2 rounded-full bg-primary-lime shadow-[0_0_8px_rgba(168,255,0,0.8)]" />
+          <span className="text-text-primary">{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-1 text-text-tertiary hover:text-text-primary cursor-pointer p-0.5"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <AuthPromptModal
         isOpen={showAuthGate}
         onClose={() => setShowAuthGate(false)}

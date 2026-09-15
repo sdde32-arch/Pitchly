@@ -84,6 +84,12 @@ export const Profile: React.FC = () => {
   const [supportMessage, setSupportMessage] = useState("");
   const [supportSeverity, setSupportSeverity] = useState("Medium");
   const [supportSuccess, setSupportSuccess] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -131,11 +137,11 @@ export const Profile: React.FC = () => {
         bio: editBio,
         avatarId: editAvatarId,
       });
-      alert("Profile updated successfully!");
+      showToast("Profile updated successfully!", "success");
       setActiveModal(null);
     } catch (err) {
       console.error("Error updating profile:", err);
-      alert("Failed to update profile.");
+      showToast("Failed to update profile.", "error");
     } finally {
       setSavingProfile(false);
     }
@@ -200,18 +206,42 @@ export const Profile: React.FC = () => {
       setSupportSubject("");
       setSupportMessage("");
       setActiveModal(null);
-      alert("Your support ticket has been submitted. We will contact you shortly.");
+      showToast("Your support ticket has been submitted. We will contact you shortly.", "success");
     }, 1000);
   };
 
   return (
     <Layout>
-      <div className="min-h-full bg-app-base text-text-primary font-body pb-24">
+      <div className="min-h-full bg-app-base text-text-primary font-body pb-24 relative">
+        {/* Floating Toast Notification */}
+        {toast && (
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-surface-card/95 backdrop-blur-xl border border-border-prominent shadow-2xl text-xs sm:text-sm font-medium animate-in fade-in slide-in-from-top-4 duration-200">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                toast.type === "success"
+                  ? "bg-primary-lime shadow-[0_0_8px_rgba(168,255,0,0.8)]"
+                  : toast.type === "error"
+                  ? "bg-red-400"
+                  : "bg-blue-400"
+              }`}
+            />
+            <span className="text-text-primary">{toast.message}</span>
+            <button
+              onClick={() => setToast(null)}
+              className="ml-1 text-text-tertiary hover:text-text-primary cursor-pointer p-0.5"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="max-w-xl mx-auto p-4 flex items-center justify-between sticky top-0 bg-app-base/90 backdrop-blur-md z-40 border-b border-border-subtle">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/home")}
             className="w-9 h-9 rounded-full bg-surface-card border border-border-subtle flex items-center justify-center text-text-primary hover:bg-surface-raised transition-colors shadow-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime"
+            title="Back to Home"
+            aria-label="Back to Home"
           >
             <ChevronLeft size={18} strokeWidth={2.5} />
           </button>

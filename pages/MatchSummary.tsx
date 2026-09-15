@@ -64,6 +64,7 @@ export const MatchSummary: React.FC = () => {
   const [newPlayerName, setNewPlayerName] = useState("");
   const [isSavingScore, setIsSavingScore] = useState(false);
   const [voteSubmitting, setVoteSubmitting] = useState(false);
+  const [copiedToast, setCopiedToast] = useState(false);
 
   // Find booking
   useEffect(() => {
@@ -212,7 +213,8 @@ export const MatchSummary: React.FC = () => {
         });
       } else {
         await navigator.clipboard.writeText(shareText + " \n" + window.location.href);
-        alert("Match summary link copied to clipboard!");
+        setCopiedToast(true);
+        setTimeout(() => setCopiedToast(false), 3500);
       }
     } catch (e) {
       console.error(e);
@@ -275,13 +277,29 @@ export const MatchSummary: React.FC = () => {
 
   return (
     <Layout>
-      <div className="min-h-full bg-[#fafafa] dark:bg-[#0e0f12] text-text-primary font-body pb-32">
+      <div className="min-h-full bg-[#fafafa] dark:bg-[#0e0f12] text-text-primary font-body pb-32 relative">
+        {/* Floating Toast Notification */}
+        {copiedToast && (
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-surface-card/95 backdrop-blur-xl border border-border-prominent shadow-2xl text-xs sm:text-sm font-medium animate-in fade-in slide-in-from-top-4 duration-200">
+            <span className="w-2 h-2 rounded-full bg-primary-lime shadow-[0_0_8px_rgba(168,255,0,0.8)]" />
+            <span className="text-text-primary">Match summary link copied to clipboard!</span>
+          </div>
+        )}
+
         {/* Navigation Header */}
         <div className="p-4 flex items-center justify-between max-w-xl mx-auto sticky top-0 bg-[#fafafa]/90 dark:bg-[#0e0f12]/90 backdrop-blur-md z-40">
           <button 
-            onClick={() => navigate("/bookings")} 
-            className="w-11 h-11 rounded-full bg-surface-card border border-border-subtle flex items-center justify-center text-text-primary hover:bg-surface-raised transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime"
+            onClick={() => {
+              if (window.history.state && window.history.state.idx > 0) {
+                navigate(-1);
+              } else {
+                navigate("/bookings", { replace: true });
+              }
+            }} 
+            className="w-11 h-11 rounded-full bg-surface-card border border-border-subtle flex items-center justify-center text-text-primary hover:bg-surface-raised transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime cursor-pointer"
             id="back-to-bookings-btn"
+            title="Go back"
+            aria-label="Go back"
           >
             <ChevronLeft size={20} strokeWidth={2.5} />
           </button>
