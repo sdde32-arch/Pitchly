@@ -366,9 +366,13 @@ export const TURFS: Turf[] = [
     image: 'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?auto=format&fit=crop&w=1200&q=80',
     images: [
       'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1599586120429-48281b6f0ece?auto=format&fit=crop&w=1200&q=80',
     ],
-    additionalImages: [],
+    additionalImages: [
+      'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=1200&q=80',
+    ],
     amenities: ['Floodlights', 'Panoramic City Views', 'Poolside Lounge', 'Showers', 'Secure Parking'],
     pitchFormats: ['5-a-side', '7-a-side', 'Floodlit Night Games'],
     type: '7-a-side',
@@ -396,9 +400,13 @@ export const TURFS: Turf[] = [
     image: 'https://images.unsplash.com/photo-1524015368236-bbf6f72545b6?auto=format&fit=crop&w=1200&q=80',
     images: [
       'https://images.unsplash.com/photo-1524015368236-bbf6f72545b6?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=1200&q=80',
     ],
-    additionalImages: [],
+    additionalImages: [
+      'https://images.unsplash.com/photo-1550881111-7cfde14b8073?auto=format&fit=crop&w=1200&q=80',
+    ],
     amenities: ['Floodlights', 'Parking', 'Equipment Rental', 'Restrooms', 'Spectator Benches'],
     pitchFormats: ['5-a-side', '7-a-side', 'Floodlit Night Games'],
     type: '5-a-side / 7-a-side',
@@ -427,8 +435,12 @@ export const TURFS: Turf[] = [
     images: [
       'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80',
     ],
-    additionalImages: [],
+    additionalImages: [
+      'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=1200&q=80',
+    ],
     amenities: ['VIP Club Access', 'Resort Dining', 'Locker Rooms & Showers', 'Secure Parking', 'Floodlights', 'WiFi'],
     pitchFormats: ['5-a-side', '7-a-side', 'Floodlit Night Games'],
     type: '7-a-side',
@@ -453,12 +465,16 @@ export const TURFS: Turf[] = [
     longitude: 32.6280,
     rating: 4.6,
     pricePerHour: 55000,
-    image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1600679472829-3044539ce8ed?auto=format&fit=crop&w=1200&q=80',
     images: [
-      'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1600679472829-3044539ce8ed?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1511886929837-354d827aae26?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1200&q=80',
     ],
-    additionalImages: [],
+    additionalImages: [
+      'https://images.unsplash.com/photo-1599586120429-48281b6f0ece?auto=format&fit=crop&w=1200&q=80',
+    ],
     amenities: ['Lakeside Breeze & View', 'Post-Match Fish BBQ', 'Floodlights', 'Parking', 'Changing Rooms'],
     pitchFormats: ['5-a-side', '7-a-side', 'Floodlit Night Games'],
     type: '5-a-side / 7-a-side',
@@ -471,6 +487,41 @@ export const TURFS: Turf[] = [
     contactPhone: '+256 704 223 344',
     contactEmail: 'ggaba.turf@footlink.ug',
     description: 'Vibrant lakeside football pitch right on Lake Victoria shores. Enjoy fast-paced turf games followed by freshly grilled tilapia and cold drinks.'
+  },
+  {
+    id: 'tal-olympic-arena',
+    name: 'Tal Olympic Arena',
+    location: 'Munyonyo, Kampala',
+    fullAddress: 'Buziga - Munyonyo Hill Road, Munyonyo, Kampala',
+    formattedAddress: 'Munyonyo, Kampala, Uganda',
+    coordinates: [0.2520, 32.6150],
+    latitude: 0.2520,
+    longitude: 32.6150,
+    rating: 4.9,
+    pricePerHour: 80000,
+    image: 'https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aab?auto=format&fit=crop&w=1200&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aab?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1459865264687-595d652de67e?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1504450758481-7338eba7524a?auto=format&fit=crop&w=1200&q=80',
+    ],
+    additionalImages: [
+      'https://images.unsplash.com/photo-1589487391730-58f20eb2c308?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=1200&q=80',
+    ],
+    amenities: ['Floodlights', 'Championship Seating', 'Changing Rooms & Showers', 'VIP Area', 'Ample Parking', 'Security'],
+    pitchFormats: ['7-a-side', 'Tournament Matchplay', 'Floodlit Night Games'],
+    type: '7-a-side',
+    distance: '8.0 km',
+    openingHour: '06:00',
+    closingHour: '23:30',
+    blockedDates: [],
+    status: PitchStatus.ACTIVE,
+    isVerified: true,
+    contactPhone: '+256 700 882 119',
+    contactEmail: 'tal.olympic@footlink.ug',
+    description: 'Official home ground for the WEHAT 7-a-side Championship. High-spec synthetic surface, elevated spectator viewing stands, broadcast-standard LED floodlighting, and player dressing suites.'
   }
 ];
 

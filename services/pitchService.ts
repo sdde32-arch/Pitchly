@@ -62,7 +62,11 @@ export const turfToPitch = (t: Turf): Pitch => ({
   pricePerHour: t.pricePerHour,
   pitchFormats: t.pitchFormats || ['5-a-side', '7-a-side'],
   amenities: t.amenities || ['Floodlights', 'Changing Rooms', 'Parking'],
-  images: t.images?.length ? t.images : [t.image],
+  images: Array.from(new Set([
+    ...(t.images?.length ? t.images : (t.image ? [t.image] : [])),
+    ...(t.additionalImages || [])
+  ])),
+  additionalImages: t.additionalImages || [],
   openingHour: t.openingHour || '06:30',
   closingHour: t.closingHour || '23:00',
   isVerified: t.isVerified ?? true,
