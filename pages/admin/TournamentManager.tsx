@@ -28,15 +28,22 @@ import {
   TournamentFixture,
   TournamentScorer,
   TournamentNominee,
+  TournamentTeam,
+  TournamentPlayer,
   DEFAULT_TOURNAMENT,
   FixtureStatus,
 } from "../../types/tournament";
+import { TeamRegistrationManager } from "./TeamRegistrationManager";
 
 export const TournamentManager: React.FC = () => {
   const [tournamentId, setTournamentId] = useState<string>(DEFAULT_TOURNAMENT.id);
+  const [activeTab, setActiveTab] = useState<"matches" | "teams">("matches");
+  
   const [fixtures, setFixtures] = useState<TournamentFixture[]>([]);
   const [scorers, setScorers] = useState<TournamentScorer[]>([]);
   const [nominees, setNominees] = useState<TournamentNominee[]>([]);
+  const [teams, setTeams] = useState<TournamentTeam[]>([]);
+  const [players, setPlayers] = useState<TournamentPlayer[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionStatus, setActionStatus] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -95,7 +102,7 @@ export const TournamentManager: React.FC = () => {
     voteCount: 0,
   });
 
-  // Subscribe to all 3 collections for this tournament
+  // Subscribe to all 5 collections for this tournament
   useEffect(() => {
     setLoading(true);
     const unsubFixtures = tournamentService.subscribeToFixtures(
@@ -110,8 +117,18 @@ export const TournamentManager: React.FC = () => {
     );
     const unsubNominees = tournamentService.subscribeToNominees(
       tournamentId,
+      (data) => setNominees(data),
+      (err) => console.error(err)
+    );
+    const unsubTeams = tournamentService.subscribeToTeams(
+      tournamentId,
+      (data) => setTeams(data),
+      (err) => console.error(err)
+    );
+    const unsubPlayers = tournamentService.subscribeToPlayers(
+      tournamentId,
       (data) => {
-        setNominees(data);
+        setPlayers(data);
         setLoading(false);
       },
       (err) => console.error(err)
@@ -121,6 +138,8 @@ export const TournamentManager: React.FC = () => {
       unsubFixtures();
       unsubScorers();
       unsubNominees();
+      unsubTeams();
+      unsubPlayers();
     };
   }, [tournamentId]);
 
@@ -407,13 +426,52 @@ export const TournamentManager: React.FC = () => {
         <ShareTournamentCard tournamentId={tournamentId || ''} />
       </div>
 
-      {/* 3. THREE MANAGEMENT COLUMNS / FORMS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ========================================== */}
-        {/* COLUMN 1: FIXTURES & LIVE SCORES */}
-        {/* ========================================== */}
-        <div className="bg-surface-card border border-border-subtle rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+      {/* 2. TAB CONTROLS */}
+      <div className="flex items-center gap-2 mb-6 border-b border-border-subtle pb-4">
+        <button
+          onClick={() => setActiveTab("matches")}
+          className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+            activeTab === "matches"
+              ? "bg-primary-lime text-black"
+              : "bg-surface-card text-text-secondary hover:text-text-primary border border-border-subtle hover:border-border-muted"
+          }`}
+        >
+          Matches & Stats
+        </button>
+        <button
+          onClick={() => setActiveTab("teams")}
+          className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+            activeTab === "teams"
+              ? "bg-primary-lime text-black"
+              : "bg-surface-card text-text-secondary hover:text-text-primary border border-border-subtle hover:border-border-muted"
+          }`}
+        >
+          Teams & Players Registration
+        </button>
+      </div>
+
+      {/* 3. MAIN CONTENT AREA */}
+      {activeTab === "teams" ? (
+        <TeamRegistrationManager
+          tournamentId={tournamentId}
+          teams={teams}
+          players={players}
+          onAddTeam={tournamentService.addTeam}
+          onUpdateTeam={tournamentService.updateTeam}
+          onDeleteTeam={tournamentService.deleteTeam}
+          onAddPlayer={tournamentService.addPlayer}
+          onUpdatePlayer={tournamentService.updatePlayer}
+          onDeletePlayer={tournamentService.deletePlayer}
+          showNotification={showNotification}
+          showError={showError}
+        />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* ========================================== */}
+          {/* COLUMN 1: FIXTURES & LIVE SCORES */}
+          {/* ========================================== */}
+          <div className="bg-surface-card border border-border-subtle rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm flex flex-col">
+            <div className="flex items-center justify-between border-b border-border-subtle pb-3">
             <div className="flex items-center gap-2">
               <Clock size={16} className="text-primary-lime" />
               <h3 className="text-sm font-black text-text-primary uppercase tracking-tight">
@@ -980,7 +1038,8 @@ export const TournamentManager: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
-      </div>
+        </div>
+      )}
+    </div>
   );
 };

@@ -16,6 +16,7 @@ interface FootballPitchCardProps {
   onToggleFavorite: (pitchId: string, e: React.MouseEvent) => void;
   onSelectSlot: (pitch: Partial<Pitch>, slot: string) => void;
   selectedDate: string;
+  distanceKm?: number | null;
 }
 
 export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
@@ -24,6 +25,7 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
   onToggleFavorite,
   onSelectSlot,
   selectedDate,
+  distanceKm,
 }) => {
   const navigate = useNavigate();
 
@@ -47,7 +49,14 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
   
   const rating = (pitch as any).rating || 4.8;
   const reviewsCount = (pitch as any).reviewsCount || 24;
-  const distance = (pitch as any).distance || "2.1 km";
+  const distance =
+    typeof distanceKm === "number"
+      ? distanceKm < 0.1
+        ? "< 100 m"
+        : distanceKm < 1
+        ? `${Math.round(distanceKm * 1000)} m`
+        : `${distanceKm.toFixed(1)} km`
+      : (pitch as any).distance || "2.1 km";
 
   return (
     <article

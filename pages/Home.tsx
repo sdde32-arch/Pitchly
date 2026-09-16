@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Search,
   MapPin,
@@ -18,6 +18,8 @@ import {
   Calendar,
   Sparkles,
   Trophy,
+  Navigation,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Layout } from "../components/Layout";
@@ -39,6 +41,7 @@ import { FootballPitchCard } from "../components/home/FootballPitchCard";
 import { MatchdayBanner } from "../components/home/MatchdayBanner";
 import { TournamentBanner } from "../components/home/TournamentBanner";
 import { QuickBookingModal } from "../components/home/QuickBookingModal";
+import { calculateHaversineDistanceKm, getPitchCoordinates, formatDistanceKm } from "../utils/distance";
 
 // Kampala Neighborhood Hubs
 const KAMPALA_HUBS = [
@@ -65,8 +68,11 @@ const AMENITIES_LIST = [
   "Free WiFi",
 ];
 
-// Sort Options with clean labels
-const SORT_OPTIONS: { id: "recommended" | "rating" | "price-asc" | "price-desc"; label: string; shortLabel: string }[] = [
+// Sort Options with clean labels including Proximity (Nearest to Farthest)
+export type SortOptionId = "proximity" | "recommended" | "rating" | "price-asc" | "price-desc";
+
+const SORT_OPTIONS: { id: SortOptionId; label: string; shortLabel: string }[] = [
+  { id: "proximity", label: "Nearest to Me (Proximity)", shortLabel: "Nearest" },
   { id: "recommended", label: "Recommended", shortLabel: "Recommended" },
   { id: "rating", label: "Top Rated", shortLabel: "Top Rated" },
   { id: "price-asc", label: "Price: Low to High", shortLabel: "Lowest Price" },
@@ -118,12 +124,53 @@ export const Home: React.FC = () => {
   const [activeCollectionTab, setActiveCollectionTab] = useState<
     "all" | "trending" | "budget" | "floodlit" | "favorites"
   >("all");
-  const [sortBy, setSortBy] = useState<"recommended" | "price-asc" | "price-desc" | "rating">("recommended");
+  const [sortBy, setSortBy] = useState<SortOptionId>("proximity");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const sortMenuRef = React.useRef<HTMLDivElement>(null);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [maxPriceFilter, setMaxPriceFilter] = useState(150000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+
+  // Geolocation & Proximity state (default to Kampala central if permission pending)
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isPreciseLocation, setIsPreciseLocation] = useState(false);
+
+  // Request user coordinates via browser navigator.geolocation
+  const requestLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      // Fallback to Kampala city center (near Nakasero/Lugogo)
+      setUserCoords({ lat: 0.3176, lng: 32.5825 });
+      setIsPreciseLocation(false);
+      return;
+    }
+    setLocationLoading(true);
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserCoords({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+        setIsPreciseLocation(true);
+        setLocationLoading(false);
+      },
+      (err) => {
+        console.warn("Geolocation permission error or unavailable, using Kampala center default:", err.message);
+        // Kampala Central coordinates fallback
+        setUserCoords({ lat: 0.3176, lng: 32.5825 });
+        setIsPreciseLocation(false);
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  }, []);
+
+  // Request location automatically on mount so proximity sorting is instantaneous
+  useEffect(() => {
+    requestLocation();
+  }, [requestLocation]);
 
   // Quick Booking Modal state
   const [quickBookingPitch, setQuickBookingPitch] = useState<Partial<Pitch> | null>(null);
@@ -386,7 +433,31 @@ export const Home: React.FC = () => {
           matchesAmenities
         );
       })
+      .map((pitch) => {
+        // Calculate distance in kilometers based on user coordinates
+        const coords = getPitchCoordinates(pitch);
+        let distKm: number | null = null;
+        if (coords && userCoords) {
+          const [pitchLat, pitchLon] = coords;
+          distKm = calculateHaversineDistanceKm(
+            userCoords.lat,
+            userCoords.lng,
+            pitchLat,
+            pitchLon
+          );
+        }
+        return {
+          ...pitch,
+          _computedDistanceKm: distKm,
+        };
+      })
       .sort((a, b) => {
+        if (sortBy === "proximity") {
+          // Sort strictly from nearest to farthest
+          const distA = a._computedDistanceKm !== null ? a._computedDistanceKm : Infinity;
+          const distB = b._computedDistanceKm !== null ? b._computedDistanceKm : Infinity;
+          return distA - distB;
+        }
         if (sortBy === "price-asc") {
           return (a.pricePerHour || 0) - (b.pricePerHour || 0);
         }
@@ -408,6 +479,7 @@ export const Home: React.FC = () => {
     selectedAmenities,
     sortBy,
     favorites,
+    userCoords,
   ]);
 
   const activeFiltersCount = useMemo(() => {
@@ -547,6 +619,34 @@ export const Home: React.FC = () => {
                       <span className="px-2.5 py-0.5 rounded-full bg-primary-lime/10 text-primary-lime border border-primary-lime/25 text-[11px] font-bold tracking-tight shadow-2xs">
                         {filteredPitches.length} {filteredPitches.length === 1 ? "ground" : "grounds"}
                       </span>
+                      {/* Location Proximity Badge */}
+                      <button
+                        id="geolocation-toggle-btn"
+                        type="button"
+                        onClick={requestLocation}
+                        title={
+                          isPreciseLocation
+                            ? "Using your real-time GPS location (Click to refresh)"
+                            : "Using Kampala City default location (Click to acquire GPS)"
+                        }
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all cursor-pointer ${
+                          locationLoading
+                            ? "bg-surface-raised border-border-subtle text-text-tertiary animate-pulse"
+                            : isPreciseLocation
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                            : "bg-surface-card text-text-secondary border-border-subtle hover:text-text-primary"
+                        }`}
+                      >
+                        {locationLoading ? (
+                          <Loader2 size={11} className="animate-spin text-primary-lime" />
+                        ) : (
+                          <Navigation
+                            size={11}
+                            className={isPreciseLocation ? "text-emerald-500" : "text-text-tertiary"}
+                          />
+                        )}
+                        <span>{isPreciseLocation ? "Near Your Location" : "Kampala Location"}</span>
+                      </button>
                     </div>
                   </div>
 
@@ -671,6 +771,7 @@ export const Home: React.FC = () => {
                         onToggleFavorite={toggleFavorite}
                         onSelectSlot={handleOpenQuickBooking}
                         selectedDate={selectedDate}
+                        distanceKm={(pitch as any)._computedDistanceKm}
                       />
                     ))
                   ) : (

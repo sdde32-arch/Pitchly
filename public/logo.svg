@@ -1,21 +1,44 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Base Light Squircle Tile (#FFFFFF) -->
-  <rect x="16" y="16" width="480" height="480" rx="110" ry="110" fill="#FFFFFF" />
+  <!-- Clean Base Squircle Tile -->
+  <rect x="16" y="16" width="480" height="480" rx="112" ry="112" fill="#FFFFFF" />
 
-  <!-- Logo Content Group -->
-  <g transform="translate(10, 20)">
-    <!-- Bold Black Letter P in Sora Font Style -->
-    <text
-      x="145"
-      y="380"
-      fill="#0F172A"
-      font-family="Sora, system-ui, -apple-system, sans-serif"
-      font-size="340"
-      font-weight="800"
-      letter-spacing="-0.035em"
-    >p</text>
+  <!-- Lowercase/Uppercase Athletic 'P' Lettermark in Solid Black (clean, no green line) -->
+  <!-- Vertical stem with rounded caps -->
+  <rect x="136" y="160" width="64" height="264" rx="32" ry="32" fill="#0D0D0D" />
+  <!-- Rounded bowl of the P -->
+  <path
+    d="M 236 156 C 296 156, 348 202, 348 266 C 348 330, 296 376, 236 376 C 182 376, 136 332, 136 266 C 136 200, 182 156, 236 156 Z M 236 216 C 206 216, 184 238, 184 266 C 184 294, 206 316, 236 316 C 266 316, 288 294, 288 266 C 288 238, 266 216, 236 216 Z"
+    fill="#0D0D0D"
+  />
 
-    <!-- Solid Darker Green Ball directly on top of letter P (no glare, no glow, no shadow) -->
-    <circle cx="310" cy="115" r="46" fill="#15803D" />
+  <!-- Green Bouncing Soccer Ball positioned right above the letter P (x=168, y=94) -->
+  <g transform="translate(168, 92)">
+    <!-- Ball Outer Rim & Glow -->
+    <circle cx="0" cy="0" r="44" fill="#16A34A" />
+    <circle cx="0" cy="0" r="40" fill="#22C55E" />
+    <!-- White Soccer Inner Ball Core -->
+    <circle cx="0" cy="0" r="36" fill="#FFFFFF" />
+
+    <!-- Center Pentagon (Soccer Ball Geometry) -->
+    <polygon
+      points="0,-12 11,-4 7,10 -7,10 -11,-4"
+      fill="#16A34A"
+    />
+
+    <!-- Hexagonal / Pentagon facet spokes -->
+    <line x1="0" y1="-12" x2="0" y2="-32" stroke="#16A34A" stroke-width="4.5" stroke-linecap="round" />
+    <polygon points="-12,-34 12,-34 0,-20" fill="#16A34A" />
+
+    <line x1="11" y1="-4" x2="28" y2="-14" stroke="#16A34A" stroke-width="4.5" stroke-linecap="round" />
+    <polygon points="24,-24 34,-8 20,-6" fill="#16A34A" />
+
+    <line x1="7" y1="10" x2="20" y2="25" stroke="#16A34A" stroke-width="4.5" stroke-linecap="round" />
+    <polygon points="29,15 15,32 10,18" fill="#16A34A" />
+
+    <line x1="-7" y1="10" x2="-20" y2="25" stroke="#16A34A" stroke-width="4.5" stroke-linecap="round" />
+    <polygon points="-29,15 -15,32 -10,18" fill="#16A34A" />
+
+    <line x1="-11" y1="-4" x2="-28" y2="-14" stroke="#16A34A" stroke-width="4.5" stroke-linecap="round" />
+    <polygon points="-24,-24 -34,-8 -20,-6" fill="#16A34A" />
   </g>
 </svg>

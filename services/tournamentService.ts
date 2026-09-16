@@ -17,12 +17,16 @@ import {
   TournamentFixture,
   TournamentScorer,
   TournamentNominee,
+  TournamentPlayer,
+  TournamentTeam,
   DEFAULT_TOURNAMENT,
 } from "../types/tournament";
 
 const FIXTURES_COLLECTION = "tournamentFixtures";
 const SCORERS_COLLECTION = "tournamentScorers";
 const NOMINEES_COLLECTION = "tournamentNominees";
+const TEAMS_COLLECTION = "tournamentTeams";
+const PLAYERS_COLLECTION = "tournamentPlayers";
 
 // Fallback seed data for WEHAT Soccer Tournament (Season 2, Week 1)
 const DEFAULT_WEHAT_FIXTURES: TournamentFixture[] = [
@@ -248,9 +252,13 @@ const memoryStore = {
   fixtures: new Map<string, TournamentFixture[]>(),
   scorers: new Map<string, TournamentScorer[]>(),
   nominees: new Map<string, TournamentNominee[]>(),
+  teams: new Map<string, TournamentTeam[]>(),
+  players: new Map<string, TournamentPlayer[]>(),
   fixtureSubscribers: new Map<string, Set<(fixtures: TournamentFixture[]) => void>>(),
   scorerSubscribers: new Map<string, Set<(scorers: TournamentScorer[]) => void>>(),
   nomineeSubscribers: new Map<string, Set<(nominees: TournamentNominee[]) => void>>(),
+  teamSubscribers: new Map<string, Set<(teams: TournamentTeam[]) => void>>(),
+  playerSubscribers: new Map<string, Set<(players: TournamentPlayer[]) => void>>(),
 };
 
 // Initialize default store for wehat-s2-w1
@@ -385,6 +393,93 @@ function saveLocalNominees(tournamentId: string, items: TournamentNominee[]) {
     } catch {}
   }
   const subs = memoryStore.nomineeSubscribers.get(tournamentId);
+  if (subs) {
+    subs.forEach((cb) => cb([...items]));
+  }
+}
+
+// Teams & Players initial registration data for WEHAT
+const DEFAULT_WEHAT_TEAMS: TournamentTeam[] = [
+  { id: "tm_1", tournamentId: "wehat-s2-w1", teamName: "WEHAT FC", group: "Group A", managerName: "Coach David", badgeInitials: "WFC" },
+  { id: "tm_2", tournamentId: "wehat-s2-w1", teamName: "DODGE AMO FC", group: "Group A", managerName: "Coach Amo", badgeInitials: "DAF" },
+  { id: "tm_3", tournamentId: "wehat-s2-w1", teamName: "GENTLE FC", group: "Group A", managerName: "Coach Mukisa", badgeInitials: "GFC" },
+  { id: "tm_4", tournamentId: "wehat-s2-w1", teamName: "INVESTORS FC", group: "Group A", managerName: "Coach Shafik", badgeInitials: "IFC" },
+  { id: "tm_5", tournamentId: "wehat-s2-w1", teamName: "BUNGA FC", group: "Group B", managerName: "Coach Jordan", badgeInitials: "BFC" },
+  { id: "tm_6", tournamentId: "wehat-s2-w1", teamName: "PRO PERFORMERS FC", group: "Group B", managerName: "Coach Brian", badgeInitials: "PPF" },
+  { id: "tm_7", tournamentId: "wehat-s2-w1", teamName: "LEGENDS FC", group: "Group B", managerName: "Coach Alex", badgeInitials: "LFC" },
+  { id: "tm_8", tournamentId: "wehat-s2-w1", teamName: "SENIOR PLAYERS", group: "Group B", managerName: "Coach Senior", badgeInitials: "SPF" },
+  { id: "tm_9", tournamentId: "wehat-s2-w1", teamName: "KIRUDDU FC", group: "Group C", managerName: "Coach Hassan", badgeInitials: "KFC" },
+  { id: "tm_10", tournamentId: "wehat-s2-w1", teamName: "BUSABALA FC", group: "Group C", managerName: "Coach David", badgeInitials: "BFC" },
+  { id: "tm_11", tournamentId: "wehat-s2-w1", teamName: "WEHAT SELECT", group: "Group C", managerName: "Coach Jackson", badgeInitials: "WS" },
+  { id: "tm_12", tournamentId: "wehat-s2-w1", teamName: "BROTHER LOVE FC", group: "Group C", managerName: "Coach Paul", badgeInitials: "BLF" },
+  { id: "tm_13", tournamentId: "wehat-s2-w1", teamName: "PURE HEARTS", group: "Group D", managerName: "Coach Joseph", badgeInitials: "PH" },
+  { id: "tm_14", tournamentId: "wehat-s2-w1", teamName: "HMK", group: "Group D", managerName: "Coach Hussein", badgeInitials: "HMK" },
+  { id: "tm_15", tournamentId: "wehat-s2-w1", teamName: "GOOD FRIENDS", group: "Group D", managerName: "Coach Emma", badgeInitials: "GF" },
+  { id: "tm_16", tournamentId: "wehat-s2-w1", teamName: "IMDAD FC", group: "Group D", managerName: "Coach Imdad", badgeInitials: "IFC" },
+];
+
+function getLocalTeams(tournamentId: string): TournamentTeam[] {
+  if (!memoryStore.teams.has(tournamentId)) {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`tourn_teams_${tournamentId}`);
+      if (saved) {
+        try {
+          memoryStore.teams.set(tournamentId, JSON.parse(saved));
+        } catch {
+          memoryStore.teams.set(tournamentId, [...DEFAULT_WEHAT_TEAMS]);
+        }
+      } else {
+        memoryStore.teams.set(tournamentId, [...DEFAULT_WEHAT_TEAMS]);
+        localStorage.setItem(`tourn_teams_${tournamentId}`, JSON.stringify(DEFAULT_WEHAT_TEAMS));
+      }
+    } else {
+      memoryStore.teams.set(tournamentId, [...DEFAULT_WEHAT_TEAMS]);
+    }
+  }
+  return memoryStore.teams.get(tournamentId) || [];
+}
+
+function saveLocalTeams(tournamentId: string, items: TournamentTeam[]) {
+  memoryStore.teams.set(tournamentId, items);
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(`tourn_teams_${tournamentId}`, JSON.stringify(items));
+    } catch {}
+  }
+  const subs = memoryStore.teamSubscribers.get(tournamentId);
+  if (subs) {
+    subs.forEach((cb) => cb([...items]));
+  }
+}
+
+function getLocalPlayers(tournamentId: string): TournamentPlayer[] {
+  if (!memoryStore.players.has(tournamentId)) {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`tourn_players_${tournamentId}`);
+      if (saved) {
+        try {
+          memoryStore.players.set(tournamentId, JSON.parse(saved));
+        } catch {
+          memoryStore.players.set(tournamentId, []);
+        }
+      } else {
+        memoryStore.players.set(tournamentId, []);
+      }
+    } else {
+      memoryStore.players.set(tournamentId, []);
+    }
+  }
+  return memoryStore.players.get(tournamentId) || [];
+}
+
+function saveLocalPlayers(tournamentId: string, items: TournamentPlayer[]) {
+  memoryStore.players.set(tournamentId, items);
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(`tourn_players_${tournamentId}`, JSON.stringify(items));
+    } catch {}
+  }
+  const subs = memoryStore.playerSubscribers.get(tournamentId);
   if (subs) {
     subs.forEach((cb) => cb([...items]));
   }
@@ -919,5 +1014,219 @@ export const tournamentService = {
       scorersCount: DEFAULT_WEHAT_SCORERS.length,
       nomineesCount: DEFAULT_WEHAT_NOMINEES.length,
     };
+  },
+
+  // ==========================================
+  // 5. TOURNAMENT TEAMS REGISTRATION
+  // ==========================================
+  subscribeToTeams(
+    tournamentId: string,
+    callback: (teams: TournamentTeam[]) => void,
+    onError?: (error: Error) => void
+  ): () => void {
+    const initial = getLocalTeams(tournamentId);
+    callback(initial);
+
+    if (!memoryStore.teamSubscribers.has(tournamentId)) {
+      memoryStore.teamSubscribers.set(tournamentId, new Set());
+    }
+    const subs = memoryStore.teamSubscribers.get(tournamentId)!;
+    subs.add(callback);
+
+    let unsubFirestore: (() => void) | null = null;
+    try {
+      const q = query(
+        collection(db, TEAMS_COLLECTION),
+        where("tournamentId", "==", tournamentId)
+      );
+      unsubFirestore = onSnapshot(
+        q,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const teams: TournamentTeam[] = [];
+            snapshot.forEach((docSnap) => {
+              teams.push({
+                id: docSnap.id,
+                ...(docSnap.data() as Omit<TournamentTeam, "id">),
+              });
+            });
+            saveLocalTeams(tournamentId, teams);
+          }
+        },
+        (error) => onError?.(error)
+      );
+    } catch (e: any) {
+      onError?.(e);
+    }
+
+    return () => {
+      subs.delete(callback);
+      if (unsubFirestore) unsubFirestore();
+    };
+  },
+
+  async addTeam(team: Omit<TournamentTeam, "id" | "createdAt" | "updatedAt">): Promise<string> {
+    const teamId = `tm_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const now = new Date().toISOString();
+    const data: TournamentTeam = {
+      ...team,
+      id: teamId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const current = getLocalTeams(team.tournamentId);
+    saveLocalTeams(team.tournamentId, [...current, data]);
+
+    try {
+      await setDoc(doc(db, TEAMS_COLLECTION, teamId), data);
+    } catch (e) {
+      console.warn("Firestore sync warning on addTeam:", e);
+    }
+    return teamId;
+  },
+
+  async updateTeam(teamId: string, updates: Partial<TournamentTeam>): Promise<void> {
+    const now = new Date().toISOString();
+    for (const [tId, list] of memoryStore.teams.entries()) {
+      const idx = list.findIndex((t) => t.id === teamId);
+      if (idx !== -1) {
+        const updated = [...list];
+        updated[idx] = { ...updated[idx], ...updates, updatedAt: now };
+        saveLocalTeams(tId, updated);
+        break;
+      }
+    }
+
+    try {
+      await updateDoc(doc(db, TEAMS_COLLECTION, teamId), {
+        ...updates,
+        updatedAt: now,
+      });
+    } catch (e) {
+      console.warn("Firestore sync warning on updateTeam:", e);
+    }
+  },
+
+  async deleteTeam(teamId: string): Promise<void> {
+    for (const [tId, list] of memoryStore.teams.entries()) {
+      if (list.some((t) => t.id === teamId)) {
+        saveLocalTeams(tId, list.filter((t) => t.id !== teamId));
+        break;
+      }
+    }
+
+    try {
+      await deleteDoc(doc(db, TEAMS_COLLECTION, teamId));
+    } catch (e) {
+      console.warn("Firestore sync warning on deleteTeam:", e);
+    }
+  },
+
+  // ==========================================
+  // 6. TOURNAMENT PLAYERS REGISTRATION
+  // ==========================================
+  subscribeToPlayers(
+    tournamentId: string,
+    callback: (players: TournamentPlayer[]) => void,
+    onError?: (error: Error) => void
+  ): () => void {
+    const initial = getLocalPlayers(tournamentId);
+    callback(initial);
+
+    if (!memoryStore.playerSubscribers.has(tournamentId)) {
+      memoryStore.playerSubscribers.set(tournamentId, new Set());
+    }
+    const subs = memoryStore.playerSubscribers.get(tournamentId)!;
+    subs.add(callback);
+
+    let unsubFirestore: (() => void) | null = null;
+    try {
+      const q = query(
+        collection(db, PLAYERS_COLLECTION),
+        where("tournamentId", "==", tournamentId)
+      );
+      unsubFirestore = onSnapshot(
+        q,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const players: TournamentPlayer[] = [];
+            snapshot.forEach((docSnap) => {
+              players.push({
+                id: docSnap.id,
+                ...(docSnap.data() as Omit<TournamentPlayer, "id">),
+              });
+            });
+            saveLocalPlayers(tournamentId, players);
+          }
+        },
+        (error) => onError?.(error)
+      );
+    } catch (e: any) {
+      onError?.(e);
+    }
+
+    return () => {
+      subs.delete(callback);
+      if (unsubFirestore) unsubFirestore();
+    };
+  },
+
+  async addPlayer(player: Omit<TournamentPlayer, "id" | "createdAt" | "updatedAt">): Promise<string> {
+    const playerId = `ply_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const now = new Date().toISOString();
+    const data: TournamentPlayer = {
+      ...player,
+      id: playerId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const current = getLocalPlayers(player.tournamentId);
+    saveLocalPlayers(player.tournamentId, [...current, data]);
+
+    try {
+      await setDoc(doc(db, PLAYERS_COLLECTION, playerId), data);
+    } catch (e) {
+      console.warn("Firestore sync warning on addPlayer:", e);
+    }
+    return playerId;
+  },
+
+  async updatePlayer(playerId: string, updates: Partial<TournamentPlayer>): Promise<void> {
+    const now = new Date().toISOString();
+    for (const [tId, list] of memoryStore.players.entries()) {
+      const idx = list.findIndex((p) => p.id === playerId);
+      if (idx !== -1) {
+        const updated = [...list];
+        updated[idx] = { ...updated[idx], ...updates, updatedAt: now };
+        saveLocalPlayers(tId, updated);
+        break;
+      }
+    }
+
+    try {
+      await updateDoc(doc(db, PLAYERS_COLLECTION, playerId), {
+        ...updates,
+        updatedAt: now,
+      });
+    } catch (e) {
+      console.warn("Firestore sync warning on updatePlayer:", e);
+    }
+  },
+
+  async deletePlayer(playerId: string): Promise<void> {
+    for (const [tId, list] of memoryStore.players.entries()) {
+      if (list.some((p) => p.id === playerId)) {
+        saveLocalPlayers(tId, list.filter((p) => p.id !== playerId));
+        break;
+      }
+    }
+
+    try {
+      await deleteDoc(doc(db, PLAYERS_COLLECTION, playerId));
+    } catch (e) {
+      console.warn("Firestore sync warning on deletePlayer:", e);
+    }
   },
 };

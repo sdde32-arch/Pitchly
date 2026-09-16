@@ -16,6 +16,7 @@ import {
   ExternalLink,
   List,
   LayoutGrid,
+  Users,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { tournamentService } from "../../services/tournamentService";
@@ -23,12 +24,15 @@ import {
   TournamentFixture,
   TournamentScorer,
   TournamentTeamStanding,
+  TournamentTeam,
+  TournamentPlayer,
   DEFAULT_TOURNAMENT,
   FixtureStatus,
 } from "../../types/tournament";
 import { Logo } from "../../components/Logo";
+import { TournamentSquads } from "../../components/tournament/TournamentSquads";
 
-type ActiveTab = "stands" | "fixtures" | "scorers";
+type ActiveTab = "stands" | "fixtures" | "scorers" | "rosters";
 type FixtureFilter = "all" | "live" | "upcoming" | "finished";
 type GroupFilter = "all-groups" | "Group A" | "Group B" | "Group C" | "Group D";
 
@@ -358,6 +362,8 @@ export const TournamentHub: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>("stands");
   const [fixtures, setFixtures] = useState<TournamentFixture[]>([]);
   const [scorers, setScorers] = useState<TournamentScorer[]>([]);
+  const [teams, setTeams] = useState<TournamentTeam[]>([]);
+  const [players, setPlayers] = useState<TournamentPlayer[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Filters
@@ -381,7 +387,7 @@ export const TournamentHub: React.FC = () => {
     let loadedCount = 0;
     const checkLoaded = () => {
       loadedCount++;
-      if (loadedCount >= 2) {
+      if (loadedCount >= 4) {
         setLoading(false);
       }
     };
@@ -404,9 +410,29 @@ export const TournamentHub: React.FC = () => {
       () => checkLoaded()
     );
 
+    const unsubTeams = tournamentService.subscribeToTeams(
+      tournamentId,
+      (data) => {
+        setTeams(data);
+        checkLoaded();
+      },
+      () => checkLoaded()
+    );
+
+    const unsubPlayers = tournamentService.subscribeToPlayers(
+      tournamentId,
+      (data) => {
+        setPlayers(data);
+        checkLoaded();
+      },
+      () => checkLoaded()
+    );
+
     return () => {
       unsubFixtures();
       unsubScorers();
+      unsubTeams();
+      unsubPlayers();
     };
   }, [tournamentId]);
 
@@ -749,7 +775,7 @@ export const TournamentHub: React.FC = () => {
                   Season 2
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-surface-raised text-text-secondary border border-border-subtle text-[10px] font-bold">
-                  Week 1
+                  Matchday 2
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-surface-raised/80 text-text-tertiary border border-border-subtle text-[10px] font-medium hidden sm:inline-block">
                   4 Groups • 16 Clubs
@@ -759,7 +785,7 @@ export const TournamentHub: React.FC = () => {
               <div className="flex items-center gap-3 text-xs text-text-secondary font-medium">
                 <span className="flex items-center gap-1 text-[11px]">
                   <Calendar size={12} className="text-primary-lime" />
-                  12 Sept 2026
+                  19 Sept 2026
                 </span>
                 <span className="flex items-center gap-1 text-[11px]">
                   <MapPin size={12} className="text-primary-lime" />
@@ -831,11 +857,11 @@ export const TournamentHub: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. PRIMARY NAVIGATION TABS (Table, Fixtures, Goal Scorers) */}
+      {/* 3. PRIMARY NAVIGATION TABS */}
       <div className="max-w-7xl mx-auto px-3 sm:px-4 sticky top-[53px] z-30 bg-app-base/95 backdrop-blur-md pt-2 pb-3">
         <div
           id="tournament-tabs-bar"
-          className="grid grid-cols-3 gap-1 p-1 bg-surface-card border border-border-subtle rounded-xl shadow-xs"
+          className="grid grid-cols-4 gap-1 p-1 bg-surface-card border border-border-subtle rounded-xl shadow-xs overflow-x-auto"
         >
           {/* Tab 1: Stands / Table */}
           <button
@@ -893,6 +919,23 @@ export const TournamentHub: React.FC = () => {
               className={activeTab === "scorers" ? "text-black" : "text-text-secondary"}
             />
             <span className="truncate">Scorers</span>
+          </button>
+
+          {/* Tab 4: Squads / Rosters */}
+          <button
+            id="tab-rosters"
+            onClick={() => setActiveTab("rosters")}
+            className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === "rosters"
+                ? "bg-primary-lime text-black font-black shadow-xs"
+                : "text-text-secondary hover:text-text-primary hover:bg-surface-raised"
+            }`}
+          >
+            <Users
+              size={15}
+              className={activeTab === "rosters" ? "text-black" : "text-text-secondary"}
+            />
+            <span className="truncate">Squads</span>
           </button>
         </div>
       </div>
@@ -1233,6 +1276,15 @@ export const TournamentHub: React.FC = () => {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* VIEW 4: ROSTERS                                         */}
+        {/* ======================================================== */}
+        {activeTab === "rosters" && (
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 mt-6">
+            <TournamentSquads teams={teams} players={players} />
           </div>
         )}
       </main>

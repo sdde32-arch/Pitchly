@@ -11,77 +11,83 @@ export interface LogoProps {
 }
 
 /**
- * Bouncing Green Ball
- * Clean, solid darker green ball without any glare or glow, bouncing directly
- * on top of the letter 'p' with physics-based squash & stretch on impact.
- * No ground shadow, no glow filter, no specular glare.
+ * Bouncing Green Ball on top of the 'P'
+ * Dynamic energetic physics-inspired bouncing soccer/green ball with squash and stretch.
  */
 export const BouncingBall: React.FC<{
   fontSize: number;
   animated?: boolean;
   color?: string;
-}> = ({ fontSize, animated = true, color = "#15803D" }) => {
-  // Proportional sizing: ball is balanced relative to the letter 'p'
-  const ballSize = Math.max(7, Math.round(fontSize * 0.27));
-  // Tight, energetic bounce: rises naturally without disconnecting from the letter
-  const bounceHeight = Math.max(5, Math.round(fontSize * 0.18));
+}> = ({ fontSize, animated = true, color = "#16A34A" }) => {
+  // Balanced ball size relative to the letter 'P'
+  const ballSize = Math.max(8, Math.round(fontSize * 0.32));
+  // Tight, bouncy upward displacement with squash & stretch
+  const bounceHeight = Math.max(7, Math.round(fontSize * 0.28));
 
   return (
     <div
-      className="absolute left-[52%] -translate-x-1/2 pointer-events-none select-none z-10"
+      className="absolute left-[48%] -translate-x-1/2 pointer-events-none select-none z-20"
       style={{
-        bottom: "71%",
+        bottom: "84%",
         width: `${ballSize}px`,
         height: `${ballSize}px`,
       }}
       aria-hidden="true"
     >
       <motion.div
-        className="w-full h-full rounded-full"
+        className="w-full h-full rounded-full shadow-sm flex items-center justify-center relative overflow-hidden"
         style={{
           backgroundColor: color,
           transformOrigin: "bottom center",
+          boxShadow: "0 1px 3px rgba(22, 163, 74, 0.4)",
         }}
         animate={
           animated
             ? {
                 y: [0, -bounceHeight, 0],
-                scaleY: [0.88, 1.05, 0.88],
-                scaleX: [1.12, 0.95, 1.12],
+                scaleY: [0.82, 1.1, 0.82],
+                scaleX: [1.18, 0.92, 1.18],
+                rotate: [0, 45, 90],
               }
-            : { y: 0, scaleY: 1, scaleX: 1 }
+            : { y: 0, scaleY: 1, scaleX: 1, rotate: 0 }
         }
         transition={{
-          duration: 0.82,
+          duration: 0.72,
           repeat: Infinity,
           ease: ["easeOut", "easeIn"],
           times: [0, 0.5, 1],
         }}
-      />
+      >
+        {/* Subtle soccer pentagon highlight */}
+        <div
+          className="w-1/3 h-1/3 rounded-full opacity-70"
+          style={{ backgroundColor: "#FFFFFF" }}
+        />
+      </motion.div>
     </div>
   );
 };
 
-// Aliases for backwards compatibility with existing imports
 export const BouncingNeonBall = BouncingBall;
 export const BouncingBallWithShadow = BouncingBall;
 
 /**
- * Pitchly Brand Mark Icon (Icon-only mode)
- * Renders the single letter 'p' with the green bouncing ball.
+ * Icon-only Emblem for Pitchly
+ * Renders the fatter, bubbly letter 'P' with the green bouncing ball.
  */
 export const PitchlyEmblem: React.FC<{
   size: number;
   animated?: boolean;
   variant?: string;
-}> = ({ size, animated = true, variant = "auto" }) => {
+  className?: string;
+}> = ({ size, animated = true, variant = "auto", className = "" }) => {
   const isDarkVariant = variant === "white" || variant === "dark";
-  const textColor = isDarkVariant ? "#FFFFFF" : "#0F172A";
-  const pFontSize = Math.max(22, Math.round(size * 0.78));
+  const textColor = isDarkVariant ? "#FFFFFF" : "var(--text-primary, #0F172A)";
+  const pFontSize = Math.max(22, Math.round(size * 0.82));
 
   return (
     <motion.div
-      className="relative shrink-0 select-none inline-flex items-center justify-center"
+      className={`relative shrink-0 select-none inline-flex items-center justify-center ${className}`}
       style={{
         width: `${size}px`,
         height: `${size}px`,
@@ -93,25 +99,36 @@ export const PitchlyEmblem: React.FC<{
       <span className="relative inline-flex items-baseline" style={{ color: textColor }}>
         <BouncingBall fontSize={pFontSize} animated={animated} />
         <span
-          className="font-display font-extrabold tracking-tight text-current select-none leading-none"
-          style={{ fontSize: `${pFontSize}px`, letterSpacing: "-0.035em", lineHeight: 1 }}
+          className="font-display font-black tracking-tight select-none leading-none"
+          style={{
+            fontSize: `${pFontSize}px`,
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+            fontWeight: 900,
+            textShadow: "0 0.5px 1px rgba(0,0,0,0.12)",
+          }}
         >
-          p
+          P
         </span>
       </span>
     </motion.div>
   );
 };
 
+/**
+ * Main Pitchly Logo Component throughout the app:
+ * - NO icon badge / separate squircle
+ * - Just the clean, fatter, bubbly "Pitchly" wordmark in the exact Sora font
+ * - A green bouncing ball animated on top of the capital letter 'P'
+ */
 export const Logo: React.FC<LogoProps> = ({
   className = "",
-  size = 36,
+  size = 32,
   showText = true,
   showTagline = false,
   variant = "auto",
   animated = true,
 }) => {
-  // Determine color styling based on variant
   let textColorClass = "text-text-primary";
   if (variant === "black" || variant === "light") {
     textColorClass = "text-[#0F172A]";
@@ -121,11 +138,11 @@ export const Logo: React.FC<LogoProps> = ({
     textColorClass = "text-[#F8FAFC]";
   }
 
-  // Optical balance: base font size with subtle 8% emphasis on 'p' for brand presence
-  const fontSize = Math.max(18, Math.round(size * 0.68));
-  const pFontSize = Math.round(fontSize * 1.08);
+  // Fatter, bubbly font sizing
+  const fontSize = Math.max(20, Math.round(size * 0.72));
+  const pFontSize = Math.round(fontSize * 1.06);
 
-  // When only the icon is requested (icon-only mode)
+  // Icon-only view (e.g. collapsed or avatar icon)
   if (!showText || variant === "icon-only") {
     return (
       <div
@@ -136,19 +153,21 @@ export const Logo: React.FC<LogoProps> = ({
         <span className="relative inline-flex items-baseline">
           <BouncingBall fontSize={pFontSize} animated={animated} />
           <span
-            className="font-display font-extrabold tracking-tight text-current select-none leading-none"
-            style={{ fontSize: `${pFontSize}px`, letterSpacing: "-0.035em", lineHeight: 1 }}
+            className="font-display font-black tracking-tight select-none leading-none"
+            style={{
+              fontSize: `${pFontSize}px`,
+              letterSpacing: "-0.03em",
+              lineHeight: 1,
+              fontWeight: 900,
+            }}
           >
-            p
+            P
           </span>
         </span>
       </div>
     );
   }
 
-  // Full Brand Logo: The clean wordmark "pitchly" with the letter 'p' subtly prominent,
-  // and the solid darker green ball bouncing directly on top of the letter 'p'.
-  // Harmonious typography, zero glare, zero blur.
   return (
     <motion.div
       className={`inline-flex items-center select-none cursor-pointer group ${textColorClass} ${className}`}
@@ -158,23 +177,33 @@ export const Logo: React.FC<LogoProps> = ({
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 450, damping: 24 }}
     >
-      <div className="flex flex-col items-center justify-center leading-none">
+      <div className="flex flex-col items-start justify-center leading-none">
         <div className="flex items-baseline justify-center">
-          {/* Hero Letter 'p' with the solid darker green ball bouncing on top */}
+          {/* Fatter, bubbly letter 'P' with energetic bouncing green ball right on top */}
           <span className="relative inline-flex items-baseline">
             <BouncingBall fontSize={pFontSize} animated={animated} />
             <span
-              className="font-display font-extrabold tracking-tight text-current select-none leading-none"
-              style={{ fontSize: `${pFontSize}px`, letterSpacing: "-0.035em", lineHeight: 1 }}
+              className="font-display font-black tracking-tight select-none leading-none text-current"
+              style={{
+                fontSize: `${pFontSize}px`,
+                letterSpacing: "-0.035em",
+                lineHeight: 1,
+                fontWeight: 900,
+              }}
             >
-              p
+              P
             </span>
           </span>
 
-          {/* Harmonious continuation of the wordmark aligned at the baseline */}
+          {/* Rest of the fatter, bubbly wordmark "itchly" */}
           <span
-            className="font-display font-extrabold tracking-tight text-current select-none leading-none"
-            style={{ fontSize: `${fontSize}px`, letterSpacing: "-0.035em", lineHeight: 1 }}
+            className="font-display font-black tracking-tight select-none leading-none text-current"
+            style={{
+              fontSize: `${fontSize}px`,
+              letterSpacing: "-0.03em",
+              lineHeight: 1,
+              fontWeight: 900,
+            }}
           >
             itchly
           </span>
@@ -183,9 +212,9 @@ export const Logo: React.FC<LogoProps> = ({
         {showTagline && (
           <span
             id="pitchly-tagline"
-            className="text-[8.5px] font-black tracking-[0.28em] text-[#15803D] uppercase pt-1.5 text-center opacity-95 group-hover:opacity-100 transition-opacity select-none leading-none"
+            className="text-[8.5px] font-black tracking-[0.24em] text-primary-lime uppercase pt-1 opacity-90 group-hover:opacity-100 transition-opacity select-none leading-none"
           >
-            uganda
+            Uganda
           </span>
         )}
       </div>
@@ -202,4 +231,3 @@ export const PLogo: React.FC<
 };
 
 export const LogoMark = PLogo;
-

@@ -35,7 +35,7 @@ export const TournamentBanner: React.FC = () => {
               </span>
               <span className="text-[11px] font-bold text-text-secondary flex items-center gap-1">
                 <Zap size={12} className="text-amber-400" />
-                Season 2 • Week 1
+                Season 2 • Matchday 2
               </span>
             </div>
             <h3 className="text-base sm:text-lg font-black text-text-primary tracking-tight font-display">
