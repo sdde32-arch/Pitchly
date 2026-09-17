@@ -239,7 +239,7 @@ export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({
               e.stopPropagation();
               setIsLightboxOpen(true);
             }}
-            className="absolute top-4 left-18 sm:left-20 w-10 h-10 bg-black/60 backdrop-blur-md hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-all active:scale-95 z-20 border border-white/10 shadow-md cursor-pointer"
+            className="absolute top-4 left-18 sm:left-20 w-10 h-10 bg-black/60 backdrop-blur-md hover:bg-black/80 text-white rounded-full hidden sm:flex items-center justify-center transition-all active:scale-95 z-20 border border-white/10 shadow-md cursor-pointer"
             title="Open Fullscreen Gallery"
             aria-label="Open Fullscreen Gallery"
           >
@@ -252,7 +252,7 @@ export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({
           <>
             <button
               onClick={handlePrev}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-11 sm:h-11 bg-black/60 backdrop-blur-md hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-all active:scale-95 z-20 border border-white/15 shadow-lg cursor-pointer"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-11 sm:h-11 bg-black/60 backdrop-blur-md hover:bg-black/80 text-white rounded-full hidden sm:flex items-center justify-center transition-all active:scale-95 z-20 border border-white/15 shadow-lg cursor-pointer"
               aria-label="Previous image"
               title="Previous photo"
             >
@@ -260,7 +260,7 @@ export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({
             </button>
             <button
               onClick={handleNext}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-11 sm:h-11 bg-black/60 backdrop-blur-md hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-all active:scale-95 z-20 border border-white/15 shadow-lg cursor-pointer"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-11 sm:h-11 bg-black/60 backdrop-blur-md hover:bg-black/80 text-white rounded-full hidden sm:flex items-center justify-center transition-all active:scale-95 z-20 border border-white/15 shadow-lg cursor-pointer"
               aria-label="Next image"
               title="Next photo"
             >
@@ -341,7 +341,7 @@ export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({
               </div>
               <button
                 onClick={() => setIsLightboxOpen(false)}
-                className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all active:scale-95 cursor-pointer border border-white/10"
+                className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full hidden sm:flex items-center justify-center text-white transition-all active:scale-95 cursor-pointer border border-white/10"
                 aria-label="Close Lightbox"
                 title="Close Lightbox"
               >
@@ -351,7 +351,7 @@ export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({
 
             {/* Main Stage inside Lightbox */}
             <div 
-              className="flex-1 flex items-center justify-center relative w-full max-w-5xl mx-auto my-2 overflow-hidden select-none" 
+              className="flex-1 hidden sm:flex items-center justify-center relative w-full max-w-5xl mx-auto my-2 overflow-hidden select-none" 
               onClick={(e) => e.stopPropagation()}
             >
               <div 
@@ -364,7 +364,7 @@ export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({
                 {galleryImages.map((imgUrl, idx) => (
                   <div 
                     key={idx} 
-                    className="w-full h-full shrink-0 flex items-center justify-center p-2"
+                    className="w-full h-full shrink-0 hidden sm:flex items-center justify-center p-2"
                   >
                     <img
                       src={imgUrl}
@@ -384,14 +384,14 @@ export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({
                 <>
                   <button
                     onClick={handlePrev}
-                    className="absolute left-2 sm:left-4 w-12 h-12 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-all active:scale-95 border border-white/15 shadow-2xl z-20 cursor-pointer"
+                    className="absolute left-2 sm:left-4 w-12 h-12 bg-black/60 hover:bg-black/80 text-white rounded-full hidden sm:flex items-center justify-center transition-all active:scale-95 border border-white/15 shadow-2xl z-20 cursor-pointer"
                     aria-label="Previous photo"
                   >
                     <ChevronLeft size={24} strokeWidth={2.5} />
                   </button>
                   <button
                     onClick={handleNext}
-                    className="absolute right-2 sm:right-4 w-12 h-12 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-all active:scale-95 border border-white/15 shadow-2xl z-20 cursor-pointer"
+                    className="absolute right-2 sm:right-4 w-12 h-12 bg-black/60 hover:bg-black/80 text-white rounded-full hidden sm:flex items-center justify-center transition-all active:scale-95 border border-white/15 shadow-2xl z-20 cursor-pointer"
                     aria-label="Next photo"
                   >
                     <ChevronRight size={24} strokeWidth={2.5} />

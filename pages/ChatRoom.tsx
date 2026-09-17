@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { chatService } from '../services/chatService';
 import { Message, Conversation } from '../types/firebase';
-import { ChevronLeft, Send, Users, User as UserIcon } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, Send, Users, User as UserIcon } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -88,7 +88,7 @@ export const ChatRoom: React.FC = () => {
           title="Go back"
           aria-label="Go back"
         >
-          <ChevronLeft size={20} strokeWidth={2.5} />
+          <ArrowLeft size={20} strokeWidth={2.5} />
         </button>
         <div className="flex items-center gap-3 flex-1">
           <div className="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center shrink-0 border border-border-subtle text-text-secondary overflow-hidden">

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from "react"
 import { Layout } from "../components/Layout";
 import { useBooking } from "../context/BookingContext";
 import { GooglePitchMap, DEFAULT_CENTER } from "../components/GooglePitchMap";
-import { Search, MapPin, ChevronLeft, SlidersHorizontal, Navigation, Star, Activity, ChevronRight } from "lucide-react";
+import { Search, MapPin, ArrowLeft, ChevronLeft, SlidersHorizontal, Navigation, Star, Activity, ChevronRight } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Turf } from "../types";
@@ -123,7 +123,7 @@ export const ExploreMap: React.FC = () => {
               onClick={() => navigate("/home")}
               className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-black/70 transition-colors shadow-lg shrink-0"
             >
-              <ChevronLeft size={24} />
+              <ArrowLeft size={24} />
             </button>
             <div className="flex-1 relative">
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" />

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Layout } from "../components/Layout";
 import { useBooking } from "../context/BookingContext";
-import { ChevronLeft, MapPin, AlertTriangle, ShieldAlert, User, Calendar, Trophy, Trash2, Loader2, CheckCircle2, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, MapPin, AlertTriangle, ShieldAlert, User, Calendar, Trophy, Trash2, Loader2, CheckCircle2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ReportModal } from "../components/ReportModal";
 import { ReportTargetType, BookingStatus } from "../types";
@@ -150,7 +150,7 @@ export const Bookings: React.FC = () => {
             title="Back to Home"
             aria-label="Back to Home"
           >
-            <ChevronLeft size={18} strokeWidth={2.5} />
+            <ArrowLeft size={18} strokeWidth={2.5} />
           </button>
           <h1 id="heading-my-bookings" className="text-[15px] font-bold text-text-primary scroll-mt-24">
             My Bookings

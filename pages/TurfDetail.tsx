@@ -291,7 +291,7 @@ export const TurfDetail: React.FC = () => {
             aria-label="Go back"
             title="Go back"
           >
-            <ChevronLeft size={22} strokeWidth={2.5} />
+            <ArrowLeft size={22} strokeWidth={2.5} />
           </button>
 
           <div className="absolute top-4 right-4 sm:right-6 flex items-center gap-2 z-20">

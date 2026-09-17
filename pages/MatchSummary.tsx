@@ -14,7 +14,7 @@ import {
   onSnapshot 
 } from "firebase/firestore";
 import { 
-  ChevronLeft, 
+  ArrowLeft, ChevronLeft, 
   Trophy, 
   Plus, 
   Users, 
@@ -301,7 +301,7 @@ export const MatchSummary: React.FC = () => {
             title="Go back"
             aria-label="Go back"
           >
-            <ChevronLeft size={20} strokeWidth={2.5} />
+            <ArrowLeft size={20} strokeWidth={2.5} />
           </button>
           <h1 className="text-[17px] font-bold text-text-primary">Match Arena</h1>
           <button 

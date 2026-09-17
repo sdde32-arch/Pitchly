@@ -19,50 +19,113 @@ export const BouncingBall: React.FC<{
   animated?: boolean;
   color?: string;
 }> = ({ fontSize, animated = true, color = "#16A34A" }) => {
+  const uniqueId = React.useId().replace(/:/g, "");
+
   // Balanced ball size relative to the letter 'P'
-  const ballSize = Math.max(8, Math.round(fontSize * 0.32));
-  // Tight, bouncy upward displacement with squash & stretch
-  const bounceHeight = Math.max(7, Math.round(fontSize * 0.28));
+  const ballSize = Math.max(9, Math.round(fontSize * 0.36));
+  // Natural upward bounce displacement
+  const bounceHeight = Math.max(8, Math.round(fontSize * 0.34));
+
+  const primaryColor = color || "#16A34A";
 
   return (
     <div
       className="absolute left-[48%] -translate-x-1/2 pointer-events-none select-none z-20"
       style={{
-        bottom: "84%",
+        bottom: "82%",
         width: `${ballSize}px`,
         height: `${ballSize}px`,
       }}
       aria-hidden="true"
     >
+      {/* Dynamic Ground Contact Shadow on top of letter 'P' */}
       <motion.div
-        className="w-full h-full rounded-full shadow-sm flex items-center justify-center relative overflow-hidden"
+        className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 rounded-full pointer-events-none"
         style={{
-          backgroundColor: color,
-          transformOrigin: "bottom center",
-          boxShadow: "0 1px 3px rgba(22, 163, 74, 0.4)",
+          width: `${Math.max(6, Math.round(ballSize * 0.72))}px`,
+          height: `${Math.max(2, Math.round(ballSize * 0.18))}px`,
+          backgroundColor: "#000000",
+          filter: "blur(0.8px)",
+          transformOrigin: "center center",
         }}
         animate={
           animated
             ? {
-                y: [0, -bounceHeight, 0],
-                scaleY: [0.82, 1.1, 0.82],
-                scaleX: [1.18, 0.92, 1.18],
-                rotate: [0, 45, 90],
+                scaleX: [1.2, 0.45, 1.2],
+                scaleY: [1.1, 0.45, 1.1],
+                opacity: [0.35, 0.08, 0.35],
               }
-            : { y: 0, scaleY: 1, scaleX: 1, rotate: 0 }
+            : { scaleX: 1, scaleY: 1, opacity: 0.25 }
         }
         transition={{
           duration: 0.72,
           repeat: Infinity,
-          ease: ["easeOut", "easeIn"],
           times: [0, 0.5, 1],
+          ease: ["easeOut", "easeIn"],
+        }}
+      />
+
+      {/* Physics-driven bouncing container with natural vertical trajectory */}
+      <motion.div
+        className="w-full h-full relative"
+        animate={
+          animated
+            ? {
+                y: [0, -bounceHeight, 0],
+              }
+            : { y: 0 }
+        }
+        transition={{
+          duration: 0.72,
+          repeat: Infinity,
+          times: [0, 0.5, 1],
+          ease: ["easeOut", "easeIn"],
         }}
       >
-        {/* Subtle soccer pentagon highlight */}
-        <div
-          className="w-1/3 h-1/3 rounded-full opacity-70"
-          style={{ backgroundColor: "#FFFFFF" }}
-        />
+        {/* Natural squash & stretch on impact and apex */}
+        <motion.div
+          className="w-full h-full"
+          style={{
+            transformOrigin: "bottom center",
+          }}
+          animate={
+            animated
+              ? {
+                  scaleY: [0.84, 1.08, 1.0, 1.08, 0.84],
+                  scaleX: [1.18, 0.94, 1.0, 0.94, 1.18],
+                }
+              : { scaleY: 1, scaleX: 1 }
+          }
+          transition={{
+            duration: 0.72,
+            repeat: Infinity,
+            times: [0, 0.15, 0.5, 0.85, 1],
+            ease: "easeInOut",
+          }}
+        >
+          {/* Whole Green Ball with smooth spherical lighting and NO patterns or markings */}
+          <svg
+            viewBox="0 0 32 32"
+            className="w-full h-full overflow-visible drop-shadow-[0_2px_4px_rgba(22,163,74,0.35)]"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <radialGradient id={`greenBall-${uniqueId}`} cx="35%" cy="30%" r="65%">
+                <stop offset="0%" stopColor="#4ADE80" />
+                <stop offset="45%" stopColor="#22C55E" />
+                <stop offset="85%" stopColor={primaryColor} />
+                <stop offset="100%" stopColor="#15803D" />
+              </radialGradient>
+            </defs>
+            <circle
+              cx="16"
+              cy="16"
+              r="14"
+              fill={`url(#greenBall-${uniqueId})`}
+            />
+          </svg>
+        </motion.div>
       </motion.div>
     </div>
   );

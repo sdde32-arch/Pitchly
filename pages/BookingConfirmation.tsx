@@ -10,7 +10,7 @@ import {
   Check, 
   ShieldCheck, 
   CheckCircle2, 
-  ChevronLeft, 
+  ArrowLeft, ChevronLeft, 
   Loader2, 
   ArrowRight,
   Calendar,
@@ -154,7 +154,7 @@ export const BookingConfirmation: React.FC = () => {
             title="Back to Home"
             aria-label="Back to Home"
           >
-            <ChevronLeft size={20} strokeWidth={2.5} />
+            <ArrowLeft size={20} strokeWidth={2.5} />
           </button>
           <span className="font-bold text-sm text-text-primary tracking-wide">Official Match Pass</span>
           <button

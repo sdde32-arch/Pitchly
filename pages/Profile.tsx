@@ -6,7 +6,7 @@ import { PlayerAvatar, AVATARS_LIST } from "../components/PlayerAvatars";
 import { Toggle } from "../components/ui/Toggle";
 import { slotAlertService } from "../services/slotAlertService";
 import {
-  ChevronLeft,
+  ArrowLeft, ChevronLeft,
   Settings,
   User,
   CreditCard,
@@ -243,7 +243,7 @@ export const Profile: React.FC = () => {
             title="Back to Home"
             aria-label="Back to Home"
           >
-            <ChevronLeft size={18} strokeWidth={2.5} />
+            <ArrowLeft size={18} strokeWidth={2.5} />
           </button>
           <h1 id="heading-user-profile" className="text-[15px] font-bold text-text-primary scroll-mt-24">Profile</h1>
           <button
