@@ -51,9 +51,11 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
       ) : variant === 'full' ? (
         <div className={`p-4 rounded-2xl bg-surface-card border border-border-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${className}`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary-lime/15 border border-primary-lime/30 flex items-center justify-center text-primary-lime shrink-0">
-              <Smartphone size={20} />
-            </div>
+            <img
+              src="/icon-192.png"
+              alt="Pitchly App Icon"
+              className="w-11 h-11 rounded-xl shadow-md border border-border-subtle object-cover shrink-0"
+            />
             <div>
               <p className="text-sm font-bold text-text-primary">Install Pitchly App</p>
               <p className="text-xs text-text-secondary">
@@ -91,9 +93,11 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
             </button>
 
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-primary-lime/15 border border-primary-lime/30 flex items-center justify-center text-primary-lime shrink-0">
-                <Smartphone size={20} />
-              </div>
+              <img
+                src="/apple-touch-icon.png"
+                alt="Pitchly App Icon"
+                className="w-11 h-11 rounded-xl shadow-md border border-border-subtle object-cover shrink-0"
+              />
               <div>
                 <h3 className="text-sm font-extrabold text-text-primary">Install on iPhone / iPad</h3>
                 <p className="text-xs text-text-tertiary">Quick 2-step setup in Safari</p>

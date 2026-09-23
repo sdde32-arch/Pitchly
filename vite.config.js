@@ -9,7 +9,18 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
-        includeAssets: ['favicon.ico', 'logo.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
+        includeAssets: [
+          'logo.svg',
+          'apple-touch-icon.png',
+          'icon-192.png',
+          'icon-512.png',
+          'pwa-192x192.png',
+          'pwa-512x512.png',
+          'pwa-maskable-192x192.png',
+          'pwa-maskable-512x512.png',
+          'favicon-32x32.png',
+          'favicon-16x16.png'
+        ],
         manifest: {
           id: '/',
           name: 'Pitchly',
@@ -35,20 +46,21 @@ export default defineConfig(({ mode }) => {
               purpose: 'any'
             },
             {
-              src: '/icon-512.png',
+              src: '/pwa-maskable-192x192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'maskable'
+            },
+            {
+              src: '/pwa-maskable-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable'
             },
             {
               src: '/apple-touch-icon.png',
-              sizes: '192x192',
+              sizes: '180x180',
               type: 'image/png'
-            },
-            {
-              src: '/logo.svg',
-              sizes: 'any',
-              type: 'image/svg+xml'
             }
           ]
         },
