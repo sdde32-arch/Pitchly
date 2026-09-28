@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { ThemeProvider } from './ThemeContext';
@@ -57,15 +57,46 @@ import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-d
 import { AnimatePresence, motion } from 'motion/react';
 const Router = HashRouter;
 
+const ProviderLifecycleTracker: React.FC<{ name: string; children: React.ReactNode }> = ({ name, children }) => {
+  useEffect(() => {
+    console.log(`[Pitchly Boot] [Provider: ${name}] 🟢 Mounted`);
+    return () => {
+      console.log(`[Pitchly Boot] [Provider: ${name}] 🔴 Unmounted`);
+    };
+  }, [name]);
+
+  return <>{children}</>;
+};
+
 const RootRedirect = () => {
-  const { user, loading, isAdmin, isOwner } = useUser();
-  const lastUser = localStorage.getItem('pitchly_last_user');
+  const { user, loading, isAdmin, isOwner, userProfile } = useUser();
+  let lastUser: string | null = null;
+  try {
+    lastUser = localStorage.getItem('pitchly_last_user');
+  } catch (e) {
+    lastUser = null;
+  }
+
+  useEffect(() => {
+    console.log('[Pitchly Boot] [RootRedirect] 🧭 State evaluated:', {
+      authLoading: loading,
+      hasUser: !!user,
+      uid: user?.uid,
+      role: userProfile?.role,
+      isAdmin,
+      isOwner,
+      hasStoredLastUser: !!lastUser,
+    });
+  }, [loading, user, isAdmin, isOwner, userProfile, lastUser]);
 
   if (loading) {
     return (
-      <div className="flex flex-col h-screen w-full items-center justify-center bg-background gap-6">
-        <Logo size={60} showText={true} />
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col h-screen w-full items-center justify-center bg-app-base gap-5">
+        <div className="flex items-center gap-2.5">
+          <span className="text-3xl font-black text-white tracking-tight font-display">Pitchly</span>
+          <span className="w-2 h-2 rounded-full bg-primary-lime animate-pulse" />
+        </div>
+        <Loader2 className="h-7 w-7 animate-spin text-primary-lime" />
       </div>
     );
   }
@@ -81,24 +112,26 @@ const RootRedirect = () => {
     return <Navigate to="/home" replace />;
   }
 
-  // If returning user but not logged in, check if they are Admin
+  // If returning user but not logged in, check if they are Admin or valid profile
   if (lastUser) {
     try {
       const parsed = JSON.parse(lastUser);
-      const isParsedAdmin = parsed && (
-        parsed.role === 'ADMIN' || 
-        parsed.role === 'admin' || 
-        parsed.role === 'super_admin' || 
-        parsed.id === "0uVlAOWTy7dpqAW5tsgxQVs4PW43"
-      );
-      if (isParsedAdmin) {
-        // Send Admin straight to /auth with email prefilled, bypassing welcome-back
-        return <Navigate to="/auth" state={{ email: parsed.email }} replace />;
+      if (parsed && typeof parsed === 'object' && (parsed.name || parsed.email)) {
+        const isParsedAdmin = (
+          parsed.role === 'ADMIN' || 
+          parsed.role === 'admin' || 
+          parsed.role === 'super_admin' || 
+          parsed.id === "0uVlAOWTy7dpqAW5tsgxQVs4PW43"
+        );
+        if (isParsedAdmin) {
+          // Send Admin straight to /auth with email prefilled, bypassing welcome-back
+          return <Navigate to="/auth" state={{ email: parsed.email }} replace />;
+        }
+        return <Navigate to="/welcome-back" replace />;
       }
     } catch (e) {
       console.warn("Failed to parse lastUser", e);
     }
-    return <Navigate to="/welcome-back" replace />;
   }
 
   return <Navigate to="/onboarding" replace />;
@@ -106,24 +139,22 @@ const RootRedirect = () => {
 
 const PageTransition: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
-      className="min-h-screen w-full"
-    >
+    <div className="min-h-screen w-full">
       {children}
-    </motion.div>
+    </div>
   );
 };
 
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
   useMatchReminders();
+
+  useEffect(() => {
+    console.log(`[Pitchly Boot] [Router] 🗺️ Active route: "${location.pathname}" (search: "${location.search}", hash: "${location.hash}")`);
+  }, [location.pathname, location.search, location.hash]);
+
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
+    <Routes location={location} key={location.pathname}>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/onboarding" element={<PageTransition><Onboarding /></PageTransition>} />
         <Route path="/welcome-back" element={<PageTransition><WelcomeBack /></PageTransition>} />
@@ -131,7 +162,9 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/design-system" element={<PageTransition><DesignSystemTest /></PageTransition>} />
         
         {/* Public Tournament Hub Routes (No Auth Required) */}
-        <Route path="/tournament" element={<Navigate to="/tournament/wehat-s2-w1" replace />} />
+        <Route path="/tournament" element={<Navigate to="/tournament/wehat-s2-w2" replace />} />
+        <Route path="/live" element={<Navigate to="/tournament/wehat-s2-w2" replace />} />
+        <Route path="/scores" element={<Navigate to="/tournament/wehat-s2-w2" replace />} />
         <Route path="/tournament/:tournamentId" element={<PageTransition><TournamentHub /></PageTransition>} />
         
         {/* Protected User Routes */}
@@ -175,37 +208,68 @@ const AnimatedRoutes: React.FC = () => {
         
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
-    </AnimatePresence>
   );
 };
 
 const App: React.FC = () => {
+  useEffect(() => {
+    const bootTime = (window as any).__PITCHLY_BOOT_TIME__;
+    const elapsed = bootTime ? (performance.now() - bootTime).toFixed(1) : 'unknown';
+    console.log(`[Pitchly Boot] [App] 🟢 <App /> mounted into DOM successfully (boot took: ${elapsed}ms)`);
+    console.log('[Pitchly Boot] [App] 📍 Route / Location Info:', {
+      hash: window.location.hash || '(empty root - default route)',
+      href: window.location.href,
+      pathname: window.location.pathname,
+    });
+    console.log('[Pitchly Boot] [App] 🌐 Runtime Status:', {
+      online: navigator.onLine,
+      isIframe: window.self !== window.top,
+      screen: `${window.innerWidth}x${window.innerHeight}`,
+    });
+
+    return () => {
+      console.log('[Pitchly Boot] [App] 🔴 <App /> unmounting');
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen w-full bg-app-base">
+    <div className="min-h-screen w-full bg-app-base text-text-primary">
       <ErrorBoundary>
-        <ThemeProvider>
-          <UserProvider>
-            <BookingProvider>
-              <MatchReminderProvider>
-                <PWAProvider>
-                  <HashRouter
-                    future={{
-                      v7_startTransition: true,
-                      v7_relativeSplatPath: true,
-                    }}
-                  >
-                    <InteractiveWalkthroughProvider>
-                      <AnimatedRoutes />
-                      <InteractiveWalkthroughOverlay />
-                      <MatchReminderToast />
-                      <OfflineIndicator />
-                    </InteractiveWalkthroughProvider>
-                  </HashRouter>
-                </PWAProvider>
-              </MatchReminderProvider>
-            </BookingProvider>
-          </UserProvider>
-        </ThemeProvider>
+        <ProviderLifecycleTracker name="ThemeProvider">
+          <ThemeProvider>
+            <ProviderLifecycleTracker name="UserProvider">
+              <UserProvider>
+                <ProviderLifecycleTracker name="BookingProvider">
+                  <BookingProvider>
+                    <ProviderLifecycleTracker name="MatchReminderProvider">
+                      <MatchReminderProvider>
+                        <ProviderLifecycleTracker name="PWAProvider">
+                          <PWAProvider>
+                            <HashRouter
+                              future={{
+                                v7_startTransition: true,
+                                v7_relativeSplatPath: true,
+                              }}
+                            >
+                              <ProviderLifecycleTracker name="InteractiveWalkthroughProvider">
+                                <InteractiveWalkthroughProvider>
+                                  <AnimatedRoutes />
+                                  <InteractiveWalkthroughOverlay />
+                                  <MatchReminderToast />
+                                  <OfflineIndicator />
+                                </InteractiveWalkthroughProvider>
+                              </ProviderLifecycleTracker>
+                            </HashRouter>
+                          </PWAProvider>
+                        </ProviderLifecycleTracker>
+                      </MatchReminderProvider>
+                    </ProviderLifecycleTracker>
+                  </BookingProvider>
+                </ProviderLifecycleTracker>
+              </UserProvider>
+            </ProviderLifecycleTracker>
+          </ThemeProvider>
+        </ProviderLifecycleTracker>
       </ErrorBoundary>
     </div>
   );

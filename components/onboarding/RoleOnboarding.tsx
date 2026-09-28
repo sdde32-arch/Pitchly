@@ -164,7 +164,7 @@ export const RoleOnboarding: React.FC<RoleOnboardingProps> = ({
   };
   const slide = slides[currentSlideIndex];
   return (
-    <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center animate-fadeIn selection:bg-primary-lime/30">
+    <div className="fixed inset-0 z-[100] bg-app-base flex flex-col items-center justify-center animate-fadeIn selection:bg-primary-lime/30">
       <div className="flex-1 w-full flex flex-col justify-center items-center p-4 max-w-md mx-auto">
         {/* Progress Indicators */}
         <div className="flex justify-center gap-2 mb-12 w-full max-w-[200px]">

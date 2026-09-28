@@ -521,7 +521,7 @@ export const TURFS: Turf[] = [
     isVerified: true,
     contactPhone: '+256 700 882 119',
     contactEmail: 'tal.olympic@footlink.ug',
-    description: 'Official home ground for the WEHAT 7-a-side Championship. High-spec synthetic surface, elevated spectator viewing stands, broadcast-standard LED floodlighting, and player dressing suites.'
+    description: 'Official home ground for the WEHAT 7-a-side Soccer Tournament. High-spec synthetic surface, elevated spectator viewing stands, broadcast-standard LED floodlighting, and player dressing suites.'
   }
 ];
 

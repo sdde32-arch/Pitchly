@@ -30,35 +30,43 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-app-base p-4">
-          <div className="bg-surface-card p-4 rounded-[16px] shadow-xl max-w-2xl w-full border border-red-500/20">
-            <h1 className="text-2xl font-bold text-red-500 mb-4 font-display">Something went wrong.</h1>
-            <p className="text-text-primary mb-6 font-mono text-sm break-words bg-red-950/20 p-4 rounded-lg border border-red-500/30">
-              {this.state.error && this.state.error.toString()}
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#0D0D0D", padding: "16px", color: "#FFFFFF", fontFamily: "'Sora', sans-serif" }}>
+          <div style={{ backgroundColor: "#161616", padding: "24px", borderRadius: "16px", maxWidth: "600px", width: "100%", border: "1px solid rgba(239, 68, 68, 0.3)", boxShadow: "0 20px 40px rgba(0,0,0,0.6)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+              <span style={{ fontSize: "22px", fontWeight: "900", color: "#EF4444" }}>Pitchly Error Recovery</span>
+            </div>
+            <p style={{ color: "#F4F4F5", fontSize: "14px", lineHeight: "1.6", marginBottom: "16px", backgroundColor: "rgba(239, 68, 68, 0.1)", padding: "12px", borderRadius: "8px", border: "1px solid rgba(239, 68, 68, 0.2)", wordBreak: "break-word" }}>
+              {this.state.error ? this.state.error.toString() : "An unexpected render issue occurred."}
             </p>
             {this.state.errorInfo && (
-              <details className="mb-6">
-                <summary className="text-sm text-text-secondary cursor-pointer mb-2 hover:text-text-primary">View Component Stack</summary>
-                <pre className="text-xs text-text-secondary font-mono bg-surface-raised p-4 rounded-lg overflow-auto max-h-60 border border-border-subtle">
+              <details style={{ marginBottom: "16px" }}>
+                <summary style={{ fontSize: "12px", color: "#A1A1AA", cursor: "pointer", marginBottom: "8px" }}>Component Stack</summary>
+                <pre style={{ fontSize: "11px", color: "#A1A1AA", backgroundColor: "#202020", padding: "12px", borderRadius: "8px", overflow: "auto", maxHeight: "160px" }}>
                   {this.state.errorInfo.componentStack}
                 </pre>
               </details>
             )}
-            <div className="flex gap-4">
+            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
               <button
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-primary-lime text-accent-text rounded-lg font-bold hover:bg-[#95e600] transition"
+                onClick={() => {
+                  try {
+                    localStorage.removeItem('pitchly_last_user');
+                  } catch (e) {}
+                  window.location.reload();
+                }}
+                style={{ padding: "10px 18px", backgroundColor: "#A8FF00", color: "#0D0D0D", border: "none", borderRadius: "10px", fontWeight: "800", cursor: "pointer", fontSize: "13px" }}
               >
                 Reload App
               </button>
               <button
                 onClick={() => {
                   this.setState({ hasError: false, error: null, errorInfo: null });
-                  window.location.href = '/home';
+                  window.location.hash = "#/onboarding";
+                  window.location.reload();
                 }}
-                className="px-4 py-2 bg-surface-raised text-text-primary rounded-lg font-medium hover:bg-border-subtle border border-border-subtle transition"
+                style={{ padding: "10px 18px", backgroundColor: "#262626", color: "#FFFFFF", border: "1px solid #383838", borderRadius: "10px", fontWeight: "600", cursor: "pointer", fontSize: "13px" }}
               >
-                Go Home
+                Reset to Onboarding
               </button>
             </div>
           </div>

@@ -108,6 +108,12 @@ export interface Booking {
   playerPhone?: string;
   playerEmail?: string;
   numberOfPlayers?: number;
+  image?: string;
+  location?: string;
+  bookingRef?: string;
+  pitchFormat?: string;
+  managerName?: string;
+  contactPhone?: string;
 }
 
 /**
@@ -356,5 +362,60 @@ export interface MatchInvitation {
   expiresAt: string; // 24 hours before proposed date/time
   bookingId?: string; // Linked booking document id once confirmed & booked
   notes?: string;
+}
+
+/**
+ * Community Activity Feed Data Models
+ */
+export type CommunityActivityType = 'match_played' | 'team_formed' | 'tournament_completed';
+
+export interface CommunityActivity {
+  id: string;
+  type: CommunityActivityType;
+  title: string;
+  subtitle: string;
+  description?: string;
+  timestamp: string; // ISO string
+  userName?: string;
+  userAvatar?: string;
+  userBadge?: string;
+  venue?: string;
+  // Match specific details
+  matchData?: {
+    homeTeam: string;
+    awayTeam: string;
+    homeScore: number;
+    awayScore: number;
+    scorers?: string[];
+    mvp?: string;
+    pitchName?: string;
+    format?: string;
+  };
+  // Team formed specific details
+  teamData?: {
+    teamName: string;
+    captain: string;
+    membersCount: number;
+    homePitch?: string;
+    badgeColor?: string;
+    badgeInitials?: string;
+    motto?: string;
+  };
+  // Tournament completed specific details
+  tournamentData?: {
+    tournamentName: string;
+    champion: string;
+    runnerUp: string;
+    participantsCount: number;
+    goldenBootWinner?: string;
+    goldenBootGoals?: number;
+    season?: string;
+    prizePool?: string;
+    tournamentId?: string;
+  };
+  likesCount: number;
+  celebrationsCount: number;
+  likedBy?: string[];
+  celebratedBy?: string[];
 }
 

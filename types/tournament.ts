@@ -42,6 +42,8 @@ export interface TournamentNominee {
 }
 
 export interface TournamentTeamStanding {
+  id?: string;
+  tournamentId?: string;
   position: number;
   team: string;
   group?: string;
@@ -53,7 +55,9 @@ export interface TournamentTeamStanding {
   goalsAgainst: number;
   goalDifference: number;
   points: number;
+  winRate?: number;
   form: ("W" | "D" | "L")[];
+  updatedAt?: string;
 }
 
 export interface TournamentPlayer {
@@ -97,9 +101,9 @@ export interface TournamentInfo {
 export const DEFAULT_TOURNAMENT: TournamentInfo = {
   id: "wehat-s2-w2",
   name: "WEHAT Soccer Tournament",
-  season: "Season II",
+  season: "Season 2",
   week: "Matchday 2",
-  date: "19 Sept 2026",
-  venue: "Tal Olympic, Bayern Munyonyo",
-  description: "Official match center: live standings, upcoming fixtures, scores, and goal scorers.",
+  date: "20 Sept 2026",
+  venue: "Tal Olympic Stadium, Bayern Munyonyo",
+  description: "Official match center: live standings, Matchday 1 & 2 match results, upcoming fixtures, and official 43-player Top Scorers table.",
 };

@@ -257,13 +257,18 @@ export const Settings: React.FC = () => {
                 <Toggle
                   checked={notifications.push}
                   onChange={async (newValue) => {
-                    if (newValue && "Notification" in window) {
-                      const permission = await Notification.requestPermission();
-                      if (permission === "granted") {
-                        updateNotificationPref("push", true);
-                      } else {
+                    if (newValue && typeof window !== "undefined" && "Notification" in window) {
+                      try {
+                        const permission = await Notification.requestPermission();
+                        if (permission === "granted") {
+                          updateNotificationPref("push", true);
+                        } else {
+                          updateNotificationPref("push", false);
+                          showToast("Notifications blocked — please enable in browser settings.", "error");
+                        }
+                      } catch {
                         updateNotificationPref("push", false);
-                        showToast("Notifications blocked — please enable in browser settings.", "error");
+                        showToast("Notifications not supported or blocked in this environment.", "error");
                       }
                     } else {
                       updateNotificationPref("push", newValue);

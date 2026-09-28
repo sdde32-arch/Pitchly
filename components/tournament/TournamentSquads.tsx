@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Users, Filter, Award } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Users, Filter, Award, Search, Shield, ChevronRight } from "lucide-react";
 import { TournamentTeam, TournamentPlayer } from "../../types/tournament";
 
 interface TournamentSquadsProps {
@@ -8,115 +8,186 @@ interface TournamentSquadsProps {
 }
 
 export const TournamentSquads: React.FC<TournamentSquadsProps> = ({ teams, players }) => {
+  const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [selectedTeam, setSelectedTeam] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  const filteredPlayers =
-    selectedTeam === "all"
-      ? players
-      : players.filter((p) => p.teamName === selectedTeam);
+  const groups = ["all", "Group A", "Group B", "Group C", "Group D"];
+
+  const filteredTeams = useMemo(() => {
+    return teams.filter((t) => {
+      const matchesGroup = selectedGroup === "all" || t.group === selectedGroup;
+      const matchesTeam = selectedTeam === "all" || t.teamName === selectedTeam;
+      const matchesSearch =
+        !searchQuery ||
+        t.teamName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        players.some(
+          (p) =>
+            p.teamName === t.teamName &&
+            p.playerName.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      return matchesGroup && matchesTeam && matchesSearch;
+    });
+  }, [teams, players, selectedGroup, selectedTeam, searchQuery]);
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-16">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-3 animate-fadeIn pb-12">
+      {/* Header & Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
         <div>
-          <h2 className="text-xl font-black text-text-primary uppercase tracking-tight flex items-center gap-2">
-            <Users size={20} className="text-primary-lime" />
-            Official Squads & Rosters
+          <h2 className="text-xs font-bold text-text-primary">
+            Squad Rosters
           </h2>
-          <p className="text-xs text-text-secondary mt-1">
-            Browse registered clubs and their official player rosters for the tournament.
+          <p className="text-[11px] text-text-tertiary">
+            16 registered clubs · Players & positions
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 text-xs text-text-secondary font-bold">
-            <Filter size={14} className="text-primary-lime" />
-            <span>Filter Club:</span>
-          </div>
-          <select
-            value={selectedTeam}
-            onChange={(e) => setSelectedTeam(e.target.value)}
-            className="bg-surface-card border border-border-subtle rounded-xl px-3 py-1.5 text-sm font-bold text-text-primary focus:border-primary-lime cursor-pointer shadow-sm"
-          >
-            <option value="all">All Clubs ({teams.length})</option>
-            {teams.map((t) => (
+        {/* Group Selector */}
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+          {groups.map((grp) => (
+            <button
+              key={grp}
+              onClick={() => {
+                setSelectedGroup(grp);
+                setSelectedTeam("all");
+              }}
+              className={`px-2 py-0.5 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
+                selectedGroup === grp
+                  ? "bg-surface-raised text-text-primary font-bold border border-border-subtle shadow-xs"
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface-raised/50"
+              }`}
+            >
+              {grp === "all" ? "All" : grp}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Search & Club Select Bar */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search
+            size={12}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary"
+          />
+          <input
+            type="text"
+            placeholder="Filter player or club..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-8 pl-7 pr-3 rounded-lg bg-surface-card border border-border-subtle text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary-lime/50 transition-colors"
+          />
+        </div>
+
+        <select
+          value={selectedTeam}
+          onChange={(e) => setSelectedTeam(e.target.value)}
+          className="h-8 bg-surface-card border border-border-subtle rounded-lg px-2.5 text-xs text-text-primary focus:border-primary-lime cursor-pointer shrink-0"
+        >
+          <option value="all">All 16 Clubs</option>
+          {teams
+            .filter((t) => selectedGroup === "all" || t.group === selectedGroup)
+            .map((t) => (
               <option key={t.id} value={t.teamName}>
                 {t.teamName} ({t.group})
               </option>
             ))}
-          </select>
-        </div>
+        </select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {teams
-          .filter((t) => selectedTeam === "all" || t.teamName === selectedTeam)
-          .map((team) => {
+      {/* Squad Cards Grid */}
+      {filteredTeams.length === 0 ? (
+        <div className="bg-surface-card border border-border-subtle rounded-xl p-8 text-center space-y-2">
+          <Shield size={28} className="text-text-tertiary mx-auto" />
+          <p className="text-xs font-semibold text-text-primary">No clubs found</p>
+          <p className="text-[11px] text-text-tertiary">
+            Try adjusting your search query or group filter.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {filteredTeams.map((team) => {
             const teamPlayers = players.filter((p) => p.teamName === team.teamName);
+            const initials =
+              team.badgeInitials || team.teamName.substring(0, 3).toUpperCase();
+
             return (
               <div
                 key={team.id}
-                className="bg-surface-card border border-border-subtle rounded-2xl p-4 shadow-sm flex flex-col"
+                className="bg-surface-card border border-border-subtle rounded-xl p-3.5 shadow-xs flex flex-col justify-between"
               >
-                <div className="flex items-center justify-between border-b border-border-subtle pb-3 mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-surface-raised border border-border-subtle flex items-center justify-center font-black text-primary-lime text-xs">
-                      {team.badgeInitials || team.teamName.substring(0, 3).toUpperCase()}
+                <div>
+                  {/* Team Card Header */}
+                  <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-border-subtle/50">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-surface-raised border border-border-subtle flex items-center justify-center font-bold text-primary-lime text-xs shrink-0">
+                        {initials}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-xs sm:text-sm font-bold text-text-primary truncate">
+                          {team.teamName}
+                        </h3>
+                        <p className="text-[10px] text-text-tertiary">
+                          {team.group} • {teamPlayers.length || "11"} Registered
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-black text-text-primary uppercase truncate max-w-[140px]">
-                        {team.teamName}
-                      </h3>
-                      <p className="text-[10px] font-bold text-text-tertiary">
-                        {team.group} • {teamPlayers.length} Players
+
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-surface-raised border border-border-subtle text-text-secondary shrink-0">
+                      {team.group}
+                    </span>
+                  </div>
+
+                  {/* Manager line if available */}
+                  {team.managerName && (
+                    <div className="mt-2 text-[10px] text-text-secondary bg-surface-raised/60 px-2 py-1 rounded border border-border-subtle/40 flex items-center gap-1.5">
+                      <span className="text-text-tertiary">Head Coach / Manager:</span>
+                      <strong className="text-text-primary">{team.managerName}</strong>
+                    </div>
+                  )}
+
+                  {/* Player list */}
+                  <div className="mt-2.5 space-y-1 max-h-[180px] overflow-y-auto pr-1">
+                    {teamPlayers.length === 0 ? (
+                      <p className="text-[11px] text-text-tertiary italic text-center py-3">
+                        Squad roster being finalized.
                       </p>
-                    </div>
-                  </div>
-                </div>
-
-                {team.managerName && (
-                  <div className="text-[11px] text-text-secondary font-medium mb-3 bg-app-base px-2 py-1.5 rounded-lg border border-border-subtle inline-flex items-center">
-                    Manager: <span className="font-bold text-text-primary ml-1">{team.managerName}</span>
-                  </div>
-                )}
-
-                <div className="space-y-1.5 flex-1 max-h-[220px] overflow-y-auto pr-1">
-                  {teamPlayers.length === 0 ? (
-                    <p className="text-[11px] text-text-tertiary italic text-center py-4">
-                      No official roster submitted yet.
-                    </p>
-                  ) : (
-                    teamPlayers.map((p) => (
-                      <div
-                        key={p.id}
-                        className="flex items-center gap-2.5 p-2 bg-app-base border border-border-subtle rounded-xl hover:border-primary-lime/30 transition-colors"
-                      >
-                        <div className="w-6 h-6 rounded bg-surface-raised font-mono text-[10px] font-black text-text-secondary flex items-center justify-center shrink-0">
-                          {p.jerseyNumber ? `#${p.jerseyNumber}` : "-"}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-text-primary truncate">
+                    ) : (
+                      teamPlayers.map((p) => (
+                        <div
+                          key={p.id}
+                          className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-surface-raised/40 hover:bg-surface-raised border border-border-subtle/40 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-5 text-center font-mono text-[10px] font-bold text-text-tertiary shrink-0">
+                              {p.jerseyNumber ? `#${p.jerseyNumber}` : "-"}
+                            </span>
+                            <span className="text-xs font-semibold text-text-primary truncate">
                               {p.playerName}
                             </span>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
                             {p.captain && (
-                              <span className="px-1 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[8px] font-black flex items-center gap-0.5 shrink-0">
-                                <Award size={8} /> C
+                              <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold flex items-center gap-0.5">
+                                <Award size={9} /> C
                               </span>
                             )}
-                          </div>
-                          <div className="text-[9px] text-text-tertiary font-medium">
-                            {p.position || "Player"}
+                            <span className="text-[9px] text-text-tertiary">
+                              {p.position || "Player"}
+                            </span>
                           </div>
                         </div>
-                      </div>
-                    ))
-                  )}
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             );
           })}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

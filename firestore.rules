@@ -13,7 +13,7 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && (
         request.auth.uid in ['0uVlAOWTy7dpqAW5tsgxQVs4PW43', 'CoBBTwSqq1Zvv8uPn8S9mdrFXWz1'] ||
-        request.auth.token.get('email', '') in ['Sdde32@gmail.com', 'admin.test@pitchly.com'] ||
+        request.auth.token.get('email', '') in ['Sdde32@gmail.com', 'sdde32@gmail.com', 'admin.test@pitchly.com'] ||
         request.auth.token.get('role', '') in ['admin', 'super_admin', 'ADMIN']
       );
     }
@@ -345,6 +345,25 @@ service cloud.firestore {
     }
 
     match /tournamentNominees/{nomineeId} {
+      allow read, write: if true;
+    }
+
+    match /tournamentTeams/{teamId} {
+      allow read, write: if true;
+    }
+
+    match /tournamentPlayers/{playerId} {
+      allow read, write: if true;
+    }
+
+    match /tournamentStandings/{standingId} {
+      allow read, write: if true;
+    }
+
+    // ==========================================
+    // COMMUNITY ACTIVITY FEED
+    // ==========================================
+    match /communityActivities/{activityId} {
       allow read, write: if true;
     }
   }

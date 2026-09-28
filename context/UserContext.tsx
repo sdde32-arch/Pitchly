@@ -91,15 +91,23 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [badges, setBadges] = useState(BADGES);
 
   useEffect(() => {
+    console.log('[Pitchly Boot] [UserContext] ⏳ Initializing Firebase onAuthStateChanged listener...');
+    // Failsafe timer: ensures auth loading NEVER hangs or freezes the app permanently
+    const safetyTimer = setTimeout(() => {
+      console.warn('[Pitchly Boot] [UserContext] ⏱️ Auth loading safety timer expired (1.5s) — unlocking app for guest/visitor flow');
+      setLoading(false);
+    }, 1500);
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('[Pitchly Boot] [UserContext] 👤 onAuthStateChanged emitted:', firebaseUser ? `User(${firebaseUser.uid})` : 'No active session (Guest)');
       setUser(firebaseUser);
       if (firebaseUser) {
-        localStorage.removeItem("pitchly_is_guest");
+        try { localStorage.removeItem("pitchly_is_guest"); } catch (e) {}
         try {
           const docRef = doc(db, "users", firebaseUser.uid);
           const snap = await getDoc(docRef);
           if (snap.exists()) {
-            localStorage.removeItem("pitchly_pending_role");
+            try { localStorage.removeItem("pitchly_pending_role"); } catch (e) {}
             const data = snap.data();
             
             // Deterministic default avatar selection so every existing account gets a diverse selection instantly
@@ -127,14 +135,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
               avatarId: data.avatarId || fallbackAvatarId,
             };
             setUserProfile(profile);
-            localStorage.setItem(
-              "pitchly_last_user",
-              JSON.stringify(profile),
-            );
+            try {
+              localStorage.setItem("pitchly_last_user", JSON.stringify(profile));
+            } catch (e) {}
           } else {
-            const pendingRole = localStorage.getItem("pitchly_pending_role") as UserRole | null;
-            const pendingName = localStorage.getItem("pitchly_pending_name");
-            const pendingPhone = localStorage.getItem("pitchly_pending_phone");
+            let pendingRole: UserRole | null = null;
+            let pendingName: string | null = null;
+            let pendingPhone: string | null = null;
+            try {
+              pendingRole = localStorage.getItem("pitchly_pending_role") as UserRole | null;
+              pendingName = localStorage.getItem("pitchly_pending_name");
+              pendingPhone = localStorage.getItem("pitchly_pending_phone");
+            } catch (e) {}
             const isOwnerRole = pendingRole === "OWNER" || pendingRole === "owner";
             const defaultAvatar = isOwnerRole 
               ? `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingName || firebaseUser.email?.split("@")[0] || "Owner")}&background=22C55E&color=fff&bold=true`
@@ -161,10 +173,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
             };
             await setDoc(docRef, newProfile, { merge: true });
             setUserProfile(newProfile);
-            localStorage.setItem(
-              "pitchly_last_user",
-              JSON.stringify(newProfile),
-            );
+            try {
+              localStorage.setItem("pitchly_last_user", JSON.stringify(newProfile));
+            } catch (e) {}
           }
         } catch (err) {
           console.warn("Profile fetch error:", err);
@@ -172,12 +183,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
       } else {
         setUserProfile(null);
       }
-      try {
-        await auth.authStateReady();
-      } catch (err) {}
+      clearTimeout(safetyTimer);
       setLoading(false);
     });
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(safetyTimer);
+      unsubscribe();
+    };
   }, []);
 
   const updateProfile = async (data: Partial<UserProfileData>) => {
@@ -262,12 +274,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
         
         await setDoc(docRef, newProfile, { merge: true });
         setUserProfile(newProfile);
-        localStorage.setItem("pitchly_last_user", JSON.stringify(newProfile));
+        try { localStorage.setItem("pitchly_last_user", JSON.stringify(newProfile)); } catch (e) {}
       }
     } catch (e) {
       console.warn("Error setting up Google user profile doc:", e);
     } finally {
-      localStorage.removeItem("pitchly_pending_role");
+      try { localStorage.removeItem("pitchly_pending_role"); } catch (e) {}
     }
     
     return firebaseUser;
@@ -279,15 +291,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (e) {
       console.warn("Firebase signout error:", e);
     }
-    localStorage.removeItem("pitchly_is_guest");
-    localStorage.removeItem("pitchly_last_user");
+    try { localStorage.removeItem("pitchly_is_guest"); } catch (e) {}
+    try { localStorage.removeItem("pitchly_last_user"); } catch (e) {}
     setUserProfile(null);
     setUser(null);
   };
 
   const targetUid = "0uVlAOWTy7dpqAW5tsgxQVs4PW43";
   const isHardcodedAdmin =
-    userProfile?.id === targetUid || user?.uid === targetUid;
+    userProfile?.id === targetUid ||
+    user?.uid === targetUid ||
+    user?.email?.toLowerCase() === "sdde32@gmail.com" ||
+    userProfile?.email?.toLowerCase() === "sdde32@gmail.com";
   const isAdmin =
     isHardcodedAdmin ||
     userProfile?.role === "admin" ||

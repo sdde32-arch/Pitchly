@@ -1,8 +1,14 @@
 import { pitchService } from '../services/pitchService';
-export const autoSeedIfEmpty = async (ownerId?: string) => { if (localStorage.getItem('pitchly_seeded') === 'true') { return;
-} try { const existing = await pitchService.listPublic();
-if (existing && existing.length > 0) { localStorage.setItem('pitchly_seeded', 'true'); return;
-} if (!ownerId) { 
+export const autoSeedIfEmpty = async (ownerId?: string) => {
+  try {
+    if (localStorage.getItem('pitchly_seeded') === 'true') { return; }
+  } catch (e) {}
+  try {
+    const existing = await pitchService.listPublic();
+    if (existing && existing.length > 0) {
+      try { localStorage.setItem('pitchly_seeded', 'true'); } catch (e) {}
+      return;
+    } if (!ownerId) { 
 // Cannot seed without a valid user ID to associate 
 return;
 }
@@ -34,7 +40,7 @@ const turfsToSeed = [ { name: "Arches Gardens Pitch", location: "Kololo, Kampala
       } as any);
     }
     console.log(`Auto-seeded ${turfsToSeed.length} turfs.`); 
-    localStorage.setItem('pitchly_seeded', 'true');
+    try { localStorage.setItem('pitchly_seeded', 'true'); } catch (e) {}
   } catch (error) { 
     console.warn("Auto-seeding turfs failed:", error); 
   }

@@ -41,6 +41,7 @@ import { FootballPitchCard } from "../components/home/FootballPitchCard";
 import { MatchdayBanner } from "../components/home/MatchdayBanner";
 import { TournamentBanner } from "../components/home/TournamentBanner";
 import { QuickBookingModal } from "../components/home/QuickBookingModal";
+import { CommunityActivityFeed } from "../components/home/CommunityActivityFeed";
 import { calculateHaversineDistanceKm, getPitchCoordinates, formatDistanceKm } from "../utils/distance";
 
 // Kampala Neighborhood Hubs
@@ -104,7 +105,7 @@ const FALLBACK_PITCHES: Partial<Pitch>[] = TURFS.map((t) => ({
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
-  const { userProfile, user, role, loading } = useUser();
+  const { userProfile, user, role, isAdmin, isOwner, loading } = useUser();
 
   // Selected Matchday date (default: today)
   const [selectedDate, setSelectedDate] = useState<string>(() => {
@@ -806,6 +807,9 @@ export const Home: React.FC = () => {
 
               {/* Community Open Pickup Matches */}
               <HomeCommunityPickups loading={loadingPitches} />
+
+              {/* Community Activity Feed: Recent matches, new teams, tournaments */}
+              <CommunityActivityFeed />
             </div>
 
             {/* DASHBOARD COMPANION RAIL: UPCOMING TICKET, WEATHER & SPECIALS (4 cols on desktop) */}
@@ -998,18 +1002,29 @@ export const Home: React.FC = () => {
   return (
     <Layout>
       {(() => {
-        if (role === "PLAYER") return renderDiscoverScreen();
-        if (role === "OWNER") {
+        if (isOwner || role === "OWNER" || role === "owner") {
           return (
             <div className="p-4">
               <OwnerOverview />
             </div>
           );
         }
-        if (role === "ADMIN" || role === "admin" || role === "super_admin") {
-          return <Navigate to="/admin/overview" replace />;
-        }
-        return <Navigate to="/auth" replace />;
+        return (
+          <>
+            {(isAdmin || role === "ADMIN" || role === "admin" || role === "super_admin") && (
+              <div className="bg-primary-lime/10 border-b border-primary-lime/25 px-4 py-2 flex items-center justify-between text-xs">
+                <span className="text-primary-lime font-bold">Viewing Player Portal (Admin Account)</span>
+                <button
+                  onClick={() => navigate("/admin/overview")}
+                  className="px-2.5 py-1 rounded-lg bg-primary-lime text-black font-black text-[11px] hover:bg-[#96E600] transition-colors cursor-pointer"
+                >
+                  Admin Portal &rarr;
+                </button>
+              </div>
+            )}
+            {renderDiscoverScreen()}
+          </>
+        );
       })()}
     </Layout>
   );

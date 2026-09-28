@@ -231,7 +231,7 @@ export const UserManagement: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  if (!isAdmin) return null;
+  // Admin checked via RouteGuards
 
   const totalPlayers = users.filter((u) => (u.role || "PLAYER").toUpperCase() === "PLAYER").length;
   const totalOwners = users.filter((u) => (u.role || "").toUpperCase() === "OWNER").length;

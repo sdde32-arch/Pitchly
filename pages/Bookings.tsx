@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Layout } from "../components/Layout";
 import { useBooking } from "../context/BookingContext";
-import { ArrowLeft, ChevronLeft, MapPin, AlertTriangle, ShieldAlert, User, Calendar, Trophy, Trash2, Loader2, CheckCircle2, X } from "lucide-react";
+import { useUser } from "../context/UserContext";
+import { chatService } from "../services/chatService";
+import { ArrowLeft, ChevronLeft, MapPin, AlertTriangle, ShieldAlert, User, Calendar, Trophy, Trash2, Loader2, CheckCircle2, X, MessageSquare, Phone, QrCode } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ReportModal } from "../components/ReportModal";
 import { ReportTargetType, BookingStatus } from "../types";
@@ -11,6 +13,7 @@ import { formatBookingDate, formatBookingTime } from "../lib/dateUtils";
 
 export const Bookings: React.FC = () => {
   const navigate = useNavigate();
+  const { user, userProfile } = useUser();
   const { bookings, loading, updateBookingStatus, removeBooking } = useBooking();
   const [activeTab, setActiveTab] = useState<"upcoming" | "completed" | "cancelled">("upcoming");
   const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string } | null>(null);
@@ -28,76 +31,169 @@ export const Bookings: React.FC = () => {
   } | null>(null);
 
   // Fallback mock bookings if there are none in the context
-  const getMockBookings = () => [
-    {
-      id: "booking_mock_1",
-      turfId: "pitch_mock_1",
-      turfName: "The Regent's Park",
-      playerId: "player_mock_1",
-      userName: "David Okello",
-      ownerId: "owner_mock_1",
-      date: "2026-08-24",
-      time: "18:00 - 19:00",
-      status: BookingStatus.CONFIRMED,
-      price: 100000,
-      paymentStatus: "PAID" as const,
-      location: "Lugogo, Kampala",
-      image: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80"
-    },
-    {
-      id: "booking_mock_2",
-      turfId: "pitch_mock_2",
-      turfName: "Queen's Club Arena",
-      playerId: "player_mock_1",
-      userName: "David Okello",
-      ownerId: "owner_mock_2",
-      date: "2026-08-25",
-      time: "09:00 - 10:00",
-      status: BookingStatus.COMPLETED,
-      price: 150000,
-      paymentStatus: "PAID" as const,
-      location: "Naguru, Kampala",
-      image: "https://images.unsplash.com/photo-1518605368461-1ee7c68836db?auto=format&fit=crop&q=80"
-    },
-    {
-      id: "booking_mock_3",
-      turfId: "pitch_mock_3",
-      turfName: "Kensington Sports Ground",
-      playerId: "player_mock_1",
-      userName: "David Okello",
-      ownerId: "owner_mock_3",
-      date: "2026-08-10",
-      time: "15:00 - 16:00",
-      status: BookingStatus.CANCELLED,
-      price: 120000,
-      paymentStatus: "UNPAID" as const,
-      location: "Kololo, Kampala",
-      image: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80"
-    }
-  ];
+  const getMockBookings = () => {
+    const today = new Date();
+    const futureDate1 = new Date(today.getTime() + 86400000 * 2).toISOString().split("T")[0];
+    const futureDate2 = new Date(today.getTime() + 86400000 * 4).toISOString().split("T")[0];
+    const pastDate = new Date(today.getTime() - 86400000 * 3).toISOString().split("T")[0];
+    const cancelledDate = new Date(today.getTime() - 86400000 * 7).toISOString().split("T")[0];
+
+    return [
+      {
+        id: "booking_mock_1",
+        turfId: "panamera-kololo",
+        pitchId: "panamera-kololo",
+        turfName: "Panamera Sports Lounge & Turf",
+        pitchName: "Panamera Sports Lounge & Turf",
+        playerId: "player_mock_1",
+        userName: "David Okello",
+        ownerId: "owner_panamera_kololo",
+        date: futureDate1,
+        time: "18:00 - 19:00",
+        slots: ["18:00"],
+        duration: 1,
+        status: BookingStatus.CONFIRMED,
+        price: 70000,
+        totalPrice: 70000,
+        paymentStatus: "PAID" as const,
+        paymentMethod: "MTN",
+        location: "Plot 24 Saddler Way, Kololo, Kampala",
+        image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=800&q=80",
+        pitchFormat: "7-a-side AstroTurf",
+        managerName: "Denis Mukasa",
+        contactPhone: "+256 701 556 778",
+        bookingRef: "FTL-88219"
+      },
+      {
+        id: "booking_mock_2",
+        turfId: "kinetic-bugolobi",
+        pitchId: "kinetic-bugolobi",
+        turfName: "Kinetic Sports Arena",
+        pitchName: "Kinetic Sports Arena",
+        playerId: "player_mock_1",
+        userName: "David Okello",
+        ownerId: "owner_kinetic_bugolobi",
+        date: futureDate2,
+        time: "20:00 - 21:00",
+        slots: ["20:00"],
+        duration: 1,
+        status: BookingStatus.PENDING,
+        price: 80000,
+        totalPrice: 80000,
+        paymentStatus: "SUBMITTED" as const,
+        paymentMethod: "AIRTEL",
+        location: "Bandali Rise, Bugolobi, Kampala",
+        image: "https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=800&q=80",
+        pitchFormat: "5-a-side Floodlit Turf",
+        managerName: "Sarah Namubiru",
+        contactPhone: "+256 782 449 112",
+        bookingRef: "FTL-94032"
+      },
+      {
+        id: "booking_mock_3",
+        turfId: "lugogo-astroturf",
+        pitchId: "lugogo-astroturf",
+        turfName: "Lugogo AstroTurf Grounds",
+        pitchName: "Lugogo AstroTurf Grounds",
+        playerId: "player_mock_1",
+        userName: "David Okello",
+        ownerId: "owner_lugogo_grounds",
+        date: pastDate,
+        time: "16:00 - 18:00",
+        slots: ["16:00", "17:00"],
+        duration: 2,
+        status: BookingStatus.COMPLETED,
+        price: 180000,
+        totalPrice: 180000,
+        paymentStatus: "PAID" as const,
+        paymentMethod: "MTN",
+        location: "Lugogo Bypass, Kampala",
+        image: "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=800&q=80",
+        pitchFormat: "11-a-side Full Field",
+        managerName: "Coach Brian Kigozi",
+        contactPhone: "+256 752 991 304",
+        bookingRef: "FTL-71190"
+      },
+      {
+        id: "booking_mock_4",
+        turfId: "kensington-kololo",
+        pitchId: "kensington-kololo",
+        turfName: "Kensington Sports Ground",
+        pitchName: "Kensington Sports Ground",
+        playerId: "player_mock_1",
+        userName: "David Okello",
+        ownerId: "owner_kensington",
+        date: cancelledDate,
+        time: "15:00 - 16:00",
+        slots: ["15:00"],
+        duration: 1,
+        status: BookingStatus.CANCELLED,
+        price: 120000,
+        totalPrice: 120000,
+        paymentStatus: "UNPAID" as const,
+        location: "Kololo, Kampala",
+        image: "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&q=80",
+        pitchFormat: "7-a-side Natural Grass",
+        managerName: "Arthur Kasozi",
+        contactPhone: "+256 772 113 450",
+        bookingRef: "FTL-55201"
+      }
+    ];
+  };
 
   const allBookings = bookings.length > 0 ? bookings : getMockBookings();
 
   const filteredBookings = allBookings.filter((b) => {
-    const status = b.status;
+    const rawStatus = (b.status || "").toString().toUpperCase();
     if (activeTab === "upcoming") {
       return (
-        status === BookingStatus.CONFIRMED ||
-        status === BookingStatus.PENDING ||
-        status === BookingStatus.PENDING_PAYMENT ||
-        status === BookingStatus.PAYMENT_SUBMITTED
+        rawStatus === "CONFIRMED" ||
+        rawStatus === "PENDING" ||
+        rawStatus === "PENDING_PAYMENT" ||
+        rawStatus === "PAYMENT_SUBMITTED"
       );
     } else if (activeTab === "completed") {
       return (
-        status === BookingStatus.COMPLETED ||
-        status === BookingStatus.CHECKED_IN ||
-        status === BookingStatus.NO_SHOW ||
-        status === BookingStatus.DISPUTED
+        rawStatus === "COMPLETED" ||
+        rawStatus === "CHECKED_IN" ||
+        rawStatus === "NO_SHOW" ||
+        rawStatus === "DISPUTED"
       );
     } else {
-      return status === BookingStatus.CANCELLED || status === BookingStatus.REJECTED;
+      return rawStatus === "CANCELLED" || rawStatus === "REJECTED";
     }
   });
+
+  const handleChatOwner = async (b: any) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    const targetOwnerId = b.ownerId || "owner_facility_default";
+    try {
+      const convId = await chatService.getOrCreateDirectConversation(
+        user.uid,
+        targetOwnerId,
+        {
+          turfName: b.pitchName || b.turfName || "Sports Ground",
+          pitchId: b.pitchId || b.turfId,
+          participantDetails: {
+            [user.uid]: {
+              name: userProfile?.name || user.displayName || "Player",
+              avatar: user.photoURL || ""
+            },
+            [targetOwnerId]: {
+              name: b.managerName || "Pitch Manager",
+              role: "Owner"
+            }
+          }
+        }
+      );
+      navigate(`/chat/${convId}`);
+    } catch (e) {
+      console.error("Failed to start chat with owner:", e);
+    }
+  };
 
   const handleConfirmAction = async () => {
     if (!confirmModal) return;
@@ -224,37 +320,67 @@ export const Bookings: React.FC = () => {
                   </div>
 
                   <div className="flex gap-4">
-                    <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-border-subtle">
+                    <div className="w-18 h-18 rounded-2xl overflow-hidden shrink-0 border border-border-subtle bg-surface-raised shadow-xs">
                       <img 
-                        src={(b as any).image || "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80"} 
+                        src={(b as any).image || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80"} 
                         alt="Pitch"
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80";
+                        }}
                       />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <h3 className="text-text-primary font-bold text-[15px] leading-tight truncate">
-                        {(b as any).pitchName || (b as any).turfName || "Football Pitch"}
-                      </h3>
-                      <div className="flex items-center gap-1.5 text-text-secondary text-[13px] font-medium mt-1 truncate">
-                        <MapPin size={14} className="text-[#71717A] shrink-0" />
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-text-primary font-extrabold text-[15px] leading-tight truncate">
+                          {(b as any).pitchName || (b as any).turfName || "Football Pitch"}
+                        </h3>
+                        <span className="shrink-0 text-[10px] font-mono font-bold text-text-tertiary bg-surface-raised px-1.5 py-0.5 rounded border border-border-subtle">
+                          #{(b.id || "").slice(-6).toUpperCase()}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-1.5 text-text-secondary text-xs font-medium mt-1 truncate">
+                        <MapPin size={13} className="text-primary-lime shrink-0" />
                         <span className="truncate">{(b as any).location || "Kampala, Uganda"}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold text-text-secondary bg-surface-raised px-2 py-0.5 rounded-md border border-border-subtle">
+                          {(b as any).pitchFormat || (b as any).type || "7-a-side AstroTurf"}
+                        </span>
+                        {(b as any).managerName && (
+                          <span className="text-[10px] font-medium text-text-tertiary">
+                            Manager: <strong className="text-text-secondary font-semibold">{(b as any).managerName}</strong>
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-border-subtle flex items-center justify-end gap-2">
+                  <div className="pt-3 border-t border-border-subtle flex items-center justify-end gap-2 flex-wrap">
                     <button 
                       onClick={() => setActiveReportMenu(activeReportMenu === b.id ? null : b.id)}
-                      className="px-3 py-2 rounded-xl bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-secondary text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer mr-auto"
+                      className="px-2.5 py-1.5 rounded-xl bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-tertiary hover:text-text-secondary text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer mr-auto"
                     >
-                      <ShieldAlert size={14} />
-                      Report
+                      <ShieldAlert size={13} />
+                      <span>Report</span>
                     </button>
+
+                    <button
+                      onClick={() => handleChatOwner(b)}
+                      className="px-3 py-1.5 rounded-xl bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-primary text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95"
+                      title="Chat with Pitch Owner/Manager"
+                    >
+                      <MessageSquare size={13} className="text-primary-lime" />
+                      <span>Chat Host</span>
+                    </button>
+
                     {activeTab === "upcoming" && (
                       <>
                         <button
                           disabled={actionLoadingId === b.id}
-                          className="px-3 py-2 rounded-xl bg-surface-raised hover:bg-[#EF4444]/20 hover:text-[#EF4444] border border-border-subtle text-text-secondary text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                          className="px-3 py-1.5 rounded-xl bg-surface-raised hover:bg-[#EF4444]/20 hover:text-[#EF4444] border border-border-subtle text-text-secondary text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                           onClick={() => {
                             setConfirmModal({
                               bookingId: b.id,
@@ -270,10 +396,11 @@ export const Bookings: React.FC = () => {
                           <span>Cancel</span>
                         </button>
                         <button
-                          className="px-4 py-2 rounded-xl bg-primary-lime hover:bg-[#96E600] text-accent-text text-xs font-bold transition-all cursor-pointer"
+                          className="px-4 py-1.5 rounded-xl bg-primary-lime hover:bg-[#96E600] text-accent-text text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
                           onClick={() => navigate(`/booking-confirmation/${b.id}`)}
                         >
-                          View Pass
+                          <QrCode size={13} />
+                          <span>View Pass</span>
                         </button>
                       </>
                     )}

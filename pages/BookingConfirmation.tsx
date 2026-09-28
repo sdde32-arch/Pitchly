@@ -4,7 +4,8 @@ import { Layout } from "../components/Layout";
 import { useBooking } from "../context/BookingContext";
 import { bookingService } from "../services/bookingService";
 import { pitchService } from "../services/pitchService";
-import { Turf } from "../types";
+import { Turf, BookingStatus } from "../types";
+import { TURFS } from "../constants";
 import { formatBookingDate } from "../lib/dateUtils";
 import { 
   Check, 
@@ -42,9 +43,62 @@ export const BookingConfirmation: React.FC = () => {
           foundBooking = await bookingService.getById(id);
         }
         
+        // Check for mock booking fallback
+        if (!foundBooking) {
+          if (id === "booking_mock_1" || id.startsWith("booking_mock_")) {
+            foundBooking = {
+              id: id,
+              turfId: "panamera-kololo",
+              pitchId: "panamera-kololo",
+              turfName: "Panamera Sports Lounge & Turf",
+              pitchName: "Panamera Sports Lounge & Turf",
+              playerId: "player_mock_1",
+              userName: "David Okello",
+              ownerId: "owner_panamera_kololo",
+              date: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
+              time: "18:00 - 19:00",
+              slots: ["18:00"],
+              duration: 1,
+              status: BookingStatus.CONFIRMED,
+              price: 70000,
+              totalPrice: 70000,
+              paymentStatus: "PAID",
+              paymentMethod: "MTN",
+              location: "Plot 24 Saddler Way, Kololo, Kampala",
+              image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80",
+              pitchFormat: "7-a-side AstroTurf",
+              bookingRef: "FTL-88219"
+            };
+          }
+        }
+        
         if (foundBooking) {
           setBooking(foundBooking);
-          const foundTurf = await pitchService.getById((foundBooking as any).pitchId || foundBooking.turfId);
+          const pitchIdToLook = (foundBooking as any).pitchId || foundBooking.turfId;
+          let foundTurf: any = null;
+          if (pitchIdToLook) {
+            try {
+              foundTurf = await pitchService.getById(pitchIdToLook);
+            } catch (pErr) {
+              console.warn("Could not fetch pitch from service", pErr);
+            }
+            if (!foundTurf) {
+              foundTurf = TURFS.find(t => t.id === pitchIdToLook);
+            }
+          }
+          // If still not found, construct a valid Turf object directly from the booking record
+          if (!foundTurf) {
+            foundTurf = {
+              id: pitchIdToLook || "pitch_confirmed",
+              name: foundBooking.turfName || foundBooking.pitchName || "Sports Arena Turf",
+              location: foundBooking.location || "Kampala, Uganda",
+              fullAddress: foundBooking.location || "Kampala, Uganda",
+              pricePerHour: foundBooking.price || 70000,
+              image: foundBooking.image || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80",
+              pitchFormats: [foundBooking.pitchFormat || "7-a-side AstroTurf"],
+              contactPhone: foundBooking.contactPhone || "+256 701 556 778"
+            };
+          }
           setTurf(foundTurf as any);
         }
       } catch (error) {

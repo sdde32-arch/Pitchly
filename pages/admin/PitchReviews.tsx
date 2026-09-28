@@ -178,7 +178,7 @@ export const PitchReviews: React.FC = () => {
     }
   };
 
-  if (!isAdmin) return null;
+  // Admin checked via RouteGuards
 
   return (
     <div className="p-2 sm:p-4 max-w-7xl mx-auto space-y-6 pb-24 font-sans text-text-primary">

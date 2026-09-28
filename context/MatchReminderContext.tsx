@@ -66,9 +66,13 @@ export const MatchReminderProvider: React.FC<{ children: React.ReactNode }> = ({
   const { user } = useUser();
   const [activeToast, setActiveToast] = useState<MatchReminderAlert | null>(null);
   const [upcoming1HrMatches, setUpcoming1HrMatches] = useState<MatchReminderAlert[]>([]);
-  const [hasBrowserPermission, setHasBrowserPermission] = useState<boolean>(
-    typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted'
-  );
+  const [hasBrowserPermission, setHasBrowserPermission] = useState<boolean>(() => {
+    try {
+      return typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted';
+    } catch (e) {
+      return false;
+    }
+  });
   const notifiedIds = useRef<Set<string>>(new Set());
 
   // Load previously notified IDs from localStorage
@@ -104,7 +108,11 @@ export const MatchReminderProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const triggerBrowserNotification = useCallback((alertItem: MatchReminderAlert) => {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
-    if (Notification.permission !== 'granted') return;
+    try {
+      if (Notification.permission !== 'granted') return;
+    } catch {
+      return;
+    }
 
     try {
       const minsText = alertItem.minutesLeft > 0 ? `in ~${alertItem.minutesLeft} minutes` : 'in 1 hour';
@@ -228,8 +236,12 @@ export const MatchReminderProvider: React.FC<{ children: React.ReactNode }> = ({
       navigator.vibrate([100, 50, 100]);
     }
 
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      triggerBrowserNotification(testAlert);
+    try {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        triggerBrowserNotification(testAlert);
+      }
+    } catch {
+      // Ignore notification permission errors in iframes
     }
   }, [triggerBrowserNotification]);
 

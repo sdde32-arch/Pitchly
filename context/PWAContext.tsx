@@ -24,15 +24,29 @@ export const PWAProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [showIOSGuide, setShowIOSGuide] = useState<boolean>(false);
 
   useEffect(() => {
-    // Detect standalone display mode (already installed on homescreen)
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+    // Safely detect standalone display mode (already installed on homescreen)
+    let isStandalone = false;
+    try {
+      if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+        isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      }
+      if (!isStandalone && typeof window !== 'undefined') {
+        isStandalone = (window.navigator as unknown as { standalone?: boolean })?.standalone === true;
+      }
+    } catch (e) {
+      // Safe fallback in restricted iframe/browser environments
+      isStandalone = false;
+    }
     setIsInstalled(isStandalone);
 
     // Detect iOS devices
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIOSDevice = /iphone|ipad|ipod/.test(userAgent) && !(window as any).MSStream;
+    let isIOSDevice = false;
+    try {
+      const userAgent = (typeof window !== 'undefined' && window.navigator ? window.navigator.userAgent : '').toLowerCase();
+      isIOSDevice = /iphone|ipad|ipod/.test(userAgent) && !(window as any).MSStream;
+    } catch (e) {
+      isIOSDevice = false;
+    }
     setIsIOS(isIOSDevice);
 
     const handler = (e: Event) => {

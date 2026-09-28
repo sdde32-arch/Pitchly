@@ -18,27 +18,41 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    return (localStorage.getItem('theme') as Theme) || 'dark';
+    try {
+      return (localStorage.getItem('theme') as Theme) || 'dark';
+    } catch {
+      return 'dark';
+    }
   });
 
   const [isEcoMode, setIsEcoMode] = useState<boolean>(() => {
-    return localStorage.getItem('ecoMode') === 'true';
+    try {
+      return localStorage.getItem('ecoMode') === 'true';
+    } catch {
+      return false;
+    }
   });
 
   useEffect(() => {
-    const root = window.document.documentElement;
-    if (theme === 'light') {
-      root.classList.add('light');
-      root.classList.remove('dark');
-    } else {
-      root.classList.add('dark');
-      root.classList.remove('light');
+    try {
+      const root = window.document.documentElement;
+      if (theme === 'light') {
+        root.classList.add('light');
+        root.classList.remove('dark');
+      } else {
+        root.classList.add('dark');
+        root.classList.remove('light');
+      }
+      localStorage.setItem('theme', theme);
+    } catch (e) {
+      console.warn('Theme save error:', e);
     }
-    localStorage.setItem('theme', theme);
   }, [theme]);
 
   useEffect(() => {
-    localStorage.setItem('ecoMode', String(isEcoMode));
+    try {
+      localStorage.setItem('ecoMode', String(isEcoMode));
+    } catch (e) {}
   }, [isEcoMode]);
 
   const toggleTheme = () => {

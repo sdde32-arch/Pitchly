@@ -5,6 +5,7 @@ import { BookingManager } from "../components/owner/BookingManager";
 import { FinanceManager } from "../components/owner/FinanceManager";
 import { BusinessSettings } from "../components/owner/BusinessSettings";
 import { StaffManager } from "../components/owner/StaffManager";
+import { OwnerInbox } from "../components/owner/OwnerInbox";
 import { useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -13,6 +14,7 @@ import {
   Wallet, 
   Settings, 
   Users,
+  MessageSquare,
   Plus,
   Compass
 } from "lucide-react";
@@ -45,6 +47,7 @@ export const OwnerDashboard: React.FC = () => {
   const navTabs = [
     { id: "Dashboard", label: "Overview", icon: LayoutDashboard },
     { id: "Bookings", label: "Bookings", icon: CalendarCheck },
+    { id: "Messages", label: "Messages", icon: MessageSquare },
     { id: "Facilities", label: "Facilities", icon: Building2 },
     { id: "Finances", label: "Finances", icon: Wallet },
     { id: "Staff", label: "Staff", icon: Users },
@@ -61,6 +64,11 @@ export const OwnerDashboard: React.FC = () => {
       label: "Bookings",
       title: "Match Bookings & Approvals",
       desc: "Manage player match requests, confirm slots, and handle check-ins."
+    },
+    Messages: {
+      label: "Messages",
+      title: "Player Inquiries & Pitch Inbox",
+      desc: "Chat directly with players asking about pitch availability and bookings."
     },
     Facilities: {
       label: "Facilities",
@@ -92,6 +100,8 @@ export const OwnerDashboard: React.FC = () => {
         return <OwnerOverview />;
       case "Bookings":
         return <BookingManager />;
+      case "Messages":
+        return <OwnerInbox />;
       case "Finances":
         return <FinanceManager />;
       case "Staff":

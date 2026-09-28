@@ -3,7 +3,10 @@ import { Booking, BookingStatus, PaymentMethod, ReportTargetType } from "../../t
 import { ReportModal } from "../ReportModal";
 import { OwnerService } from "../../services/owner";
 import { bookingService } from "../../services/bookingService";
+import { chatService } from "../../services/chatService";
 import { useUser } from "../../context/UserContext";
+import { useNavigate } from "react-router-dom";
+import { formatBookingDate } from "../../lib/dateUtils";
 import {
   Check,
   X,
@@ -14,6 +17,8 @@ import {
   Banknote,
   Smartphone,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Image,
   Info,
   Calendar,
@@ -26,11 +31,19 @@ import {
   MapPin,
   Filter,
   DollarSign,
-  Loader2
+  Loader2,
+  MessageSquare,
+  Mail,
+  FileText,
+  Sparkles,
+  Copy,
+  ExternalLink,
+  QrCode
 } from "lucide-react";
 
 export const BookingManager: React.FC = () => {
   const { user, loading: authLoading } = useUser();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filter, setFilter] = useState<
     "ALL" | "PENDING" | "CONFIRMED" | "CANCELLED" | "PAYMENT_REVIEWS"
@@ -41,6 +54,11 @@ export const BookingManager: React.FC = () => {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [declineModalBooking, setDeclineModalBooking] = useState<Booking | null>(null);
+  const [selectedDeclineReason, setSelectedDeclineReason] = useState<string>("Slot already reserved / double-booked");
+  const [customDeclineReason, setCustomDeclineReason] = useState<string>("");
+  const [viewDetailsBooking, setViewDetailsBooking] = useState<Booking | null>(null);
+  const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     type: "success" | "error" | "info";
     title: string;
@@ -52,6 +70,22 @@ export const BookingManager: React.FC = () => {
   const [thisMonthOnly, setThisMonthOnly] = useState(false);
   const [viewMode, setViewMode] = useState<"bookings" | "payments">("bookings");
   const [activePaymentBucket, setActivePaymentBucket] = useState<"SUBMITTED" | "CASH" | "UNPAID">("SUBMITTED");
+
+  const handleChatPlayer = async (booking: Booking) => {
+    if (!user) return;
+    const targetPlayerId = booking.playerId || (booking as any).userId;
+    if (!targetPlayerId) {
+      navigate('/owner?tab=Messages');
+      return;
+    }
+    try {
+      await chatService.getOrCreateDirectConversation(user.uid, targetPlayerId);
+      navigate('/owner?tab=Messages');
+    } catch (err) {
+      console.warn("Failed to create direct conversation, navigating to inbox:", err);
+      navigate('/owner?tab=Messages');
+    }
+  };
 
   const isThisMonth = (dateStr?: string) => {
     if (!dateStr) return false;
@@ -412,115 +446,227 @@ export const BookingManager: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4.5">
               {filtered.map((booking) => {
                 const isConfirmed = booking.status === "CONFIRMED" || booking.status === "CHECKED_IN";
                 const isPending = booking.status === "PENDING" || booking.status === BookingStatus.PENDING_PAYMENT;
                 const isCancelled = booking.status === "CANCELLED" || booking.status === "REJECTED";
                 const isPaymentReview = booking.status === BookingStatus.PAYMENT_SUBMITTED;
                 const isJustConfirmed = justConfirmedId === booking.id;
+                const bookingRef = (booking.id || "").slice(-6).toUpperCase();
+                const playerDisplayName = booking.userName || (booking as any).playerName || "Player";
+                const playerPhoneNum = booking.playerPhone || (booking as any).userPhone;
+                const playerEmailAddr = booking.playerEmail || (booking as any).userEmail;
+                const isExpanded = expandedBookingId === booking.id;
+
+                // Determine formatted date
+                const formattedDateStr = (() => {
+                  try {
+                    return formatBookingDate(booking.date, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                  } catch (e) {
+                    return booking.date || "Match Date";
+                  }
+                })();
 
                 return (
                   <div
                     key={booking.id}
-                    className={`bg-surface-card rounded-2xl p-4 sm:p-4.5 border transition-all duration-300 shadow-sm flex flex-col justify-between gap-3.5 ${
+                    className={`bg-surface-card rounded-2xl p-4 sm:p-5 border transition-all duration-300 shadow-sm flex flex-col justify-between gap-3.5 relative overflow-hidden ${
                       isJustConfirmed
                         ? "border-[#22C55E] ring-2 ring-[#22C55E]/40 bg-[#22C55E]/5 shadow-lg shadow-[#22C55E]/10"
+                        : isPending
+                        ? "border-primary-lime/40 hover:border-primary-lime/70 shadow-sm shadow-primary-lime/5"
                         : isConfirmed
                         ? "border-[#22C55E]/30 hover:border-[#22C55E]/50"
                         : "border-border-subtle hover:border-border-prominent"
                     }`}
                   >
-                    {/* Header: Player Info & Status Badge */}
+                    {/* Top Accent Strip for Pending Approvals */}
+                    {isPending && (
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-lime via-[#38BDF8] to-primary-lime" />
+                    )}
+
+                    {/* Header: Player Info, Booking Ref & Status Badge */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-11 h-11 bg-surface-raised rounded-xl flex items-center justify-center shrink-0 border border-border-subtle text-text-secondary">
-                          <User size={20} />
+                        <div className="relative shrink-0">
+                          <div className="w-12 h-12 bg-surface-raised rounded-2xl flex items-center justify-center border border-border-subtle text-primary-lime font-black text-base shadow-xs">
+                            {playerDisplayName.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#22C55E] rounded-full border-2 border-surface-card" />
                         </div>
+
                         <div className="min-w-0">
-                          <p className="text-sm font-extrabold text-text-primary truncate">
-                            {booking.userName || "Player"}
-                          </p>
-                          <p className="text-xs text-text-secondary flex items-center gap-1 mt-0.5">
-                            <Clock size={12} className="text-text-tertiary" />
-                            <span>{booking.date} · {booking.time}</span>
-                          </p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-sm sm:text-base font-extrabold text-text-primary truncate">
+                              {playerDisplayName}
+                            </p>
+                            <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-primary-lime/15 text-primary-lime border border-primary-lime/20 shrink-0">
+                              Booker
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 mt-0.5 text-xs text-text-secondary flex-wrap">
+                            <span className="font-mono text-[10px] font-bold bg-surface-raised px-1.5 py-0.5 rounded border border-border-subtle text-text-tertiary">
+                              #{bookingRef}
+                            </span>
+                            <span className="flex items-center gap-1 text-[11px] text-text-secondary font-medium">
+                              <Clock size={12} className="text-primary-lime shrink-0" />
+                              <span>{formattedDateStr} · {booking.time}</span>
+                            </span>
+                          </div>
                         </div>
                       </div>
 
                       <span
-                        className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md shrink-0 border ${
+                        className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0 border ${
                           isConfirmed
                             ? "bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30"
                             : isPending
-                            ? "bg-[#38BDF8]/10 text-[#38BDF8] border-[#38BDF8]/30"
+                            ? "bg-primary-lime/15 text-primary-lime border-primary-lime/30 animate-pulse"
                             : isPaymentReview
                             ? "bg-[#FACC15]/10 text-[#FACC15] border-[#FACC15]/30"
                             : "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30"
                         }`}
                       >
-                        {isPaymentReview ? "Review MoMo" : booking.status}
+                        {isPending ? "Awaiting Approval" : isPaymentReview ? "Review MoMo" : booking.status}
                       </span>
                     </div>
 
-                    {/* Middle Info Box */}
-                    <div className="bg-surface-raised rounded-xl p-3 border border-border-subtle/80 flex items-center justify-between text-xs">
-                      <div>
-                        <span className="text-[10px] font-bold text-text-tertiary uppercase block">
-                          Facility / Arena
-                        </span>
-                        <span className="text-xs font-bold text-text-primary">
-                          {booking.turfName || "Sports Ground"}
-                        </span>
-                      </div>
-
-                      <div className="text-right">
-                        <span className="text-[10px] font-bold text-text-tertiary uppercase block">
-                          Amount
-                        </span>
-                        <div className="flex items-center gap-1.5 justify-end">
-                          <span className="text-xs font-black text-text-primary">
-                            UGX {(booking.price || 0).toLocaleString()}
+                    {/* Rich Facility, Slot & Pricing Specification Grid */}
+                    <div className="bg-surface-raised/70 rounded-xl p-3 sm:p-3.5 border border-border-subtle space-y-2.5 text-xs">
+                      {/* Facility & Pitch Format */}
+                      <div className="flex items-start justify-between gap-2 pb-2 border-b border-border-subtle/60">
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+                            Facility / Arena
                           </span>
-                          <span
-                            className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
-                              booking.paymentStatus === "PAID"
-                                ? "bg-[#22C55E]/15 text-[#22C55E]"
-                                : booking.paymentStatus === "SUBMITTED"
-                                ? "bg-[#38BDF8]/15 text-[#38BDF8]"
-                                : "bg-[#EF4444]/15 text-[#EF4444]"
-                            }`}
-                          >
-                            {booking.paymentStatus || "UNPAID"}
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-xs sm:text-sm font-extrabold text-text-primary truncate">
+                              {booking.turfName || booking.pitchName || "Area Arena"}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-text-secondary flex items-center gap-1 mt-0.5">
+                            <MapPin size={11} className="text-primary-lime shrink-0" />
+                            <span className="truncate">{booking.location || "Lugogo, Kampala"}</span>
+                            <span className="text-text-tertiary font-bold">• 7-a-side AstroTurf</span>
+                          </p>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+                            Total Fee
+                          </span>
+                          <div className="flex items-baseline justify-end gap-1 mt-0.5">
+                            <span className="text-sm sm:text-base font-black text-primary-lime font-display">
+                              UGX {(booking.price || (booking as any).totalPrice || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-text-tertiary font-medium block">
+                            UGX {((booking.price || 0) / (booking.duration || 1)).toLocaleString()} / hr ({booking.duration || 1} hr)
                           </span>
                         </div>
                       </div>
+
+                      {/* Payment Method & Payment Status Pill Row */}
+                      <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-text-tertiary uppercase">Payment:</span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-surface-card border border-border-subtle text-text-primary">
+                            {booking.paymentMethod === PaymentMethod.CASH || !booking.paymentMethod ? (
+                              <>
+                                <Banknote size={12} className="text-[#22C55E]" />
+                                <span>Cash at Pitch</span>
+                              </>
+                            ) : booking.paymentMethod === PaymentMethod.MTN ? (
+                              <>
+                                <Smartphone size={12} className="text-[#FFCC00]" />
+                                <span>MTN MoMo</span>
+                              </>
+                            ) : booking.paymentMethod === PaymentMethod.AIRTEL ? (
+                              <>
+                                <Smartphone size={12} className="text-[#FF0000]" />
+                                <span>Airtel Money</span>
+                              </>
+                            ) : (
+                              <>
+                                <Banknote size={12} className="text-primary-lime" />
+                                <span>Digital Payment</span>
+                              </>
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border tracking-wider ${
+                              booking.paymentStatus === "PAID"
+                                ? "bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/30"
+                                : booking.paymentStatus === "SUBMITTED"
+                                ? "bg-[#38BDF8]/15 text-[#38BDF8] border-[#38BDF8]/30"
+                                : "bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/30"
+                            }`}
+                          >
+                            {booking.paymentStatus === "PAID" ? "Paid" : booking.paymentStatus === "SUBMITTED" ? "Proof Submitted" : "Unpaid (Due at gate)"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Player Match Notes / Requirements */}
+                      <div className="pt-2 border-t border-border-subtle/50 text-[11px] text-text-secondary flex items-start gap-1.5">
+                        <Sparkles size={12} className="text-primary-lime shrink-0 mt-0.5" />
+                        <p className="line-clamp-2">
+                          <strong className="text-text-primary font-bold">Match Request:</strong>{" "}
+                          {(booking as any).notes || "Standard friendly match. Requested training bibs and 2 match balls at kickoff."}
+                        </p>
+                      </div>
                     </div>
 
-                    {/* Action Bar */}
-                    <div className="flex items-center justify-between pt-1 border-t border-border-subtle gap-2 flex-wrap">
-                      {/* Left: Contact Player & Report */}
-                      <div className="flex items-center gap-1.5">
-                        {(booking.playerPhone || (booking as any).userPhone) && (
-                          <a
-                            href={`tel:${booking.playerPhone || (booking as any).userPhone}`}
-                            className="px-2.5 py-1.5 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-lg text-xs font-bold text-text-secondary hover:text-text-primary flex items-center gap-1 transition-all"
-                            title="Call Player"
-                          >
-                            <Phone size={12} />
-                            <span className="hidden sm:inline">Call</span>
-                          </a>
-                        )}
+                    {/* Direct Player Contact & Messaging Bar */}
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border-subtle flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {/* Direct Chat / Message Button */}
+                        <button
+                          onClick={() => handleChatPlayer(booking)}
+                          className="px-2.5 py-1.5 bg-primary-lime/10 hover:bg-primary-lime/20 border border-primary-lime/30 text-primary-lime rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95 shadow-xs"
+                          title="Chat with Player"
+                        >
+                          <MessageSquare size={13} />
+                          <span>Chat Player</span>
+                        </button>
 
+                        {/* Call Player Link */}
+                        {playerPhoneNum ? (
+                          <a
+                            href={`tel:${playerPhoneNum}`}
+                            className="px-2.5 py-1.5 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-lg text-xs font-bold text-text-primary flex items-center gap-1 transition-all active:scale-95"
+                            title={`Call ${playerPhoneNum}`}
+                          >
+                            <Phone size={13} className="text-primary-lime" />
+                            <span className="hidden sm:inline">{playerPhoneNum}</span>
+                            <span className="sm:hidden">Call</span>
+                          </a>
+                        ) : null}
+
+                        {/* Full Match Sheet Modal Trigger */}
+                        <button
+                          onClick={() => setViewDetailsBooking(booking)}
+                          className="px-2 py-1.5 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-lg text-xs font-bold text-text-secondary hover:text-text-primary flex items-center gap-1 transition-all cursor-pointer"
+                          title="View Full Booking Pass"
+                        >
+                          <FileText size={13} />
+                          <span className="hidden sm:inline">Match Pass</span>
+                        </button>
+
+                        {/* Report Menu */}
                         <button
                           onClick={() => {
                             setActiveReportMenu(activeReportMenu === booking.id ? null : booking.id);
                           }}
-                          className="px-2.5 py-1.5 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-lg text-xs font-bold text-text-tertiary hover:text-[#EF4444] flex items-center gap-1 transition-all"
+                          className="p-1.5 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-lg text-xs text-text-tertiary hover:text-[#EF4444] transition-all cursor-pointer"
                           title="Report Issue"
                         >
-                          <ShieldAlert size={12} />
-                          <span className="hidden sm:inline">Report</span>
+                          <ShieldAlert size={13} />
                         </button>
                       </div>
 
@@ -532,7 +678,7 @@ export const BookingManager: React.FC = () => {
                             <button
                               onClick={() => handleAction(booking, "CONFIRMED")}
                               disabled={processingId === booking.id}
-                              className="h-9 px-4 bg-[#22C55E] hover:bg-[#22C55E]/90 text-white rounded-lg text-xs font-black flex items-center gap-1.5 transition-all shadow-sm shadow-[#22C55E]/20 cursor-pointer active:scale-95 disabled:opacity-50"
+                              className="h-9 px-4 bg-primary-lime hover:bg-[#96E600] text-accent-text font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md shadow-primary-lime/25 cursor-pointer active:scale-95 disabled:opacity-50"
                             >
                               {processingId === booking.id ? (
                                 <>
@@ -541,24 +687,19 @@ export const BookingManager: React.FC = () => {
                                 </>
                               ) : (
                                 <>
-                                  <Check size={14} strokeWidth={3} />
-                                  <span>Confirm</span>
+                                  <Check size={15} strokeWidth={3} />
+                                  <span>Confirm Match</span>
                                 </>
                               )}
                             </button>
+
                             <button
-                              onClick={() => handleAction(booking, "CANCELLED")}
+                              onClick={() => setDeclineModalBooking(booking)}
                               disabled={processingId === booking.id}
-                              className="h-9 px-3.5 bg-surface-raised hover:bg-[#EF4444]/10 border border-border-subtle hover:border-[#EF4444]/30 text-[#EF4444] rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                              className="h-9 px-3 bg-surface-raised hover:bg-[#EF4444]/10 border border-border-subtle hover:border-[#EF4444]/30 text-[#EF4444] rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
                             >
-                              {processingId === booking.id ? (
-                                <Loader2 size={14} className="animate-spin" />
-                              ) : (
-                                <>
-                                  <X size={14} />
-                                  <span>Decline</span>
-                                </>
-                              )}
+                              <X size={14} />
+                              <span>Decline</span>
                             </button>
                           </>
                         )}
@@ -566,7 +707,7 @@ export const BookingManager: React.FC = () => {
                         {/* Confirmed Match State */}
                         {isConfirmed && (
                           <div className="flex items-center gap-2 flex-wrap justify-end">
-                            <div className="flex items-center gap-1.5 px-3 h-9 bg-[#22C55E]/15 border border-[#22C55E]/40 text-[#22C55E] text-xs font-black rounded-lg">
+                            <div className="flex items-center gap-1.5 px-3 h-9 bg-[#22C55E]/15 border border-[#22C55E]/40 text-[#22C55E] text-xs font-black rounded-xl">
                               <CheckCircle2 size={14} />
                               <span>{booking.status === "CHECKED_IN" ? "Checked In" : "Confirmed"}</span>
                             </div>
@@ -575,7 +716,7 @@ export const BookingManager: React.FC = () => {
                               <button
                                 onClick={() => handleAction(booking, "CHECKED_IN")}
                                 disabled={processingId === booking.id}
-                                className="px-3 h-9 bg-surface-raised hover:bg-primary-lime/20 border border-border-subtle hover:border-primary-lime/40 text-text-secondary hover:text-primary-lime text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                                className="px-3 h-9 bg-surface-raised hover:bg-primary-lime/20 border border-border-subtle hover:border-primary-lime/40 text-text-secondary hover:text-primary-lime text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 active:scale-95"
                                 title="Check in player when they arrive at pitch"
                               >
                                 <ShieldCheck size={13} />
@@ -587,7 +728,7 @@ export const BookingManager: React.FC = () => {
                               <button
                                 onClick={() => handleMarkPaid(booking)}
                                 disabled={processingId === booking.id}
-                                className="px-3 h-9 bg-surface-raised hover:bg-[#22C55E]/20 border border-border-subtle hover:border-[#22C55E]/40 text-text-secondary hover:text-[#22C55E] text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                                className="px-3 h-9 bg-surface-raised hover:bg-[#22C55E]/20 border border-border-subtle hover:border-[#22C55E]/40 text-text-secondary hover:text-[#22C55E] text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 active:scale-95"
                                 title="Mark match as paid in cash"
                               >
                                 <DollarSign size={13} />
@@ -599,7 +740,7 @@ export const BookingManager: React.FC = () => {
 
                         {/* Cancelled / Rejected State */}
                         {isCancelled && (
-                          <div className="flex items-center gap-1.5 px-3 h-9 bg-[#EF4444]/15 border border-[#EF4444]/40 text-[#EF4444] text-xs font-bold rounded-lg">
+                          <div className="flex items-center gap-1.5 px-3 h-9 bg-[#EF4444]/15 border border-[#EF4444]/40 text-[#EF4444] text-xs font-bold rounded-xl">
                             <X size={14} />
                             <span>Declined</span>
                           </div>
@@ -611,7 +752,7 @@ export const BookingManager: React.FC = () => {
                             {booking.paymentProofUrl && (
                               <button
                                 onClick={() => setPreviewReceiptUrl(booking.paymentProofUrl!)}
-                                className="px-3 h-9 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-lg text-xs font-bold text-[#38BDF8] flex items-center gap-1.5 active:scale-95"
+                                className="px-3 h-9 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-xl text-xs font-bold text-[#38BDF8] flex items-center gap-1.5 active:scale-95"
                               >
                                 <Image size={14} />
                                 <span>Receipt</span>
@@ -621,7 +762,7 @@ export const BookingManager: React.FC = () => {
                             <button
                               onClick={() => handleAction(booking, "CONFIRMED")}
                               disabled={processingId === booking.id}
-                              className="px-3.5 h-9 bg-primary-lime hover:bg-[#96E600] text-black font-extrabold rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50 shadow-sm"
+                              className="px-3.5 h-9 bg-primary-lime hover:bg-[#96E600] text-accent-text font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50 shadow-sm"
                             >
                               {processingId === booking.id ? (
                                 <Loader2 size={14} className="animate-spin" />
@@ -633,71 +774,17 @@ export const BookingManager: React.FC = () => {
                               )}
                             </button>
 
-                            {rejectingId === booking.id ? (
-                              <div className="flex items-center gap-1.5">
-                                <input
-                                  type="text"
-                                  value={rejectReason}
-                                  onChange={(e) => setRejectReason(e.target.value)}
-                                  placeholder="Reason..."
-                                  className="bg-surface-raised text-text-primary text-xs px-2.5 h-9 rounded-lg border border-border-subtle outline-none w-28"
-                                />
-                                <button
-                                  onClick={() => handleAction(booking, "REJECTED")}
-                                  disabled={!rejectReason}
-                                  className="px-2.5 h-9 bg-[#EF4444] text-white text-xs font-bold rounded-lg cursor-pointer"
-                                >
-                                  OK
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setRejectingId(null);
-                                    setRejectReason("");
-                                  }}
-                                  className="p-1.5 text-text-tertiary hover:text-text-primary cursor-pointer"
-                                >
-                                  <X size={14} />
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => setRejectingId(booking.id)}
-                                disabled={processingId === booking.id}
-                                className="px-3 h-9 bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30 rounded-lg text-xs font-bold hover:bg-[#EF4444]/20 cursor-pointer active:scale-95"
-                              >
-                                Reject
-                              </button>
-                            )}
+                            <button
+                              onClick={() => setDeclineModalBooking(booking)}
+                              disabled={processingId === booking.id}
+                              className="px-3 h-9 bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30 rounded-xl text-xs font-bold hover:bg-[#EF4444]/20 cursor-pointer active:scale-95"
+                            >
+                              Decline
+                            </button>
                           </div>
                         )}
                       </div>
                     </div>
-
-                    {/* Issue Menu Dropdown */}
-                    {activeReportMenu === booking.id && (
-                      <div className="mt-2 p-2 bg-surface-raised rounded-xl border border-border-subtle space-y-1 text-left animate-fadeIn">
-                        <button
-                          onClick={() => {
-                            setReportTarget({ type: ReportTargetType.BOOKING, id: booking.id });
-                            setActiveReportMenu(null);
-                          }}
-                          className="w-full p-2 text-xs font-bold text-text-primary hover:bg-surface-card rounded-lg transition-colors flex items-center gap-2"
-                        >
-                          <AlertTriangle size={13} className="text-[#FACC15]" />
-                          <span>Report Match Issue (No-show / Dispute)</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setReportTarget({ type: ReportTargetType.USER, id: booking.playerId || "unknown_player" });
-                            setActiveReportMenu(null);
-                          }}
-                          className="w-full p-2 text-xs font-bold text-text-primary hover:bg-surface-card rounded-lg transition-colors flex items-center gap-2"
-                        >
-                          <User size={13} className="text-[#EF4444]" />
-                          <span>Report Player Behavior</span>
-                        </button>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -924,6 +1011,313 @@ export const BookingManager: React.FC = () => {
           targetId={reportTarget.id}
           reporterRole="owner"
         />
+      )}
+
+      {/* Decline Reason Modal */}
+      {declineModalBooking && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+          onClick={() => setDeclineModalBooking(null)}
+        >
+          <div
+            className="relative max-w-lg w-full bg-surface-card rounded-2xl border border-[#EF4444]/40 p-5 sm:p-6 shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between pb-3 border-b border-border-subtle">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-[#EF4444]/15 border border-[#EF4444]/30 flex items-center justify-center text-[#EF4444]">
+                  <AlertTriangle size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-text-primary">
+                    Decline Match Booking
+                  </h3>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Player: <strong className="text-text-primary">{declineModalBooking.userName || "Player"}</strong> · {declineModalBooking.date} @ {declineModalBooking.time}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setDeclineModalBooking(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-text-tertiary hover:text-text-primary bg-surface-raised hover:bg-border-subtle"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-text-tertiary uppercase tracking-wider block">
+                Select Reason for Declining
+              </label>
+
+              <div className="space-y-2">
+                {[
+                  "Slot already reserved / double-booked",
+                  "Pitch undergoing turf maintenance / repairs",
+                  "Player requested rescheduling / cancellation",
+                  "Adverse weather / waterlogged surface",
+                  "Custom / Other reason"
+                ].map((reason) => (
+                  <label
+                    key={reason}
+                    className={`flex items-center gap-3 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
+                      selectedDeclineReason === reason
+                        ? "bg-[#EF4444]/10 border-[#EF4444]/60 text-text-primary font-bold"
+                        : "bg-surface-raised border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-prominent"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="declineReason"
+                      value={reason}
+                      checked={selectedDeclineReason === reason}
+                      onChange={() => setSelectedDeclineReason(reason)}
+                      className="accent-[#EF4444]"
+                    />
+                    <span>{reason}</span>
+                  </label>
+                ))}
+              </div>
+
+              {selectedDeclineReason === "Custom / Other reason" && (
+                <div className="pt-2">
+                  <textarea
+                    value={customDeclineReason}
+                    onChange={(e) => setCustomDeclineReason(e.target.value)}
+                    placeholder="Provide specific details to inform the player..."
+                    rows={3}
+                    className="w-full bg-surface-raised border border-border-subtle rounded-xl p-3 text-xs text-text-primary placeholder:text-text-tertiary focus:border-[#EF4444] outline-none"
+                  />
+                </div>
+              )}
+
+              <p className="text-[11px] text-text-tertiary leading-relaxed">
+                Declining will notify the player immediately and release the pitch slot for other bookings.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border-subtle">
+              <button
+                type="button"
+                onClick={() => setDeclineModalBooking(null)}
+                className="px-4 py-2 bg-surface-raised hover:bg-border-subtle text-text-secondary hover:text-text-primary rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Keep Booking
+              </button>
+
+              <button
+                type="button"
+                disabled={processingId === declineModalBooking.id}
+                onClick={async () => {
+                  if (!declineModalBooking) return;
+                  await handleAction(declineModalBooking, "CANCELLED");
+                  setDeclineModalBooking(null);
+                  setCustomDeclineReason("");
+                }}
+                className="px-4 py-2 bg-[#EF4444] hover:bg-[#DC2626] text-white rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-md shadow-[#EF4444]/20"
+              >
+                {processingId === declineModalBooking.id ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <X size={14} strokeWidth={2.5} />
+                )}
+                <span>Confirm Decline</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comprehensive Match Pass / Detailed Booking Modal */}
+      {viewDetailsBooking && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+          onClick={() => setViewDetailsBooking(null)}
+        >
+          <div
+            className="relative max-w-xl w-full bg-surface-card rounded-2xl border border-border-subtle p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-border-subtle">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold bg-primary-lime/15 text-primary-lime border border-primary-lime/30 px-2 py-0.5 rounded">
+                    #{(viewDetailsBooking.id || "").slice(-6).toUpperCase()}
+                  </span>
+                  <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
+                    viewDetailsBooking.status === "CONFIRMED" || viewDetailsBooking.status === "CHECKED_IN"
+                      ? "bg-[#22C55E]/15 text-[#22C55E]"
+                      : viewDetailsBooking.status === "PENDING"
+                      ? "bg-primary-lime/15 text-primary-lime"
+                      : "bg-[#EF4444]/15 text-[#EF4444]"
+                  }`}>
+                    {viewDetailsBooking.status}
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-text-primary mt-1">
+                  {viewDetailsBooking.turfName || viewDetailsBooking.pitchName || "Match Facility Pass"}
+                </h3>
+              </div>
+
+              <button
+                onClick={() => setViewDetailsBooking(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-text-tertiary hover:text-text-primary bg-surface-raised hover:bg-border-subtle cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Booker Information Card */}
+            <div className="bg-surface-raised rounded-xl p-4 border border-border-subtle space-y-3">
+              <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+                Player Profile & Identity
+              </span>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-surface-card border border-border-subtle flex items-center justify-center text-primary-lime font-black text-base">
+                    {(viewDetailsBooking.userName || "P").charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-extrabold text-text-primary">
+                      {viewDetailsBooking.userName || "Registered Player"}
+                    </h4>
+                    <p className="text-xs text-text-secondary mt-0.5">
+                      {viewDetailsBooking.playerPhone || (viewDetailsBooking as any).userPhone || "+256 700 000 000"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setViewDetailsBooking(null);
+                      handleChatPlayer(viewDetailsBooking);
+                    }}
+                    className="px-3 py-1.5 bg-primary-lime/15 text-primary-lime border border-primary-lime/30 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-primary-lime/25 cursor-pointer"
+                  >
+                    <MessageSquare size={13} />
+                    <span>Message</span>
+                  </button>
+
+                  {(viewDetailsBooking.playerPhone || (viewDetailsBooking as any).userPhone) && (
+                    <a
+                      href={`tel:${viewDetailsBooking.playerPhone || (viewDetailsBooking as any).userPhone}`}
+                      className="px-3 py-1.5 bg-surface-card text-text-primary border border-border-subtle rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-border-subtle"
+                    >
+                      <Phone size={13} className="text-primary-lime" />
+                      <span>Call</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Match Specification Grid */}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="bg-surface-raised rounded-xl p-3 border border-border-subtle">
+                <span className="text-[10px] font-bold text-text-tertiary uppercase block">
+                  Date & Kickoff
+                </span>
+                <p className="text-xs font-bold text-text-primary mt-1">
+                  {viewDetailsBooking.date}
+                </p>
+                <p className="text-[11px] text-text-secondary mt-0.5">
+                  {viewDetailsBooking.time} ({viewDetailsBooking.duration || 1} Hour Slot)
+                </p>
+              </div>
+
+              <div className="bg-surface-raised rounded-xl p-3 border border-border-subtle">
+                <span className="text-[10px] font-bold text-text-tertiary uppercase block">
+                  Surface & Arena
+                </span>
+                <p className="text-xs font-bold text-text-primary mt-1">
+                  7-a-side AstroTurf
+                </p>
+                <p className="text-[11px] text-text-secondary mt-0.5">
+                  Floodlit · Changing Rooms
+                </p>
+              </div>
+
+              <div className="bg-surface-raised rounded-xl p-3 border border-border-subtle">
+                <span className="text-[10px] font-bold text-text-tertiary uppercase block">
+                  Total Rate & Payout
+                </span>
+                <p className="text-sm font-extrabold text-primary-lime mt-1">
+                  UGX {(viewDetailsBooking.price || 0).toLocaleString()}
+                </p>
+                <p className="text-[11px] text-text-tertiary mt-0.5">
+                  Standard Peak Slot
+                </p>
+              </div>
+
+              <div className="bg-surface-raised rounded-xl p-3 border border-border-subtle">
+                <span className="text-[10px] font-bold text-text-tertiary uppercase block">
+                  Payment Status
+                </span>
+                <p className="text-xs font-bold text-text-primary mt-1">
+                  {viewDetailsBooking.paymentStatus || "UNPAID"}
+                </p>
+                <p className="text-[11px] text-text-secondary mt-0.5">
+                  {viewDetailsBooking.paymentMethod || "Cash at Gate"}
+                </p>
+              </div>
+            </div>
+
+            {/* Special Instructions */}
+            <div className="bg-surface-raised rounded-xl p-3.5 border border-border-subtle text-xs space-y-1">
+              <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
+                Player Notes / Match Equipment
+              </span>
+              <p className="text-xs text-text-secondary">
+                {(viewDetailsBooking as any).notes || "Standard friendly match. Requested training bibs and 2 match balls at kickoff."}
+              </p>
+            </div>
+
+            {/* Modal Bottom Actions */}
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-border-subtle">
+              <button
+                type="button"
+                onClick={() => setViewDetailsBooking(null)}
+                className="px-4 py-2 bg-surface-raised hover:bg-border-subtle text-text-secondary hover:text-text-primary rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Close
+              </button>
+
+              <div className="flex items-center gap-2">
+                {viewDetailsBooking.status === "PENDING" && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={processingId === viewDetailsBooking.id}
+                      onClick={async () => {
+                        await handleAction(viewDetailsBooking, "CONFIRMED");
+                        setViewDetailsBooking(null);
+                      }}
+                      className="px-4 py-2 bg-primary-lime hover:bg-[#96E600] text-accent-text rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 shadow-md shadow-primary-lime/20 flex items-center gap-1.5"
+                    >
+                      <Check size={14} strokeWidth={2.5} />
+                      <span>Confirm Match</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const b = viewDetailsBooking;
+                        setViewDetailsBooking(null);
+                        setDeclineModalBooking(b);
+                      }}
+                      className="px-3.5 py-2 bg-[#EF4444]/15 hover:bg-[#EF4444]/25 text-[#EF4444] rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Decline
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Floating Dynamic Feedback Toast */}

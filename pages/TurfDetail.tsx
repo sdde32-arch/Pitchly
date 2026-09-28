@@ -30,7 +30,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useBooking } from "../context/BookingContext";
 import { useUser } from "../context/UserContext";
 import { chatService } from "../services/chatService";
-import { MessageSquare, Upload, AlertTriangle, Smartphone, Banknote, ShieldCheck, Copy, Hourglass } from "lucide-react";
+import { MessageSquare, Upload, AlertTriangle, Smartphone, Banknote, ShieldCheck, Copy, Hourglass, Phone, Send } from "lucide-react";
 import { pitchService } from "../services/pitchService";
 import { Pitch, SlotAvailability, Booking } from "../types/firebase";
 import { Turf, ReportTargetType, BookingStatus } from "../types";
@@ -62,6 +62,13 @@ export const TurfDetail: React.FC = () => {
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"about" | "reviews">("about");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
+  // Message Pitch Owner/Manager state
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [messageText, setMessageText] = useState("");
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [messageSentSuccess, setMessageSentSuccess] = useState(false);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
     setToast({ message, type });
@@ -188,23 +195,144 @@ export const TurfDetail: React.FC = () => {
     setDynamicTotalReviews(total);
   };
 
+  const PITCH_MANAGERS: Record<string, { name: string; role: string; phone: string; image: string; bio: string; ownerId: string }> = {
+    "panamera-kololo": {
+      name: "Denis Mukasa",
+      role: "Senior Facility & Matchday Manager",
+      phone: "+256 701 556 778",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300",
+      bio: "Head caretaker & matchday operations manager at Panamera Sports Lounge, Kololo.",
+      ownerId: "owner_panamera_kololo"
+    },
+    "kinetic-bugolobi": {
+      name: "Sarah Namubiru",
+      role: "Operations & League Coordinator",
+      phone: "+256 782 449 112",
+      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300",
+      bio: "Facility manager overseeing floodlights and match operations at Kinetic Bugolobi.",
+      ownerId: "owner_kinetic_bugolobi"
+    },
+    "lugogo-astroturf": {
+      name: "Coach Brian Kigozi",
+      role: "Chief Pitch Superintendent",
+      phone: "+256 752 991 304",
+      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=300",
+      bio: "Manages pitch grounds, tournament logistics, and gear rentals at Lugogo.",
+      ownerId: "owner_lugogo_grounds"
+    },
+    "kensington-kololo": {
+      name: "Arthur Kasozi",
+      role: "Ground Operations Lead",
+      phone: "+256 772 113 450",
+      image: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=300",
+      bio: "On-ground match marshal and maintenance lead at Kensington Arena.",
+      ownerId: "owner_kensington"
+    }
+  };
+
+  const pitchKey = turf?.id || normalizedId || id || "";
+  const matchedManager = PITCH_MANAGERS[pitchKey] || 
+    (pitchKey.includes("panamera") ? PITCH_MANAGERS["panamera-kololo"] : null) ||
+    (pitchKey.includes("kinetic") ? PITCH_MANAGERS["kinetic-bugolobi"] : null) ||
+    (pitchKey.includes("lugogo") ? PITCH_MANAGERS["lugogo-astroturf"] : null) ||
+    (pitchKey.includes("kensington") ? PITCH_MANAGERS["kensington-kololo"] : null);
+
+  const currentManager = {
+    name: (realPitch as any)?.managerName || (turf as any)?.managerName || matchedManager?.name || "Denis Mukasa",
+    role: (realPitch as any)?.managerRole || (turf as any)?.managerRole || matchedManager?.role || "Facility & Pitch Manager",
+    phone: (realPitch as any)?.managerPhone || (realPitch as any)?.contactPhone || turf?.contactPhone || matchedManager?.phone || "+256 701 556 778",
+    image: (realPitch as any)?.managerImage || (turf as any)?.managerImage || matchedManager?.image || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300",
+    bio: (realPitch as any)?.managerBio || matchedManager?.bio || "On-ground pitch caretaker and facility coordinator.",
+    ownerId: turf?.ownerId || (realPitch as any)?.ownerId || matchedManager?.ownerId || "owner_facility_default"
+  };
+
+  const handleSendMessageToOwner = async () => {
+    if (!user) {
+      showToast("Please log in to message the pitch manager.", "info");
+      return;
+    }
+    if (!messageText.trim()) {
+      showToast("Please enter a message.", "error");
+      return;
+    }
+    setIsSendingMessage(true);
+    try {
+      const targetOwnerId = currentManager.ownerId || turf?.ownerId || "owner_facility_default";
+      const senderName = userProfile?.name || user.displayName || user.email?.split("@")[0] || "Player";
+      const senderAvatar = user.photoURL || (userProfile as any)?.avatar || "";
+
+      const convId = await chatService.getOrCreateDirectConversation(
+        user.uid,
+        targetOwnerId,
+        {
+          turfName: turf?.name || "Football Arena",
+          pitchId: turf?.id,
+          participantDetails: {
+            [user.uid]: {
+              name: senderName,
+              avatar: senderAvatar,
+              role: "Player"
+            },
+            [targetOwnerId]: {
+              name: currentManager.name,
+              avatar: currentManager.image,
+              role: "Pitch Manager"
+            }
+          }
+        }
+      );
+
+      await chatService.sendMessage(
+        convId,
+        user.uid,
+        messageText.trim(),
+        senderName,
+        senderAvatar
+      );
+
+      setActiveConversationId(convId);
+      setMessageSentSuccess(true);
+      showToast("Message delivered to pitch owner's inbox!", "success");
+    } catch (err: any) {
+      console.error("Failed to send message to owner:", err);
+      showToast("Failed to deliver message. Please try again.", "error");
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
   const handleMessageOwner = async () => {
     if (!user) {
       showToast("Please login to message the owner.", "info");
       return;
     }
-    if (!turf || !turf.ownerId) {
-      showToast("Owner information not available.", "error");
-      return;
-    }
-    if (turf.ownerId === user.uid) {
+    const targetOwnerId = currentManager.ownerId || turf?.ownerId || "owner_facility_default";
+    if (targetOwnerId === user.uid) {
       showToast("This is your pitch!", "info");
       return;
     }
     try {
+      const senderName = userProfile?.name || user.displayName || user.email?.split("@")[0] || "Player";
+      const senderAvatar = user.photoURL || (userProfile as any)?.avatar || "";
       const convId = await chatService.getOrCreateDirectConversation(
         user.uid,
-        turf.ownerId,
+        targetOwnerId,
+        {
+          turfName: turf?.name || "Football Arena",
+          pitchId: turf?.id,
+          participantDetails: {
+            [user.uid]: {
+              name: senderName,
+              avatar: senderAvatar,
+              role: "Player"
+            },
+            [targetOwnerId]: {
+              name: currentManager.name,
+              avatar: currentManager.image,
+              role: "Pitch Manager"
+            }
+          }
+        }
       );
       navigate(`/chat/${convId}`);
     } catch (error) {
@@ -532,31 +660,79 @@ export const TurfDetail: React.FC = () => {
               </div>
             </section>
             
-            {/* HOST / AGENT SECTION */}
-            <section id="pitch-manager-section" className="flex items-center justify-between pt-3 border-t border-border-subtle scroll-mt-24">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-border-subtle shadow-sm">
-                  <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80" alt="Agent" className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[13px] font-bold text-text-primary">Pitch Manager</span>
-                    <div className="w-3 h-3 rounded-full bg-primary-lime text-accent-text flex items-center justify-center">
-                      <Check size={8} strokeWidth={4} />
-                    </div>
+            {/* HOST / PITCH MANAGER SECTION */}
+            <section id="pitch-manager-section" className="bg-surface-card rounded-2xl p-4 border border-border-subtle shadow-xs space-y-3 scroll-mt-24">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-text-tertiary">
+                  Pitch Manager & On-Ground Operations
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#22C55E] bg-[#22C55E]/10 border border-[#22C55E]/25 px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
+                  <span>On Duty</span>
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative w-12 h-12 rounded-2xl overflow-hidden shrink-0 border border-border-subtle shadow-sm bg-surface-raised">
+                    <img 
+                      src={currentManager.image} 
+                      alt={currentManager.name} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300";
+                      }} 
+                    />
+                    <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#22C55E] border-2 border-surface-card" />
                   </div>
-                  <span className="text-[11px] text-text-secondary font-medium">Property Agent</span>
+                  
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-extrabold text-text-primary truncate">
+                        {currentManager.name}
+                      </span>
+                      <div className="w-3.5 h-3.5 rounded-full bg-primary-lime text-accent-text flex items-center justify-center shrink-0" title="Verified Facility Manager">
+                        <Check size={9} strokeWidth={4} />
+                      </div>
+                    </div>
+                    <p className="text-xs text-text-secondary font-medium truncate mt-0.5">
+                      {currentManager.role}
+                    </p>
+                    <p className="text-[11px] text-text-tertiary truncate">
+                      {currentManager.phone}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button 
+                    onClick={() => {
+                      setMessageSentSuccess(false);
+                      setMessageText("");
+                      setShowMessageModal(true);
+                    }}
+                    className="h-9 px-3 rounded-xl bg-primary-lime hover:bg-primary-lime-hover text-accent-text font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+                    title="Send message to pitch owner/manager"
+                  >
+                    <MessageSquare size={14} />
+                    <span>Message</span>
+                  </button>
+
+                  <a 
+                    href={`tel:${currentManager.phone}`}
+                    className="w-9 h-9 rounded-xl bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-primary flex items-center justify-center transition-colors cursor-pointer active:scale-95"
+                    title={`Call ${currentManager.name}`}
+                  >
+                    <Phone size={14} className="text-primary-lime" />
+                  </a>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-2">
-                <button className="w-9 h-9 rounded-full bg-surface-card shadow-sm border border-border-subtle flex items-center justify-center hover:bg-surface-raised transition-colors cursor-pointer">
-                  <MessageSquare size={14} className="text-text-primary" />
-                </button>
-                <button className="w-9 h-9 rounded-full bg-primary-lime text-accent-text shadow-sm flex items-center justify-center transition-colors cursor-pointer">
-                  <span className="material-symbols-outlined text-[16px]">call</span>
-                </button>
-              </div>
+
+              {currentManager.bio && (
+                <p className="text-xs text-text-secondary bg-surface-raised/70 rounded-xl p-2.5 border border-border-subtle leading-relaxed">
+                  {currentManager.bio}
+                </p>
+              )}
             </section>
           </div>
         ) : (
@@ -631,6 +807,166 @@ export const TurfDetail: React.FC = () => {
           navigate('/invitations');
         }}
       />
+
+      {/* Interactive Message Pitch Manager / Owner Modal */}
+      {showMessageModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+          onClick={() => setShowMessageModal(false)}
+        >
+          <div 
+            className="relative max-w-lg w-full bg-surface-card rounded-3xl border border-border-subtle p-5 sm:p-6 shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-border-subtle">
+              <div className="flex items-center gap-3">
+                <div className="relative w-11 h-11 rounded-2xl overflow-hidden shrink-0 border border-border-subtle bg-surface-raised shadow-xs">
+                  <img 
+                    src={currentManager.image} 
+                    alt={currentManager.name} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300";
+                    }}
+                  />
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-surface-card" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-sm sm:text-base font-extrabold text-text-primary">
+                      {currentManager.name}
+                    </h3>
+                    <div className="w-3.5 h-3.5 rounded-full bg-primary-lime text-accent-text flex items-center justify-center shrink-0">
+                      <Check size={8} strokeWidth={4} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    {currentManager.role} · <strong className="text-text-primary font-semibold">{turf.name}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowMessageModal(false)}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-text-tertiary hover:text-text-primary bg-surface-raised hover:bg-border-subtle cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {messageSentSuccess ? (
+              <div className="py-6 text-center space-y-3">
+                <div className="w-14 h-14 rounded-full bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] flex items-center justify-center mx-auto">
+                  <CheckCircle2 size={28} />
+                </div>
+                <div>
+                  <h4 className="text-base font-extrabold text-text-primary">
+                    Message Delivered to Inbox!
+                  </h4>
+                  <p className="text-xs text-text-secondary max-w-xs mx-auto mt-1">
+                    Your message has been sent directly to {currentManager.name}'s manager inbox. They will respond shortly.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  {activeConversationId && (
+                    <button
+                      onClick={() => {
+                        setShowMessageModal(false);
+                        navigate(`/chat/${activeConversationId}`);
+                      }}
+                      className="px-4 py-2 bg-primary-lime text-accent-text font-black rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                    >
+                      <MessageSquare size={13} />
+                      <span>Open Live Chat</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowMessageModal(false)}
+                    className="px-4 py-2 bg-surface-raised text-text-secondary hover:text-text-primary rounded-xl text-xs font-bold cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Fast Inquiries / Presets */}
+                <div>
+                  <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-2">
+                    Quick Matchday Inquiries
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                    {[
+                      "Is the pitch available for evening booking?",
+                      "Can we get 2 match balls and training bibs?",
+                      "Are floodlights and changing rooms operational?",
+                      "Inquiry on corporate tournament slot rates."
+                    ].map((promptText) => (
+                      <button
+                        key={promptText}
+                        type="button"
+                        onClick={() => setMessageText(promptText)}
+                        className={`text-left p-2.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
+                          messageText === promptText
+                            ? "bg-primary-lime/10 border-primary-lime text-primary-lime"
+                            : "bg-surface-raised border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-prominent"
+                        }`}
+                      >
+                        "{promptText}"
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Text Area */}
+                <div>
+                  <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">
+                    Your Message
+                  </label>
+                  <textarea
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    placeholder={`Write a direct inquiry to ${currentManager.name}...`}
+                    rows={4}
+                    className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-2xl p-3 text-xs text-text-primary placeholder:text-text-tertiary outline-none resize-none leading-relaxed transition-all"
+                  />
+                  <div className="flex items-center justify-between text-[11px] text-text-tertiary mt-1 px-1">
+                    <span>Delivered directly to owner's dashboard inbox</span>
+                    <span>{messageText.length}/500</span>
+                  </div>
+                </div>
+
+                {/* Send Button */}
+                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border-subtle">
+                  <button
+                    type="button"
+                    onClick={() => setShowMessageModal(false)}
+                    className="px-4 py-2.5 bg-surface-raised hover:bg-border-subtle text-text-secondary hover:text-text-primary rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isSendingMessage || !messageText.trim()}
+                    onClick={handleSendMessageToOwner}
+                    className="px-5 py-2.5 bg-primary-lime hover:bg-[#96E600] text-accent-text font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-primary-lime/20 cursor-pointer active:scale-95 disabled:opacity-50 transition-all"
+                  >
+                    {isSendingMessage ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Send size={14} />
+                    )}
+                    <span>Send to Owner</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <ReportModal
         isOpen={isReportModalOpen}

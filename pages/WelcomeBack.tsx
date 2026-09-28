@@ -30,15 +30,32 @@ export const WelcomeBack: React.FC = () => {
   }, [user, loading, isAdmin, isOwner, navigate]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("pitchly_last_user");
-    if (saved) {
-      setLastUser(JSON.parse(saved));
-    } else {
-      navigate("/onboarding");
+    try {
+      const saved = localStorage.getItem("pitchly_last_user");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === "object" && (parsed.name || parsed.email)) {
+          setLastUser(parsed);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Invalid last user in storage", e);
     }
+    navigate("/onboarding", { replace: true });
   }, [navigate]);
 
-  if (!lastUser) return null;
+  if (!lastUser) {
+    return (
+      <div className="flex flex-col h-screen w-full items-center justify-center bg-app-base gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-3xl font-black text-white font-display">Pitchly</span>
+          <span className="w-2 h-2 rounded-full bg-primary-lime animate-pulse" />
+        </div>
+        <div className="w-6 h-6 border-2 border-primary-lime/20 border-t-primary-lime rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const handleQuickResume = () => {
     if (user) {

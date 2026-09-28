@@ -63,6 +63,54 @@
         "expiresAt": { "type": "number" }
       },
       "required": ["pitchId", "date", "time", "userId", "expiresAt"]
+    },
+    "TournamentStanding": {
+      "title": "TournamentStanding",
+      "description": "Aggregated team standing and leaderboard record dynamically computed from match results.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tournamentId": { "type": "string" },
+        "team": { "type": "string" },
+        "group": { "type": "string" },
+        "played": { "type": "number" },
+        "won": { "type": "number" },
+        "drawn": { "type": "number" },
+        "lost": { "type": "number" },
+        "goalsFor": { "type": "number" },
+        "goalsAgainst": { "type": "number" },
+        "goalDifference": { "type": "number" },
+        "points": { "type": "number" },
+        "winRate": { "type": "number" },
+        "form": { "type": "array", "items": { "type": "string" } },
+        "position": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "tournamentId", "team", "points", "goalDifference", "won"]
+    },
+    "CommunityActivity": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["match_played", "team_formed", "tournament_completed"] },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "description": { "type": "string" },
+        "userName": { "type": "string" },
+        "userAvatar": { "type": "string" },
+        "venue": { "type": "string" },
+        "matchScore": { "type": "string" },
+        "teamName": { "type": "string" },
+        "tournamentName": { "type": "string" },
+        "champion": { "type": "string" },
+        "likesCount": { "type": "number" },
+        "celebrationsCount": { "type": "number" },
+        "likedBy": { "type": "array", "items": { "type": "string" } },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "badge": { "type": "string" },
+        "meta": { "type": "object" }
+      },
+      "required": ["id", "type", "title", "timestamp"]
     }
   },
   "firestore": {
@@ -81,6 +129,14 @@
     "/slotLocks/{lockId}": {
       "schema": { "$ref": "#/entities/SlotLock" },
       "description": "Slot concurrency locks"
+    },
+    "/tournamentStandings/{standingId}": {
+      "schema": { "$ref": "#/entities/TournamentStanding" },
+      "description": "Aggregated tournament team standings and leaderboard sorted by points, goal difference, and wins"
+    },
+    "/communityActivities/{activityId}": {
+      "schema": { "$ref": "#/entities/CommunityActivity" },
+      "description": "Feed of real-time community actions: matches played, new teams formed, and tournaments completed"
     }
   }
 }

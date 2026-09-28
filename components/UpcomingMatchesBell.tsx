@@ -22,21 +22,25 @@ export const UpcomingMatchesBell: React.FC = () => {
       setMatches(upcoming);
       
       // Native notification
-      if (upcoming.length > 0 && pushEnabled && 'Notification' in window && Notification.permission === 'granted') {
-        const soonest = upcoming[0];
-        const matchKey = `notified_${soonest.id}`;
-        if (!localStorage.getItem(matchKey)) {
-          const notif = new Notification('Upcoming Match', {
-            body: `Your match at ${soonest.turfName || 'the turf'} starts at ${soonest.time}.${soonest.mapUrl ? ' Click to view location on map.' : ''}`,
-            icon: '/logo.svg'
-          });
-          if (soonest.mapUrl) {
-            notif.onclick = () => {
-              window.open(soonest.mapUrl, '_blank');
-            };
+      try {
+        if (upcoming.length > 0 && pushEnabled && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          const soonest = upcoming[0];
+          const matchKey = `notified_${soonest.id}`;
+          if (!localStorage.getItem(matchKey)) {
+            const notif = new Notification('Upcoming Match', {
+              body: `Your match at ${soonest.turfName || 'the turf'} starts at ${soonest.time}.${soonest.mapUrl ? ' Click to view location on map.' : ''}`,
+              icon: '/logo.svg'
+            });
+            if (soonest.mapUrl) {
+              notif.onclick = () => {
+                window.open(soonest.mapUrl, '_blank');
+              };
+            }
+            localStorage.setItem(matchKey, 'true');
           }
-          localStorage.setItem(matchKey, 'true');
         }
+      } catch (notifErr) {
+        // Suppress restricted notification/storage in iframe
       }
     } catch (err) {
       console.warn("Failed to fetch upcoming matches:", err);

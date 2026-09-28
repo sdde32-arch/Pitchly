@@ -50,10 +50,10 @@ async function verify() {
   console.log(`Updated votes for ${topNominee.nomineeName}: ${updatedVotes}`);
 
   console.log("\n--- TESTING FIXTURE SCORE UPDATE ---");
-  const liveMatch = fixturesData.find(f => f.status === "live");
-  console.log(`Live match: ${liveMatch.homeTeam} ${liveMatch.homeScore} - ${liveMatch.awayScore} ${liveMatch.awayTeam}`);
-  await tournamentService.updateFixture(liveMatch.id, { homeScore: 4, awayScore: 2 });
-  const updatedMatch = fixturesData.find(f => f.id === liveMatch.id);
+  const testMatch = fixturesData.find(f => f.status === "live") || fixturesData[0];
+  console.log(`Test match: ${testMatch.homeTeam} ${testMatch.homeScore} - ${testMatch.awayScore} ${testMatch.awayTeam}`);
+  await tournamentService.updateFixture(testMatch.id, { homeScore: 4, awayScore: 2 });
+  const updatedMatch = fixturesData.find(f => f.id === testMatch.id);
   console.log(`Updated match score: ${updatedMatch.homeTeam} ${updatedMatch.homeScore} - ${updatedMatch.awayScore} ${updatedMatch.awayTeam}`);
 
   unsubF();

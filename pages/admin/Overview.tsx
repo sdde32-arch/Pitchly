@@ -72,7 +72,41 @@ export const Overview: React.FC = () => {
     fetchMetrics();
   };
 
-  if (!isAdmin) return null;
+  if (authLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <RefreshCw className="animate-spin text-primary-lime" size={28} />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-primary-lime/10 border border-primary-lime/30 text-primary-lime flex items-center justify-center mx-auto">
+          <ShieldAlert size={24} />
+        </div>
+        <h2 className="text-lg font-bold text-text-primary">Admin Access Required</h2>
+        <p className="text-xs text-text-secondary max-w-sm">
+          Please sign in with your organizer account (<strong className="text-text-primary">sdde32@gmail.com</strong>) or unlock via Tournament Hub.
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate("/tournament")}
+            className="px-4 py-2 bg-primary-lime text-black font-bold text-xs rounded-xl hover:bg-[#96E600] transition-colors cursor-pointer"
+          >
+            Go to Tournament Hub
+          </button>
+          <button
+            onClick={() => navigate("/home")}
+            className="px-4 py-2 bg-surface-raised border border-border-subtle text-text-primary font-bold text-xs rounded-xl hover:bg-border-subtle transition-colors cursor-pointer"
+          >
+            Player Portal
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const totalUrgentItems =
     (metrics?.pendingPitchesCount || 0) +

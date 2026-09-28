@@ -18,7 +18,15 @@ import { Conversation, Message } from '../types/firebase';
 
 export const chatService = {
   // Create or get a direct conversation between two users
-  async getOrCreateDirectConversation(userId1: string, userId2: string): Promise<string> {
+  async getOrCreateDirectConversation(
+    userId1: string, 
+    userId2: string, 
+    extraMeta?: { 
+      turfName?: string; 
+      pitchId?: string; 
+      participantDetails?: { [uid: string]: { name?: string; avatar?: string; role?: string } } 
+    }
+  ): Promise<string> {
     const conversationsRef = collection(db, 'conversations');
     const q1 = query(
       conversationsRef, 
@@ -29,10 +37,22 @@ export const chatService = {
     const snapshot = await getDocs(q1);
     const existing = snapshot.docs.find(doc => {
       const data = doc.data();
-      return data.participants.includes(userId2);
+      return data.participants && data.participants.includes(userId2);
     });
 
     if (existing) {
+      if (extraMeta) {
+        try {
+          await updateDoc(doc(db, 'conversations', existing.id), {
+            ...(extraMeta.turfName ? { turfName: extraMeta.turfName } : {}),
+            ...(extraMeta.pitchId ? { pitchId: extraMeta.pitchId } : {}),
+            ...(extraMeta.participantDetails ? { participantDetails: extraMeta.participantDetails } : {}),
+            updatedAt: new Date().toISOString()
+          });
+        } catch (e) {
+          console.warn("Could not update conversation extra metadata:", e);
+        }
+      }
       return existing.id;
     }
 
@@ -44,6 +64,9 @@ export const chatService = {
       id: newConvRef.id,
       participants: [userId1, userId2],
       type: 'DIRECT',
+      ...(extraMeta?.turfName ? { turfName: extraMeta.turfName } : {}),
+      ...(extraMeta?.pitchId ? { pitchId: extraMeta.pitchId } : {}),
+      ...(extraMeta?.participantDetails ? { participantDetails: extraMeta.participantDetails } : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -135,6 +158,8 @@ export const chatService = {
     await updateDoc(convRef, {
       lastMessage: text,
       lastMessageAt: now,
+      lastMessageSenderName: senderName || '',
+      lastMessageSenderAvatar: senderAvatar || '',
       updatedAt: now,
     });
     

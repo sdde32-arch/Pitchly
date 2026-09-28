@@ -160,6 +160,12 @@ export interface Booking {
   playerPhone?: string;
   playerEmail?: string;
   numberOfPlayers?: number;
+  location?: string;
+  image?: string;
+  bookingRef?: string;
+  pitchFormat?: string;
+  managerName?: string;
+  contactPhone?: string;
 }
 
 export interface UserProfile {

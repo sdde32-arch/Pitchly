@@ -3,12 +3,17 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
-  return {
-    plugins: [
-      react(),
+  const isProd = mode === 'production' || process.env.NODE_ENV === 'production';
+
+  const plugins = [
+    react(),
+  ];
+
+  if (isProd) {
+    plugins.push(
       VitePWA({
         registerType: 'autoUpdate',
-        injectRegister: 'auto',
+        injectRegister: false,
         includeAssets: [
           'logo.svg',
           'apple-touch-icon.png',
@@ -66,7 +71,7 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,json}'],
+          globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2,json}'],
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,
@@ -187,16 +192,22 @@ export default defineConfig(({ mode }) => {
           ]
         },
         devOptions: {
-          enabled: true,
-          type: 'module'
+          enabled: false
         }
       })
-    ],
+    );
+  }
+
+  return {
+    plugins,
     resolve: {
       dedupe: ['react', 'react-dom'],
     },
     optimizeDeps: {
       include: ['react', 'react-dom'],
+    },
+    server: {
+      hmr: false,
     },
     define: {
       'process.env.GOOGLE_MAPS_PLATFORM_KEY': JSON.stringify(process.env.GOOGLE_MAPS_PLATFORM_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY || '')

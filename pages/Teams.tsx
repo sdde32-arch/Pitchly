@@ -28,6 +28,7 @@ import { useNavigate } from "react-router-dom";
 import { chatService } from "../services/chatService";
 import { EmptyState } from "../components/ui/EmptyState";
 import { MatchCardSkeleton, SquadCardSkeleton } from "../components/ui/Skeleton";
+import { communityActivityService } from "../services/communityActivityService";
 
 const parseTime = (timeStr: string) => {
   const [time, modifier] = timeStr.split(" ");
@@ -329,6 +330,29 @@ export const Teams: React.FC = () => {
     if (user) {
       localStorage.setItem(`pitchly_teams_${user.uid}`, JSON.stringify(updated));
     }
+
+    // Broadcast new squad to Community Activity Feed
+    communityActivityService.publishActivity({
+      type: "team_formed",
+      title: `${created.name} Formed`,
+      subtitle: `Founded by ${userProfile?.name || "Captain"} (${created.type})`,
+      description: created.description || `New squad registered in ${created.location}. Ready for challenges!`,
+      timestamp: new Date().toISOString(),
+      userName: userProfile?.name || "Captain",
+      userAvatar: (userProfile as any)?.photoURL || (userProfile as any)?.avatar || user?.photoURL,
+      userBadge: "Club Founder",
+      venue: created.location,
+      teamData: {
+        teamName: created.name,
+        captain: userProfile?.name || "Captain",
+        membersCount: 1,
+        homePitch: created.location,
+        badgeColor: "#A8FF00",
+        badgeInitials: created.name.substring(0, 2).toUpperCase(),
+        motto: created.description,
+      },
+    }).catch(() => {});
+
     setShowCreateModal(false);
     setNewTeam({ name: "", type: "5-a-side", location: "", description: "" });
   };
