@@ -604,14 +604,14 @@ export const AppWalkthroughModal: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full bg-primary-lime/15 border border-primary-lime/30 text-primary-lime font-black text-[10px] uppercase tracking-wider flex items-center gap-1">
                 <Sparkles size={12} />
-                Footlink Master Walkthrough
+                Pitchly Master Walkthrough
               </span>
               <span className="text-[11px] font-semibold text-text-tertiary">
                 {viewMode === "guide" ? `Step ${currentStepIndex + 1} of ${totalSteps}` : "All Features Directory"}
               </span>
             </div>
             <h2 className="text-lg sm:text-xl font-black text-text-primary tracking-tight">
-              Master Footlink: Full App Walkthrough &amp; Guide
+              Master Pitchly: Full App Walkthrough &amp; Guide
             </h2>
           </div>
 
@@ -925,7 +925,7 @@ export const AppWalkthroughModal: React.FC = () => {
                   type="button"
                   onClick={() => handleNavigateToFeature(currentStep.route)}
                   className="px-3.5 py-2 rounded-xl bg-surface-base hover:bg-surface-raised border border-border-subtle text-xs font-bold text-text-primary transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-                  title="Navigate directly to this section in Footlink"
+                  title="Navigate directly to this section in Pitchly"
                 >
                   <span>{currentStep.actionLabel}</span>
                   <ExternalLink size={13} className="text-primary-lime" />

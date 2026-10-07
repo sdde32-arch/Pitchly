@@ -118,7 +118,7 @@ export const GettingStartedGuide: React.FC<GettingStartedGuideProps> = ({
             </span>
           </div>
           <h2 className="text-base sm:text-lg font-black text-text-primary tracking-tight">
-            How to Master Footlink in Minutes
+            How to Master Pitchly in Minutes
           </h2>
         </div>
 

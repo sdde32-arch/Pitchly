@@ -80,16 +80,12 @@ export const PitchCardSkeleton: React.FC = () => {
         <div className="relative w-full h-36 sm:h-40 bg-surface-raised shimmer-effect overflow-hidden border-b border-border-subtle shrink-0">
           {/* Top Row Badges */}
           <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none">
-            <div className="flex items-center gap-1.5">
-              <Skeleton className="h-6 w-20 rounded-md bg-surface-card/70" />
-              <Skeleton className="hidden sm:block h-6 w-24 rounded-md bg-surface-card/60" />
-            </div>
+            <Skeleton className="h-6 w-20 rounded-md bg-surface-card/70" />
             <Skeleton className="w-8 h-8 rounded-full bg-surface-card/70" />
           </div>
 
           {/* Bottom Badges inside Image */}
-          <div className="absolute bottom-3 inset-x-3 flex items-end justify-between pointer-events-none">
-            <Skeleton className="h-5 w-20 rounded-md bg-surface-card/70" />
+          <div className="absolute bottom-3 right-3 pointer-events-none">
             <Skeleton className="h-6 w-14 rounded-md bg-surface-card/70" />
           </div>
         </div>
@@ -102,19 +98,10 @@ export const PitchCardSkeleton: React.FC = () => {
               <Skeleton className="h-3.5 w-36 rounded-md" />
               <Skeleton className="h-3.5 w-12 rounded-md" />
             </div>
-            <div className="flex items-center gap-1.5 pt-0.5">
-              <Skeleton className="h-4 w-20 rounded-md" />
-              <Skeleton className="h-4 w-24 rounded-md" />
-              <Skeleton className="h-4 w-16 rounded-md" />
-            </div>
           </div>
 
           {/* 1-Tap Slot Selection */}
-          <div className="pt-2.5 border-t border-border-subtle space-y-2">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-3 w-24 rounded-md" />
-              <Skeleton className="h-3 w-16 rounded-md" />
-            </div>
+          <div className="pt-2 border-t border-border-subtle">
             <div className="grid grid-cols-4 gap-1.5">
               <Skeleton className="h-7 rounded-lg" />
               <Skeleton className="h-7 rounded-lg" />

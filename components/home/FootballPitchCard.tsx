@@ -76,16 +76,13 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
           {/* Stadium Dark Gradient Shadow for Readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
 
-          {/* Top Row Badges */}
+          {/* Top Row Badges: Clean, Essential Only */}
           <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none">
-            {/* Format & Surface */}
-            <div className="flex items-center gap-1.5 pointer-events-auto">
-              <span className="bg-black/65 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase text-white border border-white/10 shadow-xs flex items-center gap-1.5">
+            {/* Format Pill */}
+            <div className="pointer-events-auto">
+              <span className="bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase text-white border border-white/10 shadow-xs flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary-lime" />
                 {formatBadge}
-              </span>
-              <span className="hidden sm:inline-block bg-black/65 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase text-white/90 border border-white/10">
-                {surfaceType}
               </span>
             </div>
 
@@ -107,20 +104,12 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
             </button>
           </div>
 
-          {/* Bottom Overlay Data (Rating, Verified) */}
-          <div className="absolute bottom-3 inset-x-3 flex items-end justify-between pointer-events-none">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-1 bg-black/65 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-white border border-white/10">
-                <ShieldCheck size={12} className="text-primary-lime" />
-                <span>Verified Turf</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-bold text-white border border-white/15 shadow-xs font-mono tabular-nums">
-                <Star size={12} className="fill-[#FACC15] text-[#FACC15] shrink-0" />
-                <span>{rating}</span>
-                <span className="text-white/60 text-[10px] font-medium">({reviewsCount})</span>
-              </div>
+          {/* Bottom Overlay Data (Rating) */}
+          <div className="absolute bottom-3 right-3 pointer-events-none">
+            <div className="flex items-center gap-1 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-bold text-white border border-white/15 shadow-xs font-mono tabular-nums">
+              <Star size={12} className="fill-[#FACC15] text-[#FACC15] shrink-0" />
+              <span>{rating}</span>
+              <span className="text-white/60 text-[10px] font-medium">({reviewsCount})</span>
             </div>
           </div>
         </div>
@@ -137,35 +126,13 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
             <div className="flex items-center gap-1.5 text-text-secondary text-xs">
               <MapPin size={13} className="text-primary-lime shrink-0" />
               <span className="truncate">{pitch.location || "Kampala, Uganda"}</span>
-              <span className="text-text-tertiary">•</span>
+              <span className="text-text-tertiary">·</span>
               <span className="font-mono tabular-nums text-text-primary font-bold shrink-0">{distance}</span>
-            </div>
-
-            {/* Quick Amenities Preview (Clean Typographic Row) */}
-            <div className="flex items-center gap-1.5 text-[11px] text-text-tertiary truncate pt-0.5">
-              {(pitch.amenities && pitch.amenities.length > 0
-                ? pitch.amenities.slice(0, 3)
-                : ["Floodlights", "Changing Rooms", "Parking"]
-              ).map((amenity, idx, arr) => (
-                <React.Fragment key={idx}>
-                  <span className="truncate">{amenity}</span>
-                  {idx < arr.length - 1 && <span className="text-text-tertiary/60 shrink-0">·</span>}
-                </React.Fragment>
-              ))}
             </div>
           </div>
 
-          {/* Instant Slots Strip */}
-          <div className="pt-2.5 border-t border-border-subtle space-y-2">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="font-semibold text-text-secondary flex items-center gap-1">
-                <Clock size={12} className="text-text-tertiary" />
-                Available Today
-              </span>
-              <span className="text-[10px] text-primary-lime font-bold uppercase tracking-wider">
-                1-Tap Book
-              </span>
-            </div>
+          {/* Instant Slots Strip (Noisy text headers removed; clean slot grid) */}
+          <div className="pt-2 border-t border-border-subtle">
             <div className="grid grid-cols-4 gap-1.5">
               {slots.map((slot) => (
                 <button
@@ -176,6 +143,7 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
                     onSelectSlot(pitch, slot);
                   }}
                   className="py-1.5 px-1 rounded-lg bg-surface-raised hover:bg-primary-lime hover:text-black text-text-primary border border-border-subtle text-xs font-mono tabular-nums font-bold text-center transition-all cursor-pointer active:scale-95 group/slot shadow-2xs"
+                  title={`Quick reserve slot for ${slot}`}
                 >
                   <span className="group-hover/slot:text-black">{slot}</span>
                 </button>

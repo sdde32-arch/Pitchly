@@ -20,6 +20,7 @@ import {
   Trophy,
   Zap,
   Clock,
+  Star,
 } from "lucide-react";
 import { useBooking } from "../context/BookingContext";
 import { useUser } from "../context/UserContext";
@@ -32,6 +33,7 @@ import { communityActivityService } from "../services/communityActivityService";
 import { teamService, generateSquadInviteCode, generateSquadInviteUrl } from "../services/teamService";
 import { TeamInviteModal } from "../components/teams/TeamInviteModal";
 import { JoinTeamModal } from "../components/teams/JoinTeamModal";
+import { RecordMatchResultModal } from "../components/teams/RecordMatchResultModal";
 
 const parseTime = (timeStr: string) => {
   const [time, modifier] = timeStr.split(" ");
@@ -91,7 +93,7 @@ const MatchCountdown = ({ targetDate }: { targetDate: Date }) => {
   );
 };
 
-import { Team, TeamMember as Member } from "../types/firebase";
+import { Team, TeamMember as Member, MatchResult } from "../types/firebase";
 
 interface Match {
   id: string;
@@ -108,6 +110,7 @@ interface Match {
   status: "Open" | "Full" | "Completed";
   notes: string;
   createdAt: string;
+  result?: MatchResult;
   payment?: {
     totalCost: number;
     costPerPlayer: number;
@@ -170,6 +173,81 @@ const INITIAL_TEAMS: Team[] = [
 ];
 
 const INITIAL_MATCHES: Match[] = [
+  {
+    id: "match-mock-completed-1",
+    title: "Ntinda Sunday Floodlit Derby",
+    pitchId: "arena-lugogo",
+    pitchName: "Lugogo Arena AstroTurf",
+    date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    time: "18:00",
+    type: "7-a-side",
+    playersNeeded: 14,
+    joinedPlayers: [
+      {
+        id: "m1",
+        name: "John Doe",
+        contact: "0770000000",
+        isCaptain: true,
+        hasPaid: true,
+        userId: "demo-user-id",
+        paymentStatus: "paid",
+      },
+      {
+        id: "m2",
+        name: "Kato Paul",
+        contact: "0782123456",
+        isCaptain: false,
+        hasPaid: true,
+        avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100",
+        paymentStatus: "paid",
+      },
+      {
+        id: "m3",
+        name: "Allan Wandera",
+        contact: "0785112233",
+        isCaptain: false,
+        hasPaid: true,
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+        paymentStatus: "paid",
+      },
+      {
+        id: "m4",
+        name: "Denis Mukasa",
+        contact: "0772445566",
+        isCaptain: false,
+        hasPaid: true,
+        paymentStatus: "paid",
+      },
+    ],
+    captainId: "demo-user-id",
+    visibility: "Public",
+    status: "Completed",
+    notes: "High tempo match under floodlights. Clean match with no injuries.",
+    createdAt: new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString(),
+    result: {
+      teamAName: "Ntinda Dark (Bibs)",
+      teamBName: "Ntinda White",
+      teamAScore: 4,
+      teamBScore: 2,
+      winner: "teamA",
+      scorers: [
+        { playerId: "p1", playerName: "Allan Wandera", goals: 2, team: "teamA" },
+        { playerId: "p2", playerName: "John Doe", goals: 1, team: "teamA" },
+        { playerId: "p3", playerName: "Kato Paul", goals: 1, team: "teamA" },
+        { playerId: "p4", playerName: "Denis Mukasa", goals: 2, team: "teamB" },
+      ],
+      mvpPlayerName: "Allan Wandera",
+      recordedAt: new Date(Date.now() - 22 * 60 * 60 * 1000).toISOString(),
+      notes: "Allan W. commanded the midfield with a brace and an assist.",
+    },
+    payment: {
+      totalCost: 140000,
+      costPerPlayer: 10000,
+      collectedAmount: 140000,
+      remainingAmount: 0,
+      currency: "UGX",
+    },
+  },
   {
     id: "match-mock-1",
     title: "Friday Night Lights",
@@ -238,9 +316,87 @@ export const Teams: React.FC = () => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinModalCode, setJoinModalCode] = useState("");
 
+  // Match Result Modal State
+  const [resultModalMatch, setResultModalMatch] = useState<Match | null>(null);
+
   const showToast = (message: string, type: "success" | "info" = "info") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleSaveMatchResult = async (resultPayload: MatchResult) => {
+    if (!resultModalMatch) return;
+    const targetId = resultModalMatch.id;
+    const updated = matches.map((m) => {
+      if (m.id === targetId) {
+        return {
+          ...m,
+          status: "Completed" as const,
+          result: resultPayload,
+        };
+      }
+      return m;
+    });
+
+    setMatches(updated);
+    if (user) {
+      localStorage.setItem(`pitchly_matches_${user.uid}`, JSON.stringify(updated));
+    } else {
+      localStorage.setItem(`pitchly_matches_guest`, JSON.stringify(updated));
+    }
+
+    // Publish to community activities in real-time
+    try {
+      const scorersSummary =
+        resultPayload.scorers && resultPayload.scorers.length > 0
+          ? `Goals: ${resultPayload.scorers
+              .map((s) => `${s.playerName} (${s.goals})`)
+              .join(", ")}.`
+          : "";
+      const subtitleDesc = resultPayload.notes
+        ? resultPayload.notes
+        : `Full-time at ${resultModalMatch.pitchName}! ${
+            resultPayload.winner === "draw"
+              ? "Thrilling draw"
+              : `Victory for ${
+                  resultPayload.winner === "teamA"
+                    ? resultPayload.teamAName
+                    : resultPayload.teamBName
+                }`
+          }. ${scorersSummary}`;
+
+      await communityActivityService.publishActivity({
+        type: "match_played",
+        title: `${resultPayload.teamAName} ${resultPayload.teamAScore} - ${resultPayload.teamBScore} ${resultPayload.teamBName}`,
+        subtitle: `7v7 Match • ${resultModalMatch.pitchName}`,
+        description: subtitleDesc,
+        timestamp: new Date().toISOString(),
+        userName: userProfile?.name || "Match Host",
+        userAvatar: userProfile?.avatar,
+        userBadge: "Match Reporter",
+        venue: resultModalMatch.pitchName,
+        matchData: {
+          homeTeam: resultPayload.teamAName,
+          awayTeam: resultPayload.teamBName,
+          homeScore: resultPayload.teamAScore,
+          awayScore: resultPayload.teamBScore,
+          scorers: resultPayload.scorers?.map(
+            (s) => `${s.playerName} (${s.goals})`
+          ),
+          mvp: resultPayload.mvpPlayerName,
+          pitchName: resultModalMatch.pitchName,
+          format: resultModalMatch.type,
+          status: "FT",
+        },
+      });
+    } catch (e) {
+      console.warn("Could not post match activity to community feed:", e);
+    }
+
+    showToast(
+      `Result saved: ${resultPayload.teamAName} ${resultPayload.teamAScore} - ${resultPayload.teamBScore} ${resultPayload.teamBName}! Published to Community Pulse.`,
+      "success"
+    );
   };
 
   // Detect ?invite=CODE or ?code=CODE from URL
@@ -960,6 +1116,55 @@ export const Teams: React.FC = () => {
                         </div>
                       </div>
 
+                      {/* Match Result Display Banner */}
+                      {match.result && (
+                        <div className="bg-surface-raised rounded-xl p-3 border border-border-subtle space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Trophy size={15} className="text-primary-lime shrink-0" />
+                              <span className="text-xs sm:text-sm font-black text-text-primary tracking-tight truncate">
+                                {match.result.teamAName} {match.result.teamAScore} - {match.result.teamBScore} {match.result.teamBName}
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-bold shrink-0 uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-lime/15 text-primary-lime border border-primary-lime/30">
+                              {match.result.winner === "draw"
+                                ? "Draw"
+                                : `Won by ${
+                                    match.result.winner === "teamA"
+                                      ? match.result.teamAName
+                                      : match.result.teamBName
+                                  }`}
+                            </span>
+                          </div>
+
+                          {/* Scorers List */}
+                          {match.result.scorers && match.result.scorers.length > 0 && (
+                            <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-text-secondary pt-1 border-t border-border-subtle/50">
+                              <span className="text-text-tertiary font-bold text-[10px] uppercase tracking-wider">
+                                Scorers:
+                              </span>
+                              {match.result.scorers.map((s, idx) => (
+                                <span
+                                  key={idx}
+                                  className="bg-surface-card px-2 py-0.5 rounded-md border border-border-subtle font-medium text-text-primary text-[11px]"
+                                >
+                                  {s.playerName} <strong className="text-primary-lime font-mono">({s.goals}⚽)</strong>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* MVP / Man of the Match */}
+                          {match.result.mvpPlayerName && (
+                            <div className="flex items-center gap-1 text-[11px] text-text-secondary">
+                              <Star size={12} className="text-[#FACC15] fill-[#FACC15] shrink-0" />
+                              <span className="text-text-tertiary">Match MVP:</span>
+                              <span className="font-bold text-text-primary">{match.result.mvpPlayerName}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Payment summary if enabled */}
                       {match.payment && (
                         <div className="flex items-center justify-between pt-2 border-t border-border-subtle text-xs">
@@ -980,22 +1185,47 @@ export const Teams: React.FC = () => {
                       )}
 
                       {/* Actions */}
-                      <div className="flex items-center gap-2 pt-1">
-                        {match.joinedPlayers.some((p) => p.userId === userProfile?.id) ? (
-                          <div className="flex-1 py-2 px-3 rounded-full bg-surface-raised text-center text-xs font-medium text-text-secondary">
-                            Joined
-                          </div>
+                      <div className="flex items-center gap-2 pt-1 flex-wrap">
+                        {match.result ? (
+                          <button
+                            type="button"
+                            onClick={() => setResultModalMatch(match)}
+                            className="flex-1 min-w-[120px] py-2 px-3 rounded-full bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-primary text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                          >
+                            <Trophy size={13} className="text-primary-lime" />
+                            <span>Edit Result</span>
+                          </button>
                         ) : (
                           <button
-                            onClick={() => setShowJoinPayModal(match)}
-                            className="flex-1 py-2 px-3 rounded-full bg-primary-lime hover:bg-[#96E600] text-accent-text text-xs font-bold transition-colors cursor-pointer text-center"
+                            type="button"
+                            onClick={() => setResultModalMatch(match)}
+                            className="flex-1 min-w-[120px] py-2 px-3 rounded-full bg-primary-lime hover:bg-primary-lime-hover text-black text-xs font-black transition-all cursor-pointer shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
                           >
-                            Join match
+                            <Trophy size={13} strokeWidth={2.5} />
+                            <span>Record Result</span>
                           </button>
                         )}
+
+                        {!match.result && (
+                          match.joinedPlayers.some((p) => p.userId === userProfile?.id) ? (
+                            <div className="py-2 px-3 rounded-full bg-surface-raised text-center text-xs font-medium text-text-secondary">
+                              Joined
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setShowJoinPayModal(match)}
+                              className="py-2 px-4 rounded-full bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-primary text-xs font-bold transition-colors cursor-pointer text-center"
+                            >
+                              Join match
+                            </button>
+                          )
+                        )}
+
                         <button
+                          type="button"
                           onClick={() => setSelectedMatchId(isDetailed ? null : match.id)}
-                          className="py-2 px-4 rounded-full border border-border-subtle text-xs font-medium text-text-secondary hover:bg-surface-raised transition-colors"
+                          className="py-2 px-4 rounded-full border border-border-subtle text-xs font-medium text-text-secondary hover:bg-surface-raised transition-colors cursor-pointer"
                         >
                           {isDetailed ? "Hide lobby" : "Lobby"}
                         </button>
@@ -1273,6 +1503,16 @@ export const Teams: React.FC = () => {
           showToast(`Successfully signed up with ${joinedTeam.name}!`, "success");
         }}
       />
+
+      {/* RECORD MATCH RESULT MODAL */}
+      {resultModalMatch && (
+        <RecordMatchResultModal
+          isOpen={Boolean(resultModalMatch)}
+          match={resultModalMatch}
+          onClose={() => setResultModalMatch(null)}
+          onSaveResult={handleSaveMatchResult}
+        />
+      )}
     </Layout>
   );
 };

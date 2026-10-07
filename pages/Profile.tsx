@@ -871,7 +871,7 @@ export const Profile: React.FC = () => {
                     Guided Tour
                   </span>
                   <p className="text-xs font-bold text-text-primary">
-                    Need a quick refresher on using Footlink?
+                    Need a quick refresher on using Pitchly?
                   </p>
                 </div>
                 <button

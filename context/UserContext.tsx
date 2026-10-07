@@ -265,7 +265,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
             firebaseUser.photoURL ||
             `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName || "Player")}&background=22C55E&color=fff&bold=true`,
           avatarId: randomAvatarId,
-          bio: isOwnerRole ? "Turf Business Owner" : "Ready to play on FootLink.",
+          bio: isOwnerRole ? "Turf Business Owner" : "Ready to play on Pitchly.",
           role: assignedRole,
           roles: isOwnerRole ? ["OWNER", "PLAYER"] : ["PLAYER"],
           hasCompletedOnboarding: true,

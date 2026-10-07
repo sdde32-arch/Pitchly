@@ -118,7 +118,7 @@ export const BookingConfirmation: React.FC = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "FootLink Match Pass",
+          title: "Pitchly Match Pass",
           text: shareText,
           url: shareUrl,
         });
@@ -251,7 +251,7 @@ export const BookingConfirmation: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-extrabold text-xs sm:text-sm text-text-primary leading-tight">Official Pitch Pass</h3>
-                    <p className="text-[10px] text-text-tertiary font-mono">FootLink Match Ticket</p>
+                    <p className="text-[10px] text-text-tertiary font-mono">Pitchly Match Ticket</p>
                   </div>
                 </div>
 

@@ -1573,7 +1573,7 @@ export const AddPitch: React.FC = () => {
                     </span>
                     <div>
                       <h2 className="text-base font-extrabold text-text-primary">Live Player Listing Preview</h2>
-                      <p className="text-xs text-text-secondary">How your turf will appear to thousands of players in FootLink</p>
+                      <p className="text-xs text-text-secondary">How your turf will appear to thousands of players in Pitchly</p>
                     </div>
                   </div>
                   <span className="px-2.5 py-1 rounded-full bg-primary-lime/15 text-primary-lime text-[10px] font-black uppercase tracking-wider border border-primary-lime/30">
@@ -1641,7 +1641,7 @@ export const AddPitch: React.FC = () => {
             {/* Bottom Action Submit Button */}
             <div className="pt-4 border-t border-border-subtle flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-xs text-text-secondary">
-                <span>By submitting, you agree to FootLink's facility quality standards and terms.</span>
+                <span>By submitting, you agree to Pitchly's facility quality standards and terms.</span>
               </div>
 
               <button

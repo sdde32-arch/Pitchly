@@ -475,7 +475,7 @@ export const OwnerOverview: React.FC = () => {
           </div>
         </div>
 
-        {/* Why Facility Owners Choose Footlink Bento Cards */}
+        {/* Why Facility Owners Choose Pitchly Bento Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-surface-card rounded-2xl p-5 border border-border-subtle space-y-2">
             <div className="w-8 h-8 rounded-lg bg-primary-lime/10 flex items-center justify-center text-primary-lime mb-3">

@@ -74,7 +74,7 @@ export const turfToPitch = (t: Turf): Pitch => ({
   createdAt: t.submittedAt || new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   contactPhone: t.contactPhone || '+256 700 000 000',
-  contactEmail: t.contactEmail || 'info@footlink.ug',
+  contactEmail: t.contactEmail || 'info@pitchly.ug',
   description: t.description || '',
   surfaceType: t.surfaceType || 'Synthetic Grass (AstroTurf)',
   ...({

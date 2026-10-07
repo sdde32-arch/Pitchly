@@ -349,11 +349,6 @@ export const Bookings: React.FC = () => {
                         <span className="text-[10px] font-bold text-text-secondary bg-surface-raised px-2 py-0.5 rounded-md border border-border-subtle">
                           {(b as any).pitchFormat || (b as any).type || "7-a-side AstroTurf"}
                         </span>
-                        {(b as any).managerName && (
-                          <span className="text-[10px] font-medium text-text-tertiary">
-                            Manager: <strong className="text-text-secondary font-semibold">{(b as any).managerName}</strong>
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>

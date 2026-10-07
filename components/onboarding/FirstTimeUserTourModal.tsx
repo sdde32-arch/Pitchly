@@ -81,7 +81,7 @@ export const FirstTimeUserTourModal: React.FC<FirstTimeUserTourModalProps> = ({
       id: "slots",
       badge: "Step 2 of 4: Reserve",
       title: "Select & Hold Time Slots",
-      description: "Pick your preferred game time. When you select a slot, Footlink locks it exclusively for 10 minutes so no one double-books it.",
+      description: "Pick your preferred game time. When you select a slot, Pitchly locks it exclusively for 10 minutes so no one double-books it.",
       icon: <Clock className="w-5 h-5 text-primary-lime" />,
       tips: [
         "Green slots are available; gray/red slots are occupied or held.",
@@ -265,7 +265,7 @@ export const FirstTimeUserTourModal: React.FC<FirstTimeUserTourModalProps> = ({
             </div>
             <div className="text-left">
               <h3 className="text-xs font-black uppercase tracking-wider text-text-primary">
-                {isOwner ? "Pitch Owner Guide" : "How to Maneuver Footlink"}
+                {isOwner ? "Pitch Owner Guide" : "How to Maneuver Pitchly"}
               </h3>
               <p className="text-[10px] text-text-tertiary font-medium">Quick Master Guide</p>
             </div>

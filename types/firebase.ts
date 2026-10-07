@@ -180,6 +180,28 @@ export interface Team {
  * - Private matches only readable by joined players / invitees.
  * - Captain can update or delete.
  */
+export interface MatchScorer {
+  playerId: string;
+  playerName: string;
+  goals: number;
+  team: 'teamA' | 'teamB';
+  minute?: string;
+}
+
+export interface MatchResult {
+  teamAName: string;
+  teamBName: string;
+  teamAScore: number;
+  teamBScore: number;
+  winner: 'teamA' | 'teamB' | 'draw';
+  scorers: MatchScorer[];
+  mvpPlayerId?: string;
+  mvpPlayerName?: string;
+  recordedBy?: string;
+  recordedAt: string;
+  notes?: string;
+}
+
 export interface Match {
   id: string;
   title: string;
@@ -196,6 +218,7 @@ export interface Match {
   totalCost: number;
   costPerPlayer: number;
   collectedAmount: number;
+  result?: MatchResult;
   createdAt: string;
   updatedAt: string;
 }

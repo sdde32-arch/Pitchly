@@ -34,13 +34,13 @@ export const MASTER_WALKTHROUGH_STEPS: WalkthroughStepDetail[] = [
     id: "app-overview",
     stepNumber: 1,
     category: "general",
-    title: "Welcome to Footlink",
+    title: "Welcome to Pitchly",
     subtitle: "Kampala's Premier Sports Turf Booking & Matchmaking Platform",
     badge: "Chapter 1 • Platform Overview",
     route: "/home",
     actionLabel: "Explore Home Dashboard",
     summary:
-      "Footlink connects football lovers, team captains, and pitch managers across Kampala. Book certified turf grounds, prevent double-bookings with cloud slot locks, pay via Mobile Money, and enter venues with digital QR passes.",
+      "Pitchly connects football lovers, team captains, and pitch managers across Kampala. Book certified turf grounds, prevent double-bookings with cloud slot locks, pay via Mobile Money, and enter venues with digital QR passes.",
     howToUse: [
       "Find Pitches: Use the proximity radar or interactive map to spot venues near your location.",
       "Pick & Hold: Tap any green slot to lock it for 10 minutes exclusively in the cloud.",
@@ -49,7 +49,7 @@ export const MASTER_WALKTHROUGH_STEPS: WalkthroughStepDetail[] = [
     keyAdvantage:
       "100% transparent pricing in UGX with zero phone tag, cash friction, or lost reservation disputes.",
     proTip:
-      "Footlink can be installed directly onto your phone's home screen as a Progressive Web App (PWA) for 1-tap offline access.",
+      "Pitchly can be installed directly onto your phone's home screen as a Progressive Web App (PWA) for 1-tap offline access.",
     interactiveWidgetType: "flow_overview"
   },
   {
@@ -106,7 +106,7 @@ export const MASTER_WALKTHROUGH_STEPS: WalkthroughStepDetail[] = [
     route: "/home",
     actionLabel: "View Available Slots",
     summary:
-      "Never lose your favorite game hour while waiting for your squad to gather money. When you select an available hour, Footlink locks it exclusively in the cloud for 10 minutes so nobody else can take it.",
+      "Never lose your favorite game hour while waiting for your squad to gather money. When you select an available hour, Pitchly locks it exclusively in the cloud for 10 minutes so nobody else can take it.",
     howToUse: [
       "Inspect the live slot grid: Green = Available, Amber = Held in 10-min Cloud Lock, Gray = Booked.",
       "Select your kickoff hour. The timer starts immediately, protecting your slot while you check out.",
@@ -194,7 +194,7 @@ export const MASTER_WALKTHROUGH_STEPS: WalkthroughStepDetail[] = [
     route: "/teams",
     actionLabel: "Open Squads Hub",
     summary:
-      "Team captains no longer need to pay UGX 120,000 out of pocket. Footlink calculates each player's exact share (e.g., UGX 10,000 for 12 players) and tracks who has paid in real time.",
+      "Team captains no longer need to pay UGX 120,000 out of pocket. Pitchly calculates each player's exact share (e.g., UGX 10,000 for 12 players) and tracks who has paid in real time.",
     howToUse: [
       "Navigate to 'Squads' to create your team with a custom crest, captain info, and home venue.",
       "Share your squad invite link with friends via WhatsApp or SMS to assemble your roster.",
@@ -220,7 +220,7 @@ export const MASTER_WALKTHROUGH_STEPS: WalkthroughStepDetail[] = [
     howToUse: [
       "Switch to Owner mode via the role switcher in your Profile or the header role badge.",
       "List your pitch: add photos, dimensions, surface type, floodlight availability, and hourly rates in UGX.",
-      "Manage reservations on the live calendar: block maintenance slots, verify QR passes, and view payouts."
+      "Manage reservations on the live calendar: block maintenance slots, verify QR passes, and view payouts.",
     ],
     keyAdvantage:
       "Maximizes pitch occupancy and automates payment collection with zero double-booking headaches.",
@@ -233,16 +233,16 @@ export const MASTER_WALKTHROUGH_STEPS: WalkthroughStepDetail[] = [
     stepNumber: 10,
     category: "general",
     title: "Pro Tips, Offline Mode & Settings",
-    subtitle: "Get the Absolute Best Out of Footlink",
+    subtitle: "Get the Absolute Best Out of Pitchly",
     badge: "Chapter 10 • Pro Tips & Setup",
     route: "/profile",
     actionLabel: "View Profile & Settings",
     summary:
-      "Everything you need to customize your Footlink experience: PWA home screen installation, match alerts, theme selection, and 24/7 support.",
+      "Everything you need to customize your Pitchly experience: PWA home screen installation, match alerts, theme selection, and 24/7 support.",
     howToUse: [
-      "Install as App: Tap 'Install App' in the top header to add Footlink directly to your Android or iOS home screen.",
+      "Install as App: Tap 'Install App' in the top header to add Pitchly directly to your Android or iOS home screen.",
       "Enable Match Alerts: Receive automatic 15-minute kick-off notifications so your team is never late.",
-      "Theme Customization: Switch between Dark Mode (ideal for night fixtures) and clean Light Mode in Profile."
+      "Theme Customization: Switch between Dark Mode (ideal for night fixtures) and clean Light Mode in Profile.",
     ],
     keyAdvantage:
       "Fast, native-like experience on any smartphone with minimal battery and cellular data usage.",

@@ -345,6 +345,7 @@ export const TurfDetail: React.FC = () => {
 
   // Message Pitch Owner/Manager state
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showPoliciesModal, setShowPoliciesModal] = useState(false);
   const [messageText, setMessageText] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [messageSentSuccess, setMessageSentSuccess] = useState(false);
@@ -1032,14 +1033,39 @@ export const TurfDetail: React.FC = () => {
               </div>
             ))}
 
-            {/* Bottom Right "Show all photos" Button */}
-            <button
-              onClick={() => setIsLightboxOpen(true)}
-              className="absolute bottom-4 right-4 px-3.5 py-2 rounded-xl bg-surface-card/95 hover:bg-surface-raised backdrop-blur-md border border-border-subtle text-xs font-bold text-text-primary shadow-lg flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
-            >
-              <Camera size={14} className="text-primary-lime" />
-              <span>Show all {galleryImages.length} photos</span>
-            </button>
+            {/* Bottom Right Photo Actions */}
+            <div className="absolute bottom-4 right-4 flex items-center gap-2">
+              <label
+                className={`px-3 py-2 rounded-xl bg-surface-card/95 hover:bg-surface-raised backdrop-blur-md border border-border-subtle text-xs font-bold text-text-primary shadow-lg flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${
+                  isUploadingPhotos ? "opacity-75 pointer-events-none" : ""
+                }`}
+                title="Add photos to pitch gallery"
+              >
+                {isUploadingPhotos ? (
+                  <Loader2 size={13} className="animate-spin text-primary-lime" />
+                ) : (
+                  <Upload size={13} className="text-primary-lime" />
+                )}
+                <span>Add Photos</span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  disabled={isUploadingPhotos}
+                  onChange={handlePhotoUpload}
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setIsLightboxOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-surface-card/95 hover:bg-surface-raised backdrop-blur-md border border-border-subtle text-xs font-bold text-text-primary shadow-lg flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
+              >
+                <Camera size={14} className="text-primary-lime" />
+                <span>Show all ({galleryImages.length})</span>
+              </button>
+            </div>
           </div>
 
           {/* 2. Mobile Edge-to-Edge Carousel */}
@@ -1087,46 +1113,37 @@ export const TurfDetail: React.FC = () => {
             {/* LEFT MAIN CONTENT COLUMN (7 cols on lg, 8 cols on xl) */}
             <div className="lg:col-span-7 xl:col-span-8 space-y-6 sm:space-y-8">
               {/* 1. KEY SPECIFICATIONS SUMMARY STRIP */}
-              <section className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div className="p-3 rounded-xl bg-surface-card border border-border-subtle shadow-2xs flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-surface-raised flex items-center justify-center text-primary-lime shrink-0">
-                    <Trophy size={17} />
+              <section className="bg-surface-card rounded-2xl p-3 sm:p-4 border border-border-subtle shadow-2xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Trophy size={16} className="text-primary-lime shrink-0" />
+                    <div className="truncate">
+                      <span className="text-[10px] uppercase font-bold text-text-tertiary block">Surface</span>
+                      <span className="font-bold text-text-primary truncate block">Certified AstroTurf</span>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <span className="block text-[10px] uppercase font-bold text-text-tertiary tracking-wider">Surface</span>
-                    <span className="block text-xs sm:text-[13px] font-bold text-text-primary truncate">Certified AstroTurf</span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Zap size={16} className="text-primary-lime shrink-0" />
+                    <div className="truncate">
+                      <span className="text-[10px] uppercase font-bold text-text-tertiary block">Format</span>
+                      <span className="font-bold text-text-primary truncate block">{turf.type || "7-a-side"}</span>
+                    </div>
                   </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-surface-card border border-border-subtle shadow-2xs flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-surface-raised flex items-center justify-center text-primary-lime shrink-0">
-                    <Zap size={17} />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Lightbulb size={16} className="text-primary-lime shrink-0" />
+                    <div className="truncate">
+                      <span className="text-[10px] uppercase font-bold text-text-tertiary block">Lights</span>
+                      <span className="font-bold text-text-primary truncate block">Night Floodlit</span>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <span className="block text-[10px] uppercase font-bold text-text-tertiary tracking-wider">Format</span>
-                    <span className="block text-xs sm:text-[13px] font-bold text-text-primary truncate">{turf.type || "7-a-side"}</span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-surface-card border border-border-subtle shadow-2xs flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-surface-raised flex items-center justify-center text-primary-lime shrink-0">
-                    <Lightbulb size={17} />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="block text-[10px] uppercase font-bold text-text-tertiary tracking-wider">Lights</span>
-                    <span className="block text-xs sm:text-[13px] font-bold text-text-primary truncate">Night Floodlit</span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-surface-card border border-border-subtle shadow-2xs flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-surface-raised flex items-center justify-center text-primary-lime shrink-0">
-                    <Users size={17} />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="block text-[10px] uppercase font-bold text-text-tertiary tracking-wider">Capacity</span>
-                    <span className="block text-xs sm:text-[13px] font-bold text-text-primary truncate">
-                      {turf.type?.includes("5") ? "10-12 Players" : turf.type?.includes("11") ? "22 Players" : "14-18 Players"}
-                    </span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Users size={16} className="text-primary-lime shrink-0" />
+                    <div className="truncate">
+                      <span className="text-[10px] uppercase font-bold text-text-tertiary block">Capacity</span>
+                      <span className="font-bold text-text-primary truncate block">
+                        {turf.type?.includes("5") ? "10-12 Players" : turf.type?.includes("11") ? "22 Players" : "14-18 Players"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -1374,28 +1391,25 @@ export const TurfDetail: React.FC = () => {
                     "Premium artificial football turf facility in Kampala engineered for high-tempo 5-a-side and 7-a-side matches. Equipped with professional floodlights for late evening play, shaded player dugouts, boundary netting, and dedicated parking."}
                 </p>
 
-                {/* Matchday Guidelines */}
+                {/* Matchday Guidelines: Clean Summary with Modal Trigger */}
                 <div className="pt-2">
-                  <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider block mb-2">
-                    Venue Ground Policies &amp; Etiquette
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-text-secondary">
-                    <div className="flex items-start gap-2 p-2.5 rounded-xl bg-surface-raised/60 border border-border-subtle/60">
-                      <CheckCircle2 size={15} className="text-primary-lime shrink-0 mt-0.5" />
-                      <span><strong>Footwear:</strong> Artificial turf trainers (TF) or molded rubber cleats only. Metal studs prohibited.</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-surface-raised border border-border-subtle">
+                    <div className="space-y-0.5">
+                      <span className="block text-xs font-bold text-text-primary">
+                        Artificial turf footwear required · Free cancellation up to 24h prior
+                      </span>
+                      <span className="block text-[11px] text-text-tertiary">
+                        Arrival 15 mins prior for check-in. Changing rooms, showers & lockers available.
+                      </span>
                     </div>
-                    <div className="flex items-start gap-2 p-2.5 rounded-xl bg-surface-raised/60 border border-border-subtle/60">
-                      <Clock size={15} className="text-primary-lime shrink-0 mt-0.5" />
-                      <span><strong>Arrival:</strong> Teams should arrive 15 minutes before slot kickoff for warm-up and check-in.</span>
-                    </div>
-                    <div className="flex items-start gap-2 p-2.5 rounded-xl bg-surface-raised/60 border border-border-subtle/60">
-                      <ShieldCheck size={15} className="text-primary-lime shrink-0 mt-0.5" />
-                      <span><strong>Cancellation:</strong> Free cancellation or slot reschedule up to 24 hours prior to match time.</span>
-                    </div>
-                    <div className="flex items-start gap-2 p-2.5 rounded-xl bg-surface-raised/60 border border-border-subtle/60">
-                      <Coffee size={15} className="text-primary-lime shrink-0 mt-0.5" />
-                      <span><strong>Amenities:</strong> Clean locker rooms, showers, and pitchside refreshment canteen available.</span>
-                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPoliciesModal(true)}
+                      className="px-3.5 py-2 rounded-xl bg-surface-card hover:bg-surface-raised border border-border-subtle text-xs font-bold text-text-primary shrink-0 transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                    >
+                      View Venue Rules
+                    </button>
                   </div>
                 </div>
               </section>
@@ -1437,60 +1451,48 @@ export const TurfDetail: React.FC = () => {
               </section>
 
               {/* 6. PITCH MANAGER & ON-GROUND OPERATIONS */}
-              <section className="bg-surface-card rounded-2xl p-4 sm:p-5 border border-border-subtle shadow-xs space-y-3.5">
-                <div className="flex items-center justify-between pb-1 border-b border-border-subtle/70">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-text-tertiary">
-                    Pitch Manager &amp; Matchday Operations
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-0.5 rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>On Duty</span>
-                  </span>
-                </div>
-
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-border-subtle bg-surface-raised shadow-xs">
-                      <img
-                        src={currentManager.image}
-                        alt={currentManager.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300";
-                        }}
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold text-text-primary">{currentManager.name}</span>
-                        <div className="w-3.5 h-3.5 rounded-full bg-primary-lime text-accent-text flex items-center justify-center shrink-0">
-                          <Check size={8} strokeWidth={4} />
-                        </div>
+              <section className="bg-surface-card rounded-2xl p-3.5 sm:p-4 border border-border-subtle shadow-2xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={currentManager.image}
+                      alt={currentManager.name}
+                      className="w-10 h-10 rounded-xl object-cover border border-border-subtle bg-surface-raised shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.src = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300";
+                      }}
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs sm:text-sm font-bold text-text-primary truncate">{currentManager.name}</span>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          On Duty
+                        </span>
                       </div>
-                      <p className="text-xs text-text-secondary truncate">{currentManager.role}</p>
-                      <p className="text-[11px] text-text-tertiary font-mono truncate">{currentManager.phone}</p>
+                      <p className="text-[11px] text-text-secondary truncate">{currentManager.role} · On-site Host</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
+                      type="button"
                       onClick={() => {
                         setMessageSentSuccess(false);
                         setMessageText("");
                         setShowMessageModal(true);
                       }}
-                      className="h-9 px-3.5 rounded-xl bg-primary-lime hover:bg-primary-lime-hover text-accent-text font-bold text-xs flex items-center gap-1.5 shadow-2xs active:scale-95 transition-all cursor-pointer"
+                      className="h-8 px-3 rounded-lg bg-primary-lime hover:bg-primary-lime-hover text-accent-text font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
                     >
-                      <MessageSquare size={14} />
-                      <span>Message</span>
+                      <MessageSquare size={13} />
+                      <span>Message Host</span>
                     </button>
-
                     <a
                       href={`tel:${currentManager.phone}`}
-                      className="w-9 h-9 rounded-xl bg-surface-raised hover:bg-surface-card border border-border-subtle text-text-primary flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                      className="h-8 w-8 rounded-lg bg-surface-raised hover:bg-surface-card border border-border-subtle text-text-primary flex items-center justify-center transition-colors cursor-pointer"
                       title={`Call ${currentManager.name}`}
                     >
-                      <Phone size={14} className="text-primary-lime" />
+                      <Phone size={13} className="text-primary-lime" />
                     </a>
                   </div>
                 </div>
@@ -1520,84 +1522,6 @@ export const TurfDetail: React.FC = () => {
                     }
                   }}
                 />
-              </section>
-
-              {/* 8. COMPLETE PITCH GALLERY WITH DEVICE UPLOAD */}
-              <section id="gallery-section" className="bg-surface-card rounded-2xl p-4 sm:p-5 border border-border-subtle shadow-xs space-y-4 scroll-mt-24">
-                <div className="flex items-center justify-between pb-1.5 border-b border-border-subtle/70 gap-2 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm sm:text-base font-extrabold text-text-primary flex items-center gap-2">
-                      <Camera size={16} className="text-primary-lime" />
-                      <span>Pitch Photo Gallery</span>
-                    </h2>
-                    <span className="text-[10px] bg-primary-lime/10 border border-primary-lime/20 text-primary-lime font-bold px-2 py-0.5 rounded-full">
-                      {galleryImages.length} Photos
-                    </span>
-                  </div>
-
-                  <label
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary-lime text-accent-text text-xs font-bold hover:bg-primary-lime-hover transition-all cursor-pointer shadow-2xs active:scale-95 ${
-                      isUploadingPhotos ? "opacity-75 pointer-events-none" : ""
-                    }`}
-                  >
-                    {isUploadingPhotos ? (
-                      <>
-                        <Loader2 size={13} className="animate-spin" />
-                        <span>Optimizing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload size={13} strokeWidth={2.5} />
-                        <span>Add Photos</span>
-                      </>
-                    )}
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      className="hidden"
-                      disabled={isUploadingPhotos}
-                      onChange={handlePhotoUpload}
-                    />
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-                  {galleryImages.map((img, idx) => {
-                    const isCustomPhoto = uploadedPhotos.includes(img);
-                    return (
-                      <div
-                        key={idx}
-                        className="relative group aspect-[4/3] rounded-xl overflow-hidden bg-surface-raised border border-border-subtle cursor-pointer"
-                        onClick={() => {
-                          setCurrentImgIndex(idx);
-                          setIsLightboxOpen(true);
-                        }}
-                      >
-                        <img
-                          src={img}
-                          alt={`${turf.name} photo ${idx + 1}`}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            e.currentTarget.src = DEMO_GALLERY_FALLBACKS[0].url;
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
-
-                        {isCustomPhoto && (
-                          <button
-                            type="button"
-                            onClick={(e) => handleRemovePhoto(idx, e)}
-                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/75 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer shadow-md"
-                            title="Remove photo"
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
               </section>
             </div>
 
@@ -1660,19 +1584,11 @@ export const TurfDetail: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Estimated Cost Breakdown */}
-                <div className="space-y-2 text-xs text-text-secondary pt-1">
-                  <div className="flex items-center justify-between">
+                {/* Match Cost Summary */}
+                <div className="space-y-2 text-xs pt-1">
+                  <div className="flex items-center justify-between text-text-secondary">
                     <span>Pitch Rental (1 hr)</span>
-                    <span className="font-mono text-text-primary">UGX {(turf.pricePerHour || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Night Floodlights &amp; Pitch Setup</span>
-                    <span className="text-emerald-500 font-semibold">Included Free</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Service &amp; Matchday Platform Fee</span>
-                    <span className="text-emerald-500 font-semibold">UGX 0 (Waived)</span>
+                    <span className="font-mono text-text-primary font-bold">UGX {(turf.pricePerHour || 0).toLocaleString()}</span>
                   </div>
                   <div className="border-t border-border-subtle pt-2.5 flex items-center justify-between text-sm font-black text-text-primary">
                     <span>Total Matchday Cost</span>
@@ -1680,6 +1596,9 @@ export const TurfDetail: React.FC = () => {
                       UGX {(turf.pricePerHour || 0).toLocaleString()}
                     </span>
                   </div>
+                  <p className="text-[11px] text-text-tertiary">
+                    Includes pitch access, night floodlights &amp; changing rooms.
+                  </p>
                 </div>
 
                 {/* CTA Buttons */}
@@ -1703,28 +1622,30 @@ export const TurfDetail: React.FC = () => {
                       }
                       setIsProposalModalOpen(true);
                     }}
-                    className="w-full py-3 bg-surface-raised hover:bg-border-subtle text-text-primary border border-border-subtle font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
+                    className="w-full py-2.5 bg-surface-raised hover:bg-border-subtle text-text-secondary hover:text-text-primary border border-border-subtle font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
                     title="Propose a friendly match challenge"
                   >
-                    <Users size={15} className="text-primary-lime" />
+                    <Users size={14} className="text-primary-lime" />
                     <span>Propose Match Challenge</span>
                   </button>
                 </div>
 
                 {/* Booking Guarantees */}
-                <div className="pt-2 border-t border-border-subtle/70 space-y-2 text-[11px] text-text-tertiary">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck size={14} className="text-primary-lime shrink-0" />
-                    <span>Free slot rescheduling up to 24 hours prior</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Zap size={14} className="text-primary-lime shrink-0" />
-                    <span>Instant booking confirmation via SMS &amp; in-app voucher</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 size={14} className="text-primary-lime shrink-0" />
-                    <span>100% verified FIFA-standard pitch surface</span>
-                  </div>
+                <div className="pt-2 border-t border-border-subtle/70 flex items-center justify-between text-[11px] text-text-tertiary">
+                  <span className="flex items-center gap-1">
+                    <ShieldCheck size={13} className="text-primary-lime" />
+                    24h Reschedule
+                  </span>
+                  <span>·</span>
+                  <span className="flex items-center gap-1">
+                    <Zap size={13} className="text-primary-lime" />
+                    Instant Pass
+                  </span>
+                  <span>·</span>
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 size={13} className="text-primary-lime" />
+                    FIFA Certified
+                  </span>
                 </div>
 
                 {/* Manager Contact Link */}
@@ -2035,6 +1956,92 @@ export const TurfDetail: React.FC = () => {
           targetId={turf.id}
           reporterRole="player"
         />
+
+        {/* VENUE POLICIES & MATCHDAY RULES MODAL */}
+        {showPoliciesModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+            onClick={() => setShowPoliciesModal(false)}
+          >
+            <div
+              className="relative max-w-md w-full bg-surface-card rounded-3xl border border-border-subtle p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-primary-lime/15 text-primary-lime flex items-center justify-center border border-primary-lime/25">
+                    <ShieldCheck size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-text-primary">
+                      Venue Rules &amp; Guidelines
+                    </h3>
+                    <p className="text-xs text-text-secondary truncate">{turf.name}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPoliciesModal(false)}
+                  className="w-8 h-8 rounded-full hover:bg-surface-raised flex items-center justify-center text-text-tertiary hover:text-text-primary cursor-pointer transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-3.5 text-xs text-text-secondary leading-relaxed">
+                <div className="p-3 rounded-xl bg-surface-raised border border-border-subtle space-y-1">
+                  <span className="font-bold text-text-primary text-xs flex items-center gap-1.5">
+                    <CheckCircle2 size={14} className="text-primary-lime shrink-0" />
+                    Footwear &amp; Pitch Gear
+                  </span>
+                  <p>
+                    AstroTurf shoes (multi-stud rubber soles) or moulded FG studs permitted. Metal screw-in studs or flat street shoes are strictly banned.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-surface-raised border border-border-subtle space-y-1">
+                  <span className="font-bold text-text-primary text-xs flex items-center gap-1.5">
+                    <CheckCircle2 size={14} className="text-primary-lime shrink-0" />
+                    Free Cancellation &amp; Reschedule
+                  </span>
+                  <p>
+                    Cancel or reschedule without fee up to 24 hours prior to match kickoff. Full refund credited to your original payment method.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-surface-raised border border-border-subtle space-y-1">
+                  <span className="font-bold text-text-primary text-xs flex items-center gap-1.5">
+                    <CheckCircle2 size={14} className="text-primary-lime shrink-0" />
+                    Arrival &amp; Gate Check-In
+                  </span>
+                  <p>
+                    Please arrive 15 minutes before your time slot. Present your digital ticket QR code or 6-digit match pass to ground staff for gate access.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-surface-raised border border-border-subtle space-y-1">
+                  <span className="font-bold text-text-primary text-xs flex items-center gap-1.5">
+                    <CheckCircle2 size={14} className="text-primary-lime shrink-0" />
+                    Facilities &amp; Changing Rooms
+                  </span>
+                  <p>
+                    Complimentary access to secure changing rooms, showers, and shaded player dugouts. Floodlights are maintained until 23:00 daily.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-border-subtle flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowPoliciesModal(false)}
+                  className="px-5 py-2.5 rounded-xl bg-primary-lime hover:bg-primary-lime-hover text-accent-text font-black text-xs cursor-pointer transition-colors shadow-2xs"
+                >
+                  Understood
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

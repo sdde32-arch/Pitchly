@@ -509,7 +509,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               type="button"
               onClick={() => openWalkthrough()}
               className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-bold text-primary-lime bg-primary-lime/10 hover:bg-primary-lime/20 border border-primary-lime/30 transition-all cursor-pointer shadow-xs active:scale-98"
-              title="Open Footlink Master Walkthrough & Guide"
+              title="Open Pitchly Master Walkthrough & Guide"
             >
               <div className="flex items-center gap-2">
                 <Compass size={15} className="text-primary-lime animate-spin-slow" />
@@ -583,7 +583,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 type="button"
                 onClick={() => openWalkthrough()}
                 className="w-9 h-9 rounded-full flex items-center justify-center bg-primary-lime/10 hover:bg-primary-lime/20 border border-primary-lime/30 text-primary-lime cursor-pointer active:scale-95 transition-all shrink-0"
-                title="Footlink App Walkthrough & Guide"
+                title="Pitchly App Walkthrough & Guide"
                 aria-label="App Walkthrough & Guide"
               >
                 <Compass size={16} className="text-primary-lime animate-spin-slow" />

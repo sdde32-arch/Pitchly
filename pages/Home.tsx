@@ -20,6 +20,7 @@ import {
   Trophy,
   Navigation,
   Loader2,
+  Radio,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Layout } from "../components/Layout";
@@ -177,6 +178,7 @@ export const Home: React.FC = () => {
   const [quickBookingPitch, setQuickBookingPitch] = useState<Partial<Pitch> | null>(null);
   const [quickBookingSlot, setQuickBookingSlot] = useState<string>("19:00");
   const [showQuickBookingModal, setShowQuickBookingModal] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
 
   // Tour modal
   const [showTourModal, setShowTourModal] = useState(false);
@@ -603,36 +605,31 @@ export const Home: React.FC = () => {
             />
           </div>
 
-          <TournamentBanner />
-
           {/* 3. DUAL-COLUMN MATCHDAY DASHBOARD GRID */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             {/* PRIMARY COLUMN: DISCOVERY & BOOKING (8 cols on desktop) */}
-            <div className="lg:col-span-8 space-y-7 sm:space-y-8 min-w-0">
+            <div className="lg:col-span-8 space-y-6 sm:space-y-7 min-w-0">
               {/* Available Pitches & Direct Slot Booking (CORE PURPOSE) */}
               <section
                 id="pitches-booking-section"
                 aria-label="Available Football Grounds"
                 className="space-y-4 sm:space-y-5 scroll-mt-24"
               >
-                {/* Section Heading & Sort Dropdown */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pt-1 border-b border-border-subtle pb-3.5">
+                {/* Section Heading & Sort Dropdown - Clean Typographic Hierarchy */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-b border-border-subtle pb-3.5">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <div className="relative flex items-center justify-center">
-                        <span className="w-2.5 h-2.5 rounded-full bg-primary-lime shrink-0 shadow-[0_0_8px_rgba(22,163,74,0.5)]" />
-                        <span className="w-2.5 h-2.5 rounded-full bg-primary-lime  absolute opacity-40" />
-                      </div>
-                      <h2 id="heading-available-pitches" className="text-lg sm:text-xl font-black text-text-primary tracking-tight font-display uppercase scroll-mt-24">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-2 h-2 rounded-full bg-primary-lime shrink-0 shadow-[0_0_8px_rgba(22,163,74,0.5)]" />
+                      <h2 id="heading-available-pitches" className="text-xl sm:text-2xl font-black text-text-primary tracking-tight font-display scroll-mt-24">
                         Available Pitches
                       </h2>
-                      <span className="px-2.5 py-0.5 rounded-full bg-primary-lime/10 text-primary-lime border border-primary-lime/25 text-[11px] font-bold tracking-tight shadow-2xs">
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-text-secondary">
+                      <span className="font-semibold text-text-primary font-mono tabular-nums">
                         {filteredPitches.length} {filteredPitches.length === 1 ? "ground" : "grounds"}
                       </span>
-                      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-raised border border-border-subtle text-[10px] font-bold text-text-tertiary">
-                        📍 Sorted by proximity
-                      </span>
-                      {/* Location Proximity Badge */}
+                      <span className="text-text-tertiary" aria-hidden="true">·</span>
+                      <span>Assigned by proximity</span>
                       <button
                         id="geolocation-toggle-btn"
                         type="button"
@@ -642,45 +639,49 @@ export const Home: React.FC = () => {
                             ? "Using your real-time GPS location (Click to refresh)"
                             : "Using Kampala City default location (Click to acquire GPS)"
                         }
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all cursor-pointer ${
-                          locationLoading
-                            ? "bg-surface-raised border-border-subtle text-text-tertiary animate-pulse"
-                            : isPreciseLocation
-                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
-                            : "bg-surface-card text-text-secondary border-border-subtle hover:text-text-primary"
-                        }`}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-lime hover:underline cursor-pointer ml-1"
                       >
                         {locationLoading ? (
                           <Loader2 size={11} className="animate-spin text-primary-lime" />
                         ) : (
-                          <Navigation
-                            size={11}
-                            className={isPreciseLocation ? "text-emerald-500" : "text-text-tertiary"}
-                          />
+                          <Navigation size={11} />
                         )}
-                        <span>{isPreciseLocation ? "Near Your Location" : "Kampala Location"}</span>
+                        <span>{isPreciseLocation ? "GPS Active" : "Detect GPS"}</span>
                       </button>
                     </div>
                   </div>
 
                   {/* Filters & Sort Controls */}
                   <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+                    {/* Community Pulse Pop-up Trigger */}
+                    <button
+                      id="open-community-activity-btn"
+                      type="button"
+                      onClick={() => setShowActivityModal(true)}
+                      className="h-9 px-3 sm:px-3.5 rounded-xl border border-border-subtle hover:border-primary-lime/40 bg-surface-card hover:bg-surface-raised flex items-center gap-1.5 text-xs font-bold text-text-secondary hover:text-text-primary transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+                      title="View live community match results and updates in a popup"
+                    >
+                      <Radio size={13} className="text-primary-lime animate-pulse" />
+                      <span className="hidden sm:inline">Community Pulse</span>
+                      <span className="sm:hidden">Pulse</span>
+                    </button>
+
                     {/* Filters Modal Trigger */}
                     <button
                       id="open-filters-modal-btn"
                       type="button"
                       onClick={() => setShowFilterModal(true)}
-                      className={`h-9 px-3.5 sm:px-4 rounded-full border flex items-center gap-2 shrink-0 transition-all cursor-pointer font-bold text-xs active:scale-95 ${
+                      className={`h-9 px-3.5 sm:px-4 rounded-xl border flex items-center gap-2 shrink-0 transition-all cursor-pointer font-bold text-xs active:scale-95 ${
                         activeFiltersCount > 0
-                          ? "bg-primary-lime text-white border-primary-lime shadow-sm shadow-primary-lime/20"
+                          ? "bg-primary-lime text-black border-primary-lime shadow-sm shadow-primary-lime/20"
                           : "bg-surface-card hover:bg-surface-raised border-border-subtle text-text-secondary hover:text-text-primary shadow-2xs"
                       }`}
                       title="Open pitch filters"
                     >
-                      <SlidersHorizontal size={13} className={activeFiltersCount > 0 ? "text-white" : "text-text-secondary"} />
+                      <SlidersHorizontal size={13} className={activeFiltersCount > 0 ? "text-black" : "text-text-secondary"} />
                       <span className="text-[11px] font-bold uppercase tracking-wider">Filters</span>
                       {activeFiltersCount > 0 && (
-                        <span className="min-w-4 h-4 px-1 rounded-full bg-white text-primary-lime text-[10px] font-black flex items-center justify-center shadow-2xs ml-0.5">
+                        <span className="min-w-4 h-4 px-1 rounded-full bg-black text-primary-lime text-[10px] font-black flex items-center justify-center shadow-2xs ml-0.5">
                           {activeFiltersCount}
                         </span>
                       )}
@@ -692,7 +693,7 @@ export const Home: React.FC = () => {
                         id="pitch-sort-menu-btn"
                         type="button"
                         onClick={() => setShowSortMenu((prev) => !prev)}
-                        className={`h-9 px-3.5 sm:px-4 rounded-full border transition-all flex items-center gap-2 text-xs font-bold cursor-pointer shadow-2xs active:scale-95 ${
+                        className={`h-9 px-3.5 sm:px-4 rounded-xl border transition-all flex items-center gap-2 text-xs font-bold cursor-pointer shadow-2xs active:scale-95 ${
                           showSortMenu
                             ? "bg-surface-raised border-primary-lime/40 text-text-primary"
                             : "bg-surface-card hover:bg-surface-raised border-border-subtle text-text-secondary hover:text-text-primary"
@@ -771,48 +772,27 @@ export const Home: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 1. Nearest Available Pitch Cards (First 3 Cards Assigned by Proximity) */}
+                {/* Available Pitches Grid (Continuous, Uninterrupted Discovery) */}
                 <div>
                   {loadingPitches ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 items-stretch">
-                      {Array.from({ length: 3 }).map((_, idx) => (
+                      {Array.from({ length: 6 }).map((_, idx) => (
                         <PitchCardSkeleton key={idx} />
                       ))}
                     </div>
                   ) : filteredPitches.length > 0 ? (
-                    <div className="space-y-4">
-                      <div className="flex items-end justify-between gap-3 border-b border-border-subtle pb-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary-lime/10 text-primary-lime border border-primary-lime/25 text-[10px] font-bold uppercase tracking-wider">
-                              <Navigation size={11} className={locationLoading ? "animate-spin" : ""} />
-                              <span>Proximity Radar</span>
-                            </span>
-                            <span className="text-[11px] text-text-secondary font-medium hidden sm:inline">
-                              {isPreciseLocation ? "GPS Verified • Closest First" : "Kampala Central • Nearest First"}
-                            </span>
-                          </div>
-                          <h3 className="font-display text-base sm:text-lg font-extrabold text-text-primary tracking-tight">
-                            Nearest Available Pitches
-                          </h3>
-                        </div>
-                        <span className="font-mono tabular-nums text-xs font-semibold text-text-tertiary shrink-0">
-                          Showing {firstThreePitches.length} of {filteredPitches.length}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 items-stretch">
-                        {firstThreePitches.map((pitch) => (
-                          <FootballPitchCard
-                            key={pitch.id}
-                            pitch={pitch}
-                            isFavorite={!!favorites[pitch.id || ""]}
-                            onToggleFavorite={toggleFavorite}
-                            onSelectSlot={handleOpenQuickBooking}
-                            selectedDate={selectedDate}
-                            distanceKm={(pitch as any)._computedDistanceKm}
-                          />
-                        ))}
-                      </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 items-stretch">
+                      {filteredPitches.map((pitch) => (
+                        <FootballPitchCard
+                          key={pitch.id}
+                          pitch={pitch}
+                          isFavorite={!!favorites[pitch.id || ""]}
+                          onToggleFavorite={toggleFavorite}
+                          onSelectSlot={handleOpenQuickBooking}
+                          selectedDate={selectedDate}
+                          distanceKm={(pitch as any)._computedDistanceKm}
+                        />
+                      ))}
                     </div>
                   ) : (
                     <div className="col-span-full py-16 text-center text-text-tertiary text-xs bg-surface-card rounded-3xl border border-border-subtle space-y-3 p-6">
@@ -843,43 +823,10 @@ export const Home: React.FC = () => {
                   )}
                 </div>
               </section>
-
-              {/* 2. ACTIVITY FEED SECTION (Added right after three cards of the pitch) */}
-              <ActivityFeed onSelectSlot={handleOpenQuickBooking} />
-
-              {/* 3. ADDITIONAL AVAILABLE PITCHES (Cards 4+) */}
-              {remainingPitches.length > 0 && !loadingPitches && (
-                <section className="space-y-4 pt-2">
-                  <div className="flex items-center justify-between border-b border-border-subtle pb-2.5">
-                    <h3 className="font-display text-sm sm:text-base font-extrabold text-text-primary uppercase tracking-tight flex items-center gap-2">
-                      <span>More Available Grounds in Kampala</span>
-                      <span className="font-mono tabular-nums text-[11px] px-2 py-0.5 rounded-full bg-surface-raised border border-border-subtle text-text-secondary font-bold">
-                        +{remainingPitches.length} More Pitches
-                      </span>
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 items-stretch">
-                    {remainingPitches.map((pitch) => (
-                      <FootballPitchCard
-                        key={pitch.id}
-                        pitch={pitch}
-                        isFavorite={!!favorites[pitch.id || ""]}
-                        onToggleFavorite={toggleFavorite}
-                        onSelectSlot={handleOpenQuickBooking}
-                        selectedDate={selectedDate}
-                        distanceKm={(pitch as any)._computedDistanceKm}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* 4. Community Open Pickup Matches */}
-              <HomeCommunityPickups loading={loadingPitches} />
             </div>
 
-            {/* DASHBOARD COMPANION RAIL: UPCOMING TICKET, WEATHER & SPECIALS (4 cols on desktop) */}
-            <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-4 min-w-0">
+            {/* DASHBOARD COMPANION RAIL: UPCOMING TICKET & FIXTURE HUB (4 cols on desktop) */}
+            <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-4 min-w-0">
               {/* Smart Matchday Hub (Next Matchday / Active Upcoming Booking Ticket) */}
               <SmartDashboard
                 upcomingBooking={userUpcomingBooking}
@@ -887,13 +834,29 @@ export const Home: React.FC = () => {
                 onExplorePitches={() => smoothScrollToSection("pitches-booking-section", 16)}
               />
 
-              {/* Matchday Promotions & Floodlight Sessions */}
-              <MatchdayBanner
-                onFilterFloodlit={() => {
-                  setActiveCollectionTab("floodlit");
-                  smoothScrollToSection("pitches-booking-section", 16);
-                }}
-              />
+              {/* Compact Community Pulse Snapshot Trigger */}
+              <div className="bg-surface-card rounded-2xl border border-border-subtle p-4 shadow-xs space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                  <div className="flex items-center gap-2">
+                    <Radio size={14} className="text-primary-lime animate-pulse" />
+                    <h4 className="font-display text-xs font-bold uppercase tracking-wider text-text-primary">
+                      Community Activity
+                    </h4>
+                  </div>
+                  <span className="text-[10px] text-text-tertiary font-medium">Live scores</span>
+                </div>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Real-time matchday results, upcoming bookings, and team updates across Kampala pitches.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowActivityModal(true)}
+                  className="w-full py-2.5 rounded-xl bg-surface-raised hover:bg-border-subtle border border-border-subtle text-xs font-bold text-text-primary flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-95"
+                >
+                  <span>Open Community Feed</span>
+                  <ChevronRight size={14} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1061,6 +1024,44 @@ export const Home: React.FC = () => {
           onClose={() => setShowTourModal(false)}
           role={role?.toLowerCase() || "player"}
         />
+
+        {/* Live Community Activity Pop-up Modal */}
+        {showActivityModal && (
+          <div
+            id="community-activity-modal-backdrop"
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn"
+            onClick={() => setShowActivityModal(false)}
+          >
+            <div
+              id="community-activity-modal-content"
+              className="bg-surface-card border border-border-subtle rounded-3xl max-w-2xl w-full p-4 sm:p-6 text-text-primary relative shadow-2xl max-h-[92vh] overflow-y-auto space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-primary-lime/15 text-primary-lime flex items-center justify-center border border-primary-lime/30">
+                    <Radio size={16} className="text-primary-lime animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-black text-text-primary">
+                      Community Activity &amp; Live Scores
+                    </h3>
+                    <p className="text-[11px] text-text-secondary">Kampala grassroot football pulse</p>
+                  </div>
+                </div>
+                <button
+                  id="community-activity-modal-close-btn"
+                  onClick={() => setShowActivityModal(false)}
+                  className="w-8 h-8 rounded-full hover:bg-surface-raised flex items-center justify-center text-text-tertiary hover:text-text-primary transition-colors cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <ActivityFeed onSelectSlot={handleOpenQuickBooking} />
+            </div>
+          </div>
+        )}
       </div>
     );
   };
