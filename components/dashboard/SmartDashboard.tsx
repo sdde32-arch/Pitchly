@@ -136,7 +136,7 @@ export const SmartDashboard: React.FC<SmartDashboardProps> = ({
                   </div>
                 </div>
 
-                <h3 id="heading-next-matchday" className="text-base sm:text-lg font-bold text-text-primary tracking-tight truncate scroll-mt-24">
+                <h3 id="heading-next-matchday" className="font-display text-base sm:text-lg font-bold text-text-primary tracking-tight truncate scroll-mt-24">
                   {upcomingBooking
                     ? `Match at ${upcomingBooking.pitchName || "Turf Ground"}`
                     : "Playmakers FC vs Naguru Stars"}
@@ -153,17 +153,17 @@ export const SmartDashboard: React.FC<SmartDashboardProps> = ({
               {/* Countdown Clock Display */}
               <div className="flex items-center gap-2 bg-surface-raised border border-border-subtle px-3.5 py-2.5 rounded-xl shrink-0 self-start sm:self-auto">
                 <div className="text-center min-w-[34px]">
-                  <span className="font-mono text-base font-bold text-text-primary block leading-none">{countdown.days}</span>
+                  <span className="font-mono tabular-nums text-base font-bold text-text-primary block leading-none">{countdown.days}</span>
                   <span className="text-[9px] font-bold text-text-tertiary uppercase mt-1 block">Days</span>
                 </div>
                 <span className="text-text-tertiary font-bold text-sm -mt-2">:</span>
                 <div className="text-center min-w-[34px]">
-                  <span className="font-mono text-base font-bold text-text-primary block leading-none">{String(countdown.hours).padStart(2, "0")}</span>
+                  <span className="font-mono tabular-nums text-base font-bold text-text-primary block leading-none">{String(countdown.hours).padStart(2, "0")}</span>
                   <span className="text-[9px] font-bold text-text-tertiary uppercase mt-1 block">Hours</span>
                 </div>
                 <span className="text-text-tertiary font-bold text-sm -mt-2">:</span>
                 <div className="text-center min-w-[34px]">
-                  <span className="font-mono text-base font-bold text-text-primary block leading-none">{String(countdown.minutes).padStart(2, "0")}</span>
+                  <span className="font-mono tabular-nums text-base font-bold text-text-primary block leading-none">{String(countdown.minutes).padStart(2, "0")}</span>
                   <span className="text-[9px] font-bold text-text-tertiary uppercase mt-1 block">Mins</span>
                 </div>
               </div>

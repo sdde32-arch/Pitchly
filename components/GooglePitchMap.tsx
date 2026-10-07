@@ -410,7 +410,7 @@ export const GooglePitchMap: React.FC<GooglePitchMapProps> = ({
       const btn = document.getElementById(`book-pitch-btn-${pitch.id}`);
       if (btn) {
         btn.onclick = () => {
-          navigate(`/turf/${pitch.id}`);
+          navigate(`/turf/${pitch.id}`, { state: { from: 'explore' } });
         };
       }
     });

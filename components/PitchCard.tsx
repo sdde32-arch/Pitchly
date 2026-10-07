@@ -37,7 +37,7 @@ export const PitchCard: React.FC<PitchCardProps> = ({
 
   const handleCardClick = () => {
     if (pitch.id) {
-      navigate(`/turf/${pitch.id}`);
+      navigate(`/turf/${pitch.id}`, { state: { from: 'home' } });
     }
   };
 

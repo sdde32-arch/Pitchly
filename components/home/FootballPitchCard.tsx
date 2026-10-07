@@ -61,12 +61,12 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
   return (
     <article
       id={`pitch-card-${pitch.id}`}
-      onClick={() => pitch.id && navigate(`/turf/${pitch.id}`)}
-      className="group relative bg-surface-card hover:bg-surface-raised rounded-2xl border border-border-subtle hover:border-primary-lime/40 transition-all duration-300 overflow-hidden flex flex-col justify-between shadow-xs hover:shadow-lg hover:shadow-black/5 cursor-pointer"
+      onClick={() => pitch.id && navigate(`/turf/${pitch.id}`, { state: { from: 'home' } })}
+      className="group relative bg-surface-card hover:bg-surface-raised rounded-2xl border border-border-subtle hover:border-primary-lime/40 transition-all duration-300 overflow-hidden flex flex-col justify-between shadow-xs hover:shadow-xl hover:shadow-black/15 cursor-pointer h-full"
     >
-      <div>
+      <div className="flex-1 flex flex-col">
         {/* Pitch Stadium Image Frame */}
-        <div className="relative w-full h-32 overflow-hidden bg-surface-raised select-none border-b border-border-subtle">
+        <div className="relative w-full h-36 sm:h-40 overflow-hidden bg-surface-raised select-none border-b border-border-subtle shrink-0">
           <img
             src={primaryImage}
             alt={pitch.name || "Football Pitch"}
@@ -74,17 +74,17 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
             loading="lazy"
           />
           {/* Stadium Dark Gradient Shadow for Readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
 
           {/* Top Row Badges */}
           <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none">
-            {/* Format & Surface Pill */}
+            {/* Format & Surface */}
             <div className="flex items-center gap-1.5 pointer-events-auto">
-              <span className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase text-white border border-white/10 shadow-xs flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary-lime " />
+              <span className="bg-black/65 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase text-white border border-white/10 shadow-xs flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary-lime" />
                 {formatBadge}
               </span>
-              <span className="hidden sm:inline-block bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase text-white/90 border border-white/10">
+              <span className="hidden sm:inline-block bg-black/65 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase text-white/90 border border-white/10">
                 {surfaceType}
               </span>
             </div>
@@ -94,9 +94,9 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
               id={`favorite-btn-${pitch.id}`}
               type="button"
               onClick={(e) => {
-                  if (pitch.id) onToggleFavorite(pitch.id, e);
+                if (pitch.id) onToggleFavorite(pitch.id, e);
               }}
-              className="pointer-events-auto w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 backdrop-blur-md flex items-center justify-center text-white border border-white/15 transition-all active:scale-90 cursor-pointer shadow-xs"
+              className="pointer-events-auto w-8 h-8 rounded-full bg-black/55 hover:bg-black/85 backdrop-blur-md flex items-center justify-center text-white border border-white/15 transition-all active:scale-90 cursor-pointer shadow-xs"
               aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
             >
               <Heart
@@ -110,14 +110,14 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
           {/* Bottom Overlay Data (Rating, Verified) */}
           <div className="absolute bottom-3 inset-x-3 flex items-end justify-between pointer-events-none">
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-white border border-white/10">
+              <div className="inline-flex items-center gap-1 bg-black/65 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-white border border-white/10">
                 <ShieldCheck size={12} className="text-primary-lime" />
-                <span>Verified</span>
+                <span>Verified Turf</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 bg-black/75 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-black text-white border border-white/15 shadow-xs">
-                <Star size={12} className="fill-[#FACC15] text-[#FACC15]" />
+              <div className="flex items-center gap-1 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-bold text-white border border-white/15 shadow-xs font-mono tabular-nums">
+                <Star size={12} className="fill-[#FACC15] text-[#FACC15] shrink-0" />
                 <span>{rating}</span>
                 <span className="text-white/60 text-[10px] font-medium">({reviewsCount})</span>
               </div>
@@ -126,39 +126,39 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
         </div>
 
         {/* Card Content Body */}
-        <div className="p-3 sm:p-4 space-y-3">
-          {/* Title & Location */}
-          <div className="space-y-1">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="text-base sm:text-lg font-bold text-text-primary tracking-tight leading-snug group-hover:text-primary-lime transition-colors line-clamp-1">
-                {pitch.name || "Kampala Arena Turf"}
-              </h3>
-            </div>
+        <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+          <div className="space-y-1.5">
+            {/* Title */}
+            <h3 className="font-display text-base font-bold text-text-primary tracking-tight leading-snug group-hover:text-primary-lime transition-colors line-clamp-1">
+              {pitch.name || "Kampala Arena Turf"}
+            </h3>
+
+            {/* Location & Proximity Distance */}
             <div className="flex items-center gap-1.5 text-text-secondary text-xs">
-              <MapPin size={13} className="text-text-tertiary shrink-0" />
+              <MapPin size={13} className="text-primary-lime shrink-0" />
               <span className="truncate">{pitch.location || "Kampala, Uganda"}</span>
               <span className="text-text-tertiary">•</span>
-              <span className="text-text-primary font-bold shrink-0">{distance}</span>
+              <span className="font-mono tabular-nums text-text-primary font-bold shrink-0">{distance}</span>
             </div>
-          </div>
 
-          {/* Quick Amenities Preview (Max 3) - Clean Typographic Metadata */}
-          <div className="flex items-center gap-1.5 text-[11px] text-text-tertiary truncate">
-            {(pitch.amenities && pitch.amenities.length > 0
-              ? pitch.amenities.slice(0, 3)
-              : ["Floodlights", "Changing Rooms", "Parking"]
-            ).map((amenity, idx, arr) => (
-              <React.Fragment key={idx}>
-                <span className="truncate">{amenity}</span>
-                {idx < arr.length - 1 && <span className="text-text-tertiary/60 shrink-0">·</span>}
-              </React.Fragment>
-            ))}
+            {/* Quick Amenities Preview (Clean Typographic Row) */}
+            <div className="flex items-center gap-1.5 text-[11px] text-text-tertiary truncate pt-0.5">
+              {(pitch.amenities && pitch.amenities.length > 0
+                ? pitch.amenities.slice(0, 3)
+                : ["Floodlights", "Changing Rooms", "Parking"]
+              ).map((amenity, idx, arr) => (
+                <React.Fragment key={idx}>
+                  <span className="truncate">{amenity}</span>
+                  {idx < arr.length - 1 && <span className="text-text-tertiary/60 shrink-0">·</span>}
+                </React.Fragment>
+              ))}
+            </div>
           </div>
 
           {/* Instant Slots Strip */}
-          <div className="pt-3 border-t border-border-subtle space-y-2">
+          <div className="pt-2.5 border-t border-border-subtle space-y-2">
             <div className="flex items-center justify-between text-[11px]">
-              <span className="font-bold text-text-secondary flex items-center gap-1">
+              <span className="font-semibold text-text-secondary flex items-center gap-1">
                 <Clock size={12} className="text-text-tertiary" />
                 Available Today
               </span>
@@ -175,9 +175,9 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
                     e.stopPropagation();
                     onSelectSlot(pitch, slot);
                   }}
-                  className="py-1.5 px-1 rounded-lg bg-surface-raised hover:bg-primary-lime hover:text-accent-text text-text-primary border border-border-subtle text-xs font-bold text-center transition-all cursor-pointer active:scale-95 group/slot shadow-2xs"
+                  className="py-1.5 px-1 rounded-lg bg-surface-raised hover:bg-primary-lime hover:text-black text-text-primary border border-border-subtle text-xs font-mono tabular-nums font-bold text-center transition-all cursor-pointer active:scale-95 group/slot shadow-2xs"
                 >
-                  <span className="group-hover/slot:text-accent-text">{slot}</span>
+                  <span className="group-hover/slot:text-black">{slot}</span>
                 </button>
               ))}
             </div>
@@ -186,13 +186,13 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
       </div>
 
       {/* Footer Pricing & Action */}
-      <div className="px-4 sm:px-5 py-3.5 border-t border-border-subtle flex items-center justify-between gap-3 bg-surface-raised/50">
+      <div className="px-4 py-3 border-t border-border-subtle flex items-center justify-between gap-3 bg-surface-raised/40 shrink-0">
         <div>
           <span className="text-[9px] font-black uppercase tracking-widest text-text-tertiary block mb-0.5">
-            Book Turf
+            Hourly Rate
           </span>
           <div className="flex items-baseline gap-1">
-            <span className="text-base sm:text-lg font-black text-text-primary tracking-tight">
+            <span className="font-mono tabular-nums text-base sm:text-lg font-black text-text-primary tracking-tight">
               UGX {(pitch.pricePerHour || 90000).toLocaleString()}
             </span>
             <span className="text-[11px] text-text-tertiary font-bold">/hr</span>
@@ -203,12 +203,12 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            if (pitch.id) navigate(`/turf/${pitch.id}`);
+            if (pitch.id) navigate(`/turf/${pitch.id}`, { state: { from: 'home' } });
           }}
-          className="h-9 px-4 rounded-xl bg-primary-lime hover:bg-primary-lime-hover text-accent-text text-xs font-bold transition-all shadow-md shadow-primary-lime/20 flex items-center gap-1 cursor-pointer active:scale-95 shrink-0"
+          className="h-9 px-3.5 rounded-xl bg-primary-lime hover:bg-primary-lime-hover text-black text-xs font-extrabold transition-all shadow-md shadow-primary-lime/20 flex items-center gap-1 cursor-pointer active:scale-95 shrink-0"
         >
           <span>View</span>
-          <ChevronRight size={14} />
+          <ChevronRight size={14} strokeWidth={2.5} />
         </button>
       </div>
     </article>

@@ -791,6 +791,45 @@ export const TurfDetail: React.FC = () => {
     navigate(`/turf/${turf.id}/book${queryString ? `?${queryString}` : ""}`);
   };
 
+  const handleGoBack = () => {
+    // 1. Check explicit state passed via router navigation
+    const navState = location.state as any;
+    if (navState?.returnTo && typeof navState.returnTo === "string") {
+      navigate(navState.returnTo);
+      return;
+    }
+    if (navState?.from === "explore") {
+      navigate("/explore-map");
+      return;
+    }
+    if (navState?.from === "bookings") {
+      navigate("/bookings");
+      return;
+    }
+    if (navState?.from === "teams") {
+      navigate("/teams");
+      return;
+    }
+    if (navState?.from === "home") {
+      navigate("/home");
+      return;
+    }
+
+    // 2. Check last browsed route stored in sessionStorage
+    try {
+      const lastPage = sessionStorage.getItem("pitchly_last_browse_page");
+      if (lastPage && lastPage.startsWith("/") && !lastPage.startsWith("/turf/") && lastPage !== location.pathname) {
+        navigate(lastPage);
+        return;
+      }
+    } catch (e) {
+      // sessionStorage unavailable
+    }
+
+    // 3. Guaranteed reliable fallback to /home
+    navigate("/home");
+  };
+
   if (contextLoading || loadingPitch) {
     return <TurfDetailSkeleton />;
   }
@@ -844,28 +883,25 @@ export const TurfDetail: React.FC = () => {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
           {/* TOP BAR / BREADCRUMB & ACTIONS */}
-          <div className="flex items-center justify-between gap-4 mb-4">
+          <div className="sticky top-0 z-30 -mx-4 px-4 py-2 sm:static sm:mx-0 sm:px-0 sm:py-0 bg-app-base/95 backdrop-blur-md sm:bg-transparent flex items-center justify-between gap-4 mb-4 border-b border-border-subtle/40 sm:border-0">
             <div className="flex items-center gap-2.5 min-w-0">
               <button
-                onClick={() => {
-                  if (location.state && (location.state as any).from === "explore") {
-                    navigate("/explore-map");
-                  } else if (location.state && (location.state as any).from === "bookings") {
-                    navigate("/bookings");
-                  } else if (window.history.state && window.history.state.idx > 0) {
-                    navigate(-1);
-                  } else {
-                    navigate("/home");
-                  }
-                }}
-                className="w-9 h-9 rounded-xl bg-surface-card hover:bg-surface-raised border border-border-subtle flex items-center justify-center text-text-primary transition-colors cursor-pointer shrink-0 shadow-2xs"
+                type="button"
+                id="turf-detail-back-button"
+                onClick={handleGoBack}
+                className="w-9 h-9 rounded-xl bg-surface-card hover:bg-surface-raised border border-border-subtle hover:border-primary-lime/40 flex items-center justify-center text-text-primary hover:text-primary-lime transition-all cursor-pointer shrink-0 shadow-2xs active:scale-95"
                 title="Go back"
+                aria-label="Go back to previous page"
               >
                 <ArrowLeft size={18} strokeWidth={2.5} />
               </button>
 
               <nav className="flex items-center gap-1.5 text-xs text-text-tertiary truncate">
-                <button onClick={() => navigate("/home")} className="hover:text-primary-lime transition-colors">
+                <button
+                  type="button"
+                  onClick={handleGoBack}
+                  className="hover:text-primary-lime transition-colors cursor-pointer font-medium"
+                >
                   Kampala
                 </button>
                 <span>/</span>

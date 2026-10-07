@@ -74,67 +74,64 @@ export const SpotlightCarouselSkeleton: React.FC = () => {
 
 export const PitchCardSkeleton: React.FC = () => {
   return (
-    <div className="bg-surface-card rounded-3xl border border-border-subtle overflow-hidden flex flex-col justify-between shadow-xs select-none">
-      <div>
-        {/* Pitch Stadium Image Frame with aspect-[16/10] */}
-        <div className="relative w-full aspect-[16/10] bg-surface-raised shimmer-effect overflow-hidden">
+    <div className="bg-surface-card rounded-2xl border border-border-subtle overflow-hidden flex flex-col justify-between shadow-xs select-none h-full">
+      <div className="flex-1 flex flex-col">
+        {/* Pitch Stadium Image Frame */}
+        <div className="relative w-full h-36 sm:h-40 bg-surface-raised shimmer-effect overflow-hidden border-b border-border-subtle shrink-0">
           {/* Top Row Badges */}
           <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none">
             <div className="flex items-center gap-1.5">
-              <Skeleton className="h-6 w-20 rounded-xl bg-surface-card/70" />
-              <Skeleton className="hidden sm:block h-6 w-24 rounded-xl bg-surface-card/60" />
+              <Skeleton className="h-6 w-20 rounded-md bg-surface-card/70" />
+              <Skeleton className="hidden sm:block h-6 w-24 rounded-md bg-surface-card/60" />
             </div>
             <Skeleton className="w-8 h-8 rounded-full bg-surface-card/70" />
           </div>
 
           {/* Bottom Badges inside Image */}
           <div className="absolute bottom-3 inset-x-3 flex items-end justify-between pointer-events-none">
-            <Skeleton className="h-5 w-24 rounded-lg bg-surface-card/70" />
-            <Skeleton className="h-6 w-14 rounded-xl bg-surface-card/70" />
+            <Skeleton className="h-5 w-20 rounded-md bg-surface-card/70" />
+            <Skeleton className="h-6 w-14 rounded-md bg-surface-card/70" />
           </div>
         </div>
 
         {/* Card Body Details */}
-        <div className="p-4 sm:p-5 space-y-3">
-          {/* Title & Distance */}
+        <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
           <div className="space-y-1.5">
             <Skeleton className="h-5 w-3/4 rounded-lg" />
             <div className="flex items-center gap-2">
               <Skeleton className="h-3.5 w-36 rounded-md" />
               <Skeleton className="h-3.5 w-12 rounded-md" />
             </div>
-          </div>
-
-          {/* Amenity Badges */}
-          <div className="flex items-center gap-1.5 pt-0.5">
-            <Skeleton className="h-5 w-20 rounded-lg" />
-            <Skeleton className="h-5 w-24 rounded-lg" />
-            <Skeleton className="h-5 w-16 rounded-lg" />
+            <div className="flex items-center gap-1.5 pt-0.5">
+              <Skeleton className="h-4 w-20 rounded-md" />
+              <Skeleton className="h-4 w-24 rounded-md" />
+              <Skeleton className="h-4 w-16 rounded-md" />
+            </div>
           </div>
 
           {/* 1-Tap Slot Selection */}
-          <div className="pt-2 border-t border-border-subtle space-y-1.5">
+          <div className="pt-2.5 border-t border-border-subtle space-y-2">
             <div className="flex items-center justify-between">
-              <Skeleton className="h-3 w-28 rounded-md" />
+              <Skeleton className="h-3 w-24 rounded-md" />
               <Skeleton className="h-3 w-16 rounded-md" />
             </div>
             <div className="grid grid-cols-4 gap-1.5">
-              <Skeleton className="h-8 rounded-xl" />
-              <Skeleton className="h-8 rounded-xl" />
-              <Skeleton className="h-8 rounded-xl" />
-              <Skeleton className="h-8 rounded-xl" />
+              <Skeleton className="h-7 rounded-lg" />
+              <Skeleton className="h-7 rounded-lg" />
+              <Skeleton className="h-7 rounded-lg" />
+              <Skeleton className="h-7 rounded-lg" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Card Footer Price & Action */}
-      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-border-subtle flex items-center justify-between gap-3 bg-surface-card/40">
+      <div className="px-4 py-3 border-t border-border-subtle flex items-center justify-between gap-3 bg-surface-raised/40 shrink-0">
         <div className="space-y-1">
-          <Skeleton className="h-2.5 w-14 rounded" />
+          <Skeleton className="h-2.5 w-12 rounded" />
           <Skeleton className="h-5 w-24 rounded-md" />
         </div>
-        <Skeleton className="h-10 w-28 rounded-xl" />
+        <Skeleton className="h-9 w-16 rounded-xl" />
       </div>
     </div>
   );

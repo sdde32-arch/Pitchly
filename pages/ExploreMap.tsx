@@ -186,7 +186,7 @@ export const ExploreMap: React.FC = () => {
               return (
                 <div
                   key={pitch.id}
-                  onClick={() => navigate(`/turf/${pitch.id}`)}
+                  onClick={() => navigate(`/turf/${pitch.id}`, { state: { from: 'explore' } })}
                   className="bg-surface-card hover:bg-surface-raised/40 border border-border-subtle hover:border-primary-lime/40 rounded-2xl p-3.5 transition-all cursor-pointer shadow-xs group flex flex-col justify-between"
                 >
                   <div className="flex gap-3.5">
@@ -249,7 +249,7 @@ export const ExploreMap: React.FC = () => {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/turf/${pitch.id}`);
+                        navigate(`/turf/${pitch.id}`, { state: { from: 'explore' } });
                       }}
                       className="px-3.5 py-1.5 rounded-lg bg-primary-lime hover:bg-[#96E600] text-black text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs active:scale-95"
                     >

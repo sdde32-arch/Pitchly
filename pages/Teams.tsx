@@ -24,11 +24,14 @@ import {
 import { useBooking } from "../context/BookingContext";
 import { useUser } from "../context/UserContext";
 import { AuthPromptModal } from "../components/AuthPromptModal";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { chatService } from "../services/chatService";
 import { EmptyState } from "../components/ui/EmptyState";
 import { MatchCardSkeleton, SquadCardSkeleton } from "../components/ui/Skeleton";
 import { communityActivityService } from "../services/communityActivityService";
+import { teamService, generateSquadInviteCode, generateSquadInviteUrl } from "../services/teamService";
+import { TeamInviteModal } from "../components/teams/TeamInviteModal";
+import { JoinTeamModal } from "../components/teams/JoinTeamModal";
 
 const parseTime = (timeStr: string) => {
   const [time, modifier] = timeStr.split(" ");
@@ -88,28 +91,7 @@ const MatchCountdown = ({ targetDate }: { targetDate: Date }) => {
   );
 };
 
-interface Member {
-  id: string;
-  name: string;
-  contact: string;
-  isCaptain: boolean;
-  hasPaid: boolean;
-  avatar?: string;
-  userId?: string;
-  status?: string;
-  paymentStatus?: "paid" | "pending" | "waived";
-}
-
-interface Team {
-  id: string;
-  name: string;
-  type?: string;
-  location?: string;
-  description?: string;
-  logo?: string;
-  members: Member[];
-  ownerId?: string;
-}
+import { Team, TeamMember as Member } from "../types/firebase";
 
 interface Match {
   id: string;
@@ -141,6 +123,14 @@ const INITIAL_TEAMS: Team[] = [
     name: "Ntinda Legends",
     type: "7-a-side",
     location: "Ntinda, Kampala",
+    description: "Friday night competitive 7v7 squad.",
+    captainId: "demo-user-id",
+    ownerId: "demo-user-id",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    status: "ACTIVE",
+    inviteCode: "NTINDA-7701",
+    inviteUrl: generateSquadInviteUrl("NTINDA-7701"),
     members: [
       {
         id: "m1",
@@ -227,6 +217,7 @@ const INITIAL_MATCHES: Match[] = [
 
 export const Teams: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { bookings } = useBooking();
   const { userProfile, user } = useUser();
   const [activeTab, setActiveTab] = useState<"MATCHES" | "TEAMS">("MATCHES");
@@ -242,10 +233,25 @@ export const Teams: React.FC = () => {
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
 
+  // Squad Invite Modals State
+  const [inviteModalTeam, setInviteModalTeam] = useState<Team | null>(null);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [joinModalCode, setJoinModalCode] = useState("");
+
   const showToast = (message: string, type: "success" | "info" = "info") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
   };
+
+  // Detect ?invite=CODE or ?code=CODE from URL
+  useEffect(() => {
+    const codeParam = searchParams.get("invite") || searchParams.get("code") || searchParams.get("join");
+    if (codeParam) {
+      setActiveTab("TEAMS");
+      setJoinModalCode(codeParam.trim().toUpperCase());
+      setShowJoinModal(true);
+    }
+  }, [searchParams]);
 
   const [newTeam, setNewTeam] = useState({
     name: "",
@@ -271,23 +277,30 @@ export const Teams: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-    const loadData = () => {
-      if (user) {
-        try {
-          const localTeams = localStorage.getItem(`pitchly_teams_${user.uid}`);
-          if (localTeams) setTeams(JSON.parse(localTeams));
+    const loadData = async () => {
+      try {
+        if (user) {
+          const userTeams = await teamService.listByUser(user.uid);
+          if (userTeams.length > 0) {
+            setTeams(userTeams);
+          } else {
+            const localTeams = localStorage.getItem(`pitchly_teams_${user.uid}`);
+            if (localTeams) setTeams(JSON.parse(localTeams));
+          }
           const localMatches = localStorage.getItem(`pitchly_matches_${user.uid}`);
           if (localMatches) setMatches(JSON.parse(localMatches));
-        } catch (e) {
-          console.warn("Could not load local data", e);
+        } else {
+          const publicTeams = await teamService.listPublic();
+          if (publicTeams.length > 0) setTeams(publicTeams);
         }
+      } catch (e) {
+        console.warn("Could not load squads data", e);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     
-    // Simulate network latency for a smoother premium feel
-    const timer = setTimeout(loadData, 800);
-    return () => clearTimeout(timer);
+    loadData();
   }, [user]);
 
   const handleStartCreate = () => {
@@ -302,59 +315,50 @@ export const Teams: React.FC = () => {
     }
   };
 
-  const handleCreateTeam = () => {
+  const handleCreateTeam = async () => {
     if (!newTeam.name.trim()) {
       setCreateError("Team name is required");
       return;
     }
-    const created: Team = {
-      id: "team-" + Date.now(),
-      name: newTeam.name.trim(),
-      type: newTeam.type,
-      location: newTeam.location.trim() || "Kampala",
-      description: newTeam.description.trim(),
-      members: [
-        {
-          id: "m-capt-" + Date.now(),
-          name: userProfile?.name || "Captain",
-          contact: userProfile?.phone || "",
-          isCaptain: true,
-          hasPaid: true,
-          userId: user?.uid,
-        },
-      ],
-      ownerId: user?.uid,
-    };
-    const updated = [created, ...teams];
-    setTeams(updated);
-    if (user) {
-      localStorage.setItem(`pitchly_teams_${user.uid}`, JSON.stringify(updated));
+    setIsSubmitting(true);
+    setCreateError("");
+    try {
+      const inviteCode = generateSquadInviteCode(newTeam.name.trim());
+      const created = await teamService.create({
+        name: newTeam.name.trim(),
+        type: newTeam.type,
+        location: newTeam.location.trim() || "Kampala",
+        description: newTeam.description.trim(),
+        captainId: user?.uid || "demo-user-id",
+        ownerId: user?.uid || "demo-user-id",
+        inviteCode,
+        members: [
+          {
+            id: "m-capt-" + Date.now(),
+            name: userProfile?.name || "Captain",
+            contact: userProfile?.phone || "",
+            isCaptain: true,
+            role: "captain",
+            hasPaid: true,
+            userId: user?.uid,
+            joinedAt: new Date().toISOString(),
+          },
+        ],
+      });
+
+      const updated = [created, ...teams.filter((t) => t.id !== created.id)];
+      setTeams(updated);
+      setShowCreateModal(false);
+      setNewTeam({ name: "", type: "5-a-side", location: "", description: "" });
+      showToast(`Squad "${created.name}" registered! Unique invite link generated.`, "success");
+
+      // Auto-open invite modal so captain can immediately copy or share the link!
+      setInviteModalTeam(created);
+    } catch (err: any) {
+      setCreateError(err.message || "Failed to create squad");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Broadcast new squad to Community Activity Feed
-    communityActivityService.publishActivity({
-      type: "team_formed",
-      title: `${created.name} Formed`,
-      subtitle: `Founded by ${userProfile?.name || "Captain"} (${created.type})`,
-      description: created.description || `New squad registered in ${created.location}. Ready for challenges!`,
-      timestamp: new Date().toISOString(),
-      userName: userProfile?.name || "Captain",
-      userAvatar: (userProfile as any)?.photoURL || (userProfile as any)?.avatar || user?.photoURL,
-      userBadge: "Club Founder",
-      venue: created.location,
-      teamData: {
-        teamName: created.name,
-        captain: userProfile?.name || "Captain",
-        membersCount: 1,
-        homePitch: created.location,
-        badgeColor: "#A8FF00",
-        badgeInitials: created.name.substring(0, 2).toUpperCase(),
-        motto: created.description,
-      },
-    }).catch(() => {});
-
-    setShowCreateModal(false);
-    setNewTeam({ name: "", type: "5-a-side", location: "", description: "" });
   };
 
   const handleCreateMatch = () => {
@@ -820,19 +824,35 @@ export const Teams: React.FC = () => {
       <div id="walkthrough-teams-hub" className="min-h-full bg-app-base text-text-primary font-body pb-24 scroll-mt-24">
         <div className="max-w-xl mx-auto p-4 space-y-5">
           {/* Top Header */}
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center gap-2">
             <div>
-              <h1 id="heading-squads-matches" className="text-base font-medium text-text-primary scroll-mt-24">
+              <h1 id="heading-squads-matches" className="font-display text-base sm:text-lg font-extrabold text-text-primary scroll-mt-24">
                 Squads & Matches
               </h1>
             </div>
-            <button
-              onClick={handleStartCreate}
-              className="px-3.5 py-2 rounded-full bg-primary-lime hover:bg-[#96E600] text-accent-text text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Plus size={14} />
-              <span>{activeTab === "MATCHES" ? "Host match" : "New squad"}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {activeTab === "TEAMS" && (
+                <button
+                  id="open-join-squad-modal-btn"
+                  onClick={() => {
+                    setJoinModalCode("");
+                    setShowJoinModal(true);
+                  }}
+                  className="px-3 py-2 rounded-xl bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-primary text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <UserPlus size={14} className="text-primary-lime" />
+                  <span className="hidden sm:inline">Join with Code</span>
+                  <span className="sm:hidden">Join</span>
+                </button>
+              )}
+              <button
+                onClick={handleStartCreate}
+                className="px-3.5 py-2 rounded-xl bg-primary-lime hover:bg-primary-lime-hover text-black text-xs font-black flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              >
+                <Plus size={14} strokeWidth={3} />
+                <span>{activeTab === "MATCHES" ? "Host match" : "New squad"}</span>
+              </button>
+            </div>
           </div>
 
           {/* Tab Switcher */}
@@ -1076,27 +1096,47 @@ export const Teams: React.FC = () => {
                   return (
                     <div
                       key={team.id}
-                      className="bg-surface-card rounded-2xl p-4  border border-border-subtle space-y-4 shadow-sm"
+                      className="bg-surface-card rounded-2xl p-4 sm:p-5 border border-border-subtle space-y-4 shadow-sm"
                     >
-                      <div className="flex justify-between items-center">
+                      {/* Squad Header with Invite Action */}
+                      <div className="flex justify-between items-start gap-2">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-[10px] bg-primary-lime/15 text-primary-lime flex items-center justify-center">
+                          <div className="w-11 h-11 rounded-2xl bg-primary-lime/15 text-primary-lime flex items-center justify-center font-display font-black text-base shadow-xs shrink-0">
                             <Shield size={20} />
                           </div>
                           <div>
-                            <h2 className="text-sm sm:text-base font-medium text-text-primary">
-                              {team.name}
-                            </h2>
-                            <p className="text-xs text-text-secondary">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h2 className="font-display text-base font-extrabold text-text-primary tracking-tight">
+                                {team.name}
+                              </h2>
+                              {team.inviteCode && (
+                                <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-surface-raised border border-border-subtle text-text-tertiary">
+                                  {team.inviteCode}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-text-secondary mt-0.5">
                               {team.type} · {team.members?.length || 0} players
                             </p>
                           </div>
                         </div>
+
+                        {/* Direct Invite Button */}
+                        <button
+                          id={`invite-to-team-${team.id}-btn`}
+                          type="button"
+                          onClick={() => setInviteModalTeam(team)}
+                          className="h-8 px-3 rounded-xl bg-primary-lime hover:bg-primary-lime-hover text-black text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 shrink-0"
+                          title="Generate & share squad invite link"
+                        >
+                          <UserPlus size={13} strokeWidth={2.5} />
+                          <span>Invite</span>
+                        </button>
                       </div>
 
                       {/* Next Match Countdown if available */}
                       {nextEvent && (
-                        <div className="bg-surface-raised rounded-[10px] p-3 border border-border-subtle flex items-center justify-between">
+                        <div className="bg-surface-raised rounded-xl p-3 border border-border-subtle flex items-center justify-between">
                           <div>
                             <span className="text-[10px] text-primary-lime font-semibold uppercase tracking-wider block">
                               upcoming fixture
@@ -1124,7 +1164,7 @@ export const Teams: React.FC = () => {
                             </div>
                           ))}
                           {(team.members || []).length > 4 && (
-                            <div className="w-7 h-7 rounded-full bg-primary-lime text-accent-text border-2 border-surface-card flex items-center justify-center text-[9px] font-bold">
+                            <div className="w-7 h-7 rounded-full bg-primary-lime text-black border-2 border-surface-card flex items-center justify-center text-[9px] font-black">
                               +{(team.members || []).length - 4}
                             </div>
                           )}
@@ -1132,15 +1172,22 @@ export const Teams: React.FC = () => {
 
                         <div className="flex gap-2">
                           <button
+                            onClick={() => setInviteModalTeam(team)}
+                            className="p-2 rounded-xl border border-border-subtle text-text-secondary hover:text-primary-lime hover:bg-surface-raised transition-colors cursor-pointer"
+                            title="Share Squad Invite Link"
+                          >
+                            <Share2 size={14} />
+                          </button>
+                          <button
                             onClick={() => handleTeamChat(team)}
-                            className="p-2 rounded-full border border-border-subtle text-text-secondary hover:bg-surface-raised transition-colors"
+                            className="p-2 rounded-xl border border-border-subtle text-text-secondary hover:bg-surface-raised transition-colors cursor-pointer"
                             title="Squad Chat"
                           >
                             <MessageSquare size={14} />
                           </button>
                           <button
                             onClick={() => setSelectedTeamId(isDetailed ? null : team.id)}
-                            className="py-1.5 px-3 rounded-full bg-primary-lime text-accent-text text-xs font-medium transition-colors"
+                            className="py-1.5 px-3 rounded-xl bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-primary text-xs font-bold transition-colors cursor-pointer"
                           >
                             {isDetailed ? "Close" : "Roster"}
                           </button>
@@ -1154,6 +1201,13 @@ export const Teams: React.FC = () => {
                             <span className="font-medium text-text-secondary">
                               squad members ({team.members?.length})
                             </span>
+                            <button
+                              onClick={() => setInviteModalTeam(team)}
+                              className="text-primary-lime font-bold text-xs flex items-center gap-1 hover:underline cursor-pointer"
+                            >
+                              <UserPlus size={12} />
+                              <span>Invite teammate</span>
+                            </button>
                           </div>
                           <div className="space-y-1.5">
                             {(team.members || []).map((m) => (
@@ -1188,6 +1242,37 @@ export const Teams: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* TEAM INVITE MODAL */}
+      <TeamInviteModal
+        isOpen={Boolean(inviteModalTeam)}
+        team={inviteModalTeam}
+        onClose={() => setInviteModalTeam(null)}
+        isCaptain={
+          Boolean(
+            inviteModalTeam &&
+              (inviteModalTeam.captainId === user?.uid || inviteModalTeam.ownerId === user?.uid)
+          )
+        }
+        onTeamUpdated={(updated) => {
+          setTeams((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+          setInviteModalTeam(updated);
+        }}
+      />
+
+      {/* JOIN TEAM BY INVITE CODE MODAL */}
+      <JoinTeamModal
+        isOpen={showJoinModal}
+        inviteCode={joinModalCode}
+        onClose={() => setShowJoinModal(false)}
+        onJoinedSuccess={(joinedTeam) => {
+          setTeams((prev) => [
+            joinedTeam,
+            ...prev.filter((t) => t.id !== joinedTeam.id),
+          ]);
+          showToast(`Successfully signed up with ${joinedTeam.name}!`, "success");
+        }}
+      />
     </Layout>
   );
 };

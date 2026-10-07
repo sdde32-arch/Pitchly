@@ -132,6 +132,23 @@ export interface SlotAvailability {
 }
 
 /**
+ * Team Member Data Model
+ */
+export interface TeamMember {
+  id: string;
+  userId?: string;
+  name: string;
+  contact?: string;
+  role?: 'captain' | 'vice_captain' | 'player';
+  isCaptain: boolean;
+  hasPaid?: boolean;
+  avatar?: string;
+  joinedAt?: string;
+  status?: 'active' | 'pending';
+  paymentStatus?: 'paid' | 'pending' | 'waived';
+}
+
+/**
  * Team Data Model
  * Expected Security Rules:
  * - Public to read active teams.
@@ -146,9 +163,14 @@ export interface Team {
   location?: string;
   logo?: string;
   captainId: string;
+  ownerId?: string;
   createdAt: string;
   updatedAt: string;
   status: 'ACTIVE' | 'DISBANDED';
+  inviteCode?: string; // Unique invite code for direct joining
+  inviteUrl?: string; // Precomputed full invite link
+  members?: TeamMember[];
+  maxMembers?: number;
 }
 
 /**
@@ -368,7 +390,13 @@ export interface MatchInvitation {
 /**
  * Community Activity Feed Data Models
  */
-export type CommunityActivityType = 'match_played' | 'team_formed' | 'tournament_completed';
+export type CommunityActivityType =
+  | 'match_played'
+  | 'match_result'
+  | 'team_formed'
+  | 'team_update'
+  | 'turf_booking'
+  | 'tournament_completed';
 
 export interface CommunityActivity {
   id: string;
@@ -391,8 +419,10 @@ export interface CommunityActivity {
     mvp?: string;
     pitchName?: string;
     format?: string;
+    status?: 'LIVE' | 'FT' | 'RECENT';
+    liveMinute?: string;
   };
-  // Team formed specific details
+  // Team formed & team updates specific details
   teamData?: {
     teamName: string;
     captain: string;
@@ -401,6 +431,22 @@ export interface CommunityActivity {
     badgeColor?: string;
     badgeInitials?: string;
     motto?: string;
+    updateType?: 'recruitment' | 'formation' | 'roster_milestone' | 'challenge_issued';
+    openPositions?: string[];
+  };
+  // Upcoming turf bookings specific details
+  bookingData?: {
+    pitchId?: string;
+    pitchName: string;
+    date: string; // YYYY-MM-DD or formatted date
+    time: string; // e.g. "19:00 - 20:00"
+    format?: string;
+    bookedBy?: string;
+    openSpotsCount?: number;
+    pricePerHour?: number;
+    isCommunityOpen?: boolean;
+    location?: string;
+    bookingStatus?: 'upcoming' | 'ongoing' | 'confirmed';
   };
   // Tournament completed specific details
   tournamentData?: {

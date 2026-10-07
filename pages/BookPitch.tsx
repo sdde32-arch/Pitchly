@@ -359,12 +359,8 @@ export const BookPitch: React.FC = () => {
       return;
     }
 
-    // Step 1: navigate back safely without re-pushing duplicate history
-    if (window.history.state && window.history.state.idx > 0) {
-      navigate(-1);
-    } else {
-      navigate(id ? `/turf/${id}` : "/home", { replace: true });
-    }
+    // Step 1: navigate back safely to turf detail
+    navigate(id ? `/turf/${id}` : "/home");
   };
 
   const handleNextStep = (nextStep: 1 | 2 | 3 | 4) => {

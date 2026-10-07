@@ -289,17 +289,14 @@ export const MatchSummary: React.FC = () => {
         {/* Navigation Header */}
         <div className="p-4 flex items-center justify-between max-w-xl mx-auto sticky top-0 bg-[#fafafa]/90 dark:bg-[#0e0f12]/90 backdrop-blur-md z-40">
           <button 
+            type="button"
             onClick={() => {
-              if (window.history.state && window.history.state.idx > 0) {
-                navigate(-1);
-              } else {
-                navigate("/bookings", { replace: true });
-              }
+              navigate("/bookings");
             }} 
             className="w-11 h-11 rounded-full bg-surface-card border border-border-subtle flex items-center justify-center text-text-primary hover:bg-surface-raised transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime cursor-pointer"
             id="back-to-bookings-btn"
             title="Go back"
-            aria-label="Go back"
+            aria-label="Go back to bookings"
           >
             <ArrowLeft size={20} strokeWidth={2.5} />
           </button>

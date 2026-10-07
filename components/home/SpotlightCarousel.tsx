@@ -67,7 +67,7 @@ export const SpotlightCarousel: React.FC<SpotlightCarouselProps> = ({
             <div
               key={pitch.id || idx}
               id={`spotlight-card-${pitch.id}`}
-              onClick={() => pitch.id && navigate(`/turf/${pitch.id}`)}
+              onClick={() => pitch.id && navigate(`/turf/${pitch.id}`, { state: { from: 'home' } })}
               className="group relative w-[280px] sm:w-[340px] h-[200px] sm:h-[220px] rounded-2xl overflow-hidden border border-border-subtle hover:border-primary-lime/50 transition-all duration-300 snap-center sm:snap-start shrink-0 cursor-pointer shadow-md hover:shadow-lg hover:shadow-black/10"
             >
               {/* Background Stadium Photo */}

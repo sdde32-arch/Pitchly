@@ -1,5 +1,6 @@
 
 import React, { useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { ThemeProvider } from './ThemeContext';
@@ -46,6 +47,7 @@ import { WelcomeBack } from './pages/WelcomeBack';
 import { MatchSummary } from './pages/MatchSummary';
 import { BookingConfirmation } from './pages/BookingConfirmation';
 import { Install } from './pages/Install';
+import { JoinTeam } from './pages/JoinTeam';
 
 import { ChatList } from './pages/ChatList';
 import { ChatRoom } from './pages/ChatRoom';
@@ -185,6 +187,28 @@ const AnimatedRoutes: React.FC = () => {
 
   useEffect(() => {
     console.log(`[Pitchly Boot] [Router] 🗺️ Active route: "${location.pathname}" (search: "${location.search}", hash: "${location.hash}")`);
+    
+    // Maintain a reliable record of the last browsed page (outside turf details/checkout)
+    // to guarantee back buttons work flawlessly even inside sandboxed iframes
+    const isDetailOrCheckout = 
+      location.pathname.startsWith('/turf/') ||
+      location.pathname.startsWith('/checkout/') ||
+      location.pathname.startsWith('/booking-confirmation/');
+    
+    const isAuthOrOnboarding =
+      location.pathname === '/' ||
+      location.pathname === '/auth' ||
+      location.pathname === '/onboarding' ||
+      location.pathname === '/welcome-back';
+
+    if (!isDetailOrCheckout && !isAuthOrOnboarding) {
+      try {
+        const fullPath = location.pathname + (location.search || '');
+        sessionStorage.setItem('pitchly_last_browse_page', fullPath);
+      } catch (e) {
+        // Ignore sessionStorage restrictions if any
+      }
+    }
   }, [location.pathname, location.search, location.hash]);
 
   return (
@@ -198,6 +222,10 @@ const AnimatedRoutes: React.FC = () => {
         
         {/* Public Routes (No Auth Required) */}
         <Route path="/install" element={<PageTransition><Install /></PageTransition>} />
+        <Route path="/teams/join/:inviteCode" element={<PageTransition><JoinTeam /></PageTransition>} />
+        <Route path="/teams/join" element={<PageTransition><JoinTeam /></PageTransition>} />
+        <Route path="/join-team/:inviteCode" element={<PageTransition><JoinTeam /></PageTransition>} />
+        <Route path="/join-team" element={<PageTransition><JoinTeam /></PageTransition>} />
         <Route path="/tournament" element={<Navigate to="/tournament/wehat-s2-w2" replace />} />
         <Route path="/live" element={<Navigate to="/tournament/wehat-s2-w2" replace />} />
         <Route path="/scores" element={<Navigate to="/tournament/wehat-s2-w2" replace />} />
@@ -294,6 +322,7 @@ const App: React.FC = () => {
                                   <InteractiveWalkthroughOverlay />
                                   <MatchReminderToast />
                                   <OfflineIndicator />
+                                  <Analytics />
                                 </InteractiveWalkthroughProvider>
                               </ProviderLifecycleTracker>
                             </HashRouter>

@@ -41,7 +41,7 @@ import { FootballPitchCard } from "../components/home/FootballPitchCard";
 import { MatchdayBanner } from "../components/home/MatchdayBanner";
 import { TournamentBanner } from "../components/home/TournamentBanner";
 import { QuickBookingModal } from "../components/home/QuickBookingModal";
-import { CommunityActivityFeed } from "../components/home/CommunityActivityFeed";
+import { ActivityFeed } from "../components/home/ActivityFeed";
 import { calculateHaversineDistanceKm, getPitchCoordinates, formatDistanceKm } from "../utils/distance";
 
 // Kampala Neighborhood Hubs
@@ -483,6 +483,15 @@ export const Home: React.FC = () => {
     userCoords,
   ]);
 
+  // First three pitches assigned based on proximity, followed by remaining pitches
+  const firstThreePitches = useMemo(() => {
+    return filteredPitches.slice(0, 3);
+  }, [filteredPitches]);
+
+  const remainingPitches = useMemo(() => {
+    return filteredPitches.slice(3);
+  }, [filteredPitches]);
+
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (selectedFormat !== "All") count++;
@@ -619,6 +628,9 @@ export const Home: React.FC = () => {
                       </h2>
                       <span className="px-2.5 py-0.5 rounded-full bg-primary-lime/10 text-primary-lime border border-primary-lime/25 text-[11px] font-bold tracking-tight shadow-2xs">
                         {filteredPitches.length} {filteredPitches.length === 1 ? "ground" : "grounds"}
+                      </span>
+                      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-raised border border-border-subtle text-[10px] font-bold text-text-tertiary">
+                        📍 Sorted by proximity
                       </span>
                       {/* Location Proximity Badge */}
                       <button
@@ -759,22 +771,49 @@ export const Home: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Pitch Cards Grid with 1-Tap Slot Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                {/* 1. Nearest Available Pitch Cards (First 3 Cards Assigned by Proximity) */}
+                <div>
                   {loadingPitches ? (
-                    Array.from({ length: 4 }).map((_, idx) => <PitchCardSkeleton key={idx} />)
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 items-stretch">
+                      {Array.from({ length: 3 }).map((_, idx) => (
+                        <PitchCardSkeleton key={idx} />
+                      ))}
+                    </div>
                   ) : filteredPitches.length > 0 ? (
-                    filteredPitches.map((pitch) => (
-                      <FootballPitchCard
-                        key={pitch.id}
-                        pitch={pitch}
-                        isFavorite={!!favorites[pitch.id || ""]}
-                        onToggleFavorite={toggleFavorite}
-                        onSelectSlot={handleOpenQuickBooking}
-                        selectedDate={selectedDate}
-                        distanceKm={(pitch as any)._computedDistanceKm}
-                      />
-                    ))
+                    <div className="space-y-4">
+                      <div className="flex items-end justify-between gap-3 border-b border-border-subtle pb-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary-lime/10 text-primary-lime border border-primary-lime/25 text-[10px] font-bold uppercase tracking-wider">
+                              <Navigation size={11} className={locationLoading ? "animate-spin" : ""} />
+                              <span>Proximity Radar</span>
+                            </span>
+                            <span className="text-[11px] text-text-secondary font-medium hidden sm:inline">
+                              {isPreciseLocation ? "GPS Verified • Closest First" : "Kampala Central • Nearest First"}
+                            </span>
+                          </div>
+                          <h3 className="font-display text-base sm:text-lg font-extrabold text-text-primary tracking-tight">
+                            Nearest Available Pitches
+                          </h3>
+                        </div>
+                        <span className="font-mono tabular-nums text-xs font-semibold text-text-tertiary shrink-0">
+                          Showing {firstThreePitches.length} of {filteredPitches.length}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 items-stretch">
+                        {firstThreePitches.map((pitch) => (
+                          <FootballPitchCard
+                            key={pitch.id}
+                            pitch={pitch}
+                            isFavorite={!!favorites[pitch.id || ""]}
+                            onToggleFavorite={toggleFavorite}
+                            onSelectSlot={handleOpenQuickBooking}
+                            selectedDate={selectedDate}
+                            distanceKm={(pitch as any)._computedDistanceKm}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   ) : (
                     <div className="col-span-full py-16 text-center text-text-tertiary text-xs bg-surface-card rounded-3xl border border-border-subtle space-y-3 p-6">
                       <div className="w-12 h-12 rounded-2xl bg-surface-raised border border-border-subtle flex items-center justify-center mx-auto text-text-tertiary">
@@ -794,7 +833,7 @@ export const Home: React.FC = () => {
                           setActiveCollectionTab("all");
                           setMaxPriceFilter(150000);
                           setSelectedAmenities([]);
-                          setSortBy("recommended");
+                          setSortBy("proximity");
                         }}
                         className="px-4 py-2 rounded-xl bg-primary-lime text-accent-text text-xs font-black transition-transform active:scale-95 cursor-pointer shadow-sm"
                       >
@@ -805,11 +844,38 @@ export const Home: React.FC = () => {
                 </div>
               </section>
 
-              {/* Community Open Pickup Matches */}
-              <HomeCommunityPickups loading={loadingPitches} />
+              {/* 2. ACTIVITY FEED SECTION (Added right after three cards of the pitch) */}
+              <ActivityFeed onSelectSlot={handleOpenQuickBooking} />
 
-              {/* Community Activity Feed: Recent matches, new teams, tournaments */}
-              <CommunityActivityFeed />
+              {/* 3. ADDITIONAL AVAILABLE PITCHES (Cards 4+) */}
+              {remainingPitches.length > 0 && !loadingPitches && (
+                <section className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between border-b border-border-subtle pb-2.5">
+                    <h3 className="font-display text-sm sm:text-base font-extrabold text-text-primary uppercase tracking-tight flex items-center gap-2">
+                      <span>More Available Grounds in Kampala</span>
+                      <span className="font-mono tabular-nums text-[11px] px-2 py-0.5 rounded-full bg-surface-raised border border-border-subtle text-text-secondary font-bold">
+                        +{remainingPitches.length} More Pitches
+                      </span>
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 items-stretch">
+                    {remainingPitches.map((pitch) => (
+                      <FootballPitchCard
+                        key={pitch.id}
+                        pitch={pitch}
+                        isFavorite={!!favorites[pitch.id || ""]}
+                        onToggleFavorite={toggleFavorite}
+                        onSelectSlot={handleOpenQuickBooking}
+                        selectedDate={selectedDate}
+                        distanceKm={(pitch as any)._computedDistanceKm}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* 4. Community Open Pickup Matches */}
+              <HomeCommunityPickups loading={loadingPitches} />
             </div>
 
             {/* DASHBOARD COMPANION RAIL: UPCOMING TICKET, WEATHER & SPECIALS (4 cols on desktop) */}

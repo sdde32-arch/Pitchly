@@ -178,16 +178,13 @@ export const Settings: React.FC = () => {
         <div className="p-4 border-b border-border-subtle sticky top-0 z-30 bg-app-base/90 backdrop-blur-md">
           <div className="flex items-center max-w-xl mx-auto">
             <button
+              type="button"
               onClick={() => {
-                if (window.history.state && window.history.state.idx > 0) {
-                  navigate(-1);
-                } else {
-                  navigate("/profile");
-                }
+                navigate("/profile");
               }}
               className="mr-3 w-10 h-10 flex items-center justify-center bg-surface-card border border-border-subtle rounded-full text-text-secondary hover:bg-surface-raised transition-colors shadow-sm cursor-pointer"
               title="Go back"
-              aria-label="Go back"
+              aria-label="Go back to profile"
             >
               <ArrowLeft size={20} strokeWidth={2.5} />
             </button>
