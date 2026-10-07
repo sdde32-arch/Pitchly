@@ -34,6 +34,7 @@ import { useUser } from '../../context/UserContext';
 import { useInteractiveWalkthrough } from '../../context/InteractiveWalkthroughContext';
 import { Pitch, SlotAvailability } from '../../types/firebase';
 import { WeeklyOccupancyHeatmap } from './WeeklyOccupancyHeatmap';
+import { OwnerAnalyticsDashboard } from './OwnerAnalyticsDashboard';
 
 interface BentoKpiProps {
   id: string;
@@ -683,6 +684,14 @@ export const OwnerOverview: React.FC = () => {
 
       {/* Weekly Occupancy Heatmap Grid */}
       <WeeklyOccupancyHeatmap pitches={pitches} bookings={bookings} />
+
+      {/* Visual Analytics Telemetry Dashboard (Peak Hours & Revenue Trends) */}
+      <OwnerAnalyticsDashboard
+        pitches={pitches}
+        bookings={bookings}
+        selectedPitchId={selectedPitchId}
+        onSelectPitch={setSelectedPitchId}
+      />
 
       {/* Live Slot Toggle Matrix (Maintenance & Walk-ins) */}
       <div id="live-slot-control-section" className="bg-surface-card rounded-2xl p-4 sm:p-5 border border-border-subtle space-y-5 shadow-sm scroll-mt-24">

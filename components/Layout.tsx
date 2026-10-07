@@ -326,8 +326,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
   const playerLinks = [
     { path: "/home", search: "", label: "Home", icon: Home },
+    { path: "/tournament", search: "", label: "Tournament", icon: Trophy },
     { path: "/explore-map", search: "", label: "Explore", icon: Compass },
-    { path: "/invitations", search: "", label: "Proposals", icon: Mail },
     { path: "/bookings", search: "", label: "Bookings", icon: Calendar },
     { path: "/teams", search: "", label: "Squads", icon: Users },
     { path: "/profile", search: "", label: "Profile", icon: User },
@@ -364,6 +364,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       icon: Users,
     },
     {
+      path: "/tournament",
+      search: "",
+      label: "Tournament",
+      icon: Trophy,
+    },
+    {
       path: "/invitations",
       search: "",
       label: "Proposals",
@@ -382,6 +388,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       search: "",
       label: "Admin Hub",
       icon: Shield,
+    },
+    {
+      path: "/admin/tournaments",
+      search: "",
+      label: "Tournament Ops",
+      icon: Trophy,
     },
   ];
   let links = playerLinks;
@@ -642,11 +654,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </AnimatePresence>
           </div>
         </main>
-        {/* MOBILE NAVIGATION - SLEEK FLOATING PILL DOCK */}
+        {/* MOBILE NAVIGATION - SLEEK MODERN FLOATING DOCK */}
         {!hideMobileNav && (
           <div className="lg:hidden fixed bottom-5 inset-x-0 z-40 px-4 pointer-events-none flex justify-center">
             <nav 
-              className="pointer-events-auto w-full max-w-[360px] h-[58px] px-2 rounded-full bg-primary-lime shadow-[0_10px_30px_rgba(22,163,74,0.4)] border border-[#15803D]/20 flex justify-between items-center" 
+              className="pointer-events-auto w-full max-w-[380px] h-[58px] px-2.5 rounded-full bg-surface-card/95 backdrop-blur-xl shadow-[0_12px_36px_rgba(0,0,0,0.35)] border border-border-subtle/80 flex justify-between items-center" 
               id="player-bottom-nav"
             >
               {links.slice(0, 5).map((link, index) => {
@@ -660,10 +672,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                         link.search ? `${link.path}?${link.search}` : link.path,
                       )
                     }
-                    className={`relative flex flex-col items-center justify-center flex-1 h-[46px] rounded-full transition-all duration-300 cursor-pointer focus-visible:outline-none ${
+                    className={`relative flex flex-col items-center justify-center flex-1 h-[44px] rounded-full transition-all duration-200 cursor-pointer focus-visible:outline-none ${
                       active 
-                        ? "bg-[#14532D] text-white font-bold shadow-inner" 
-                        : "text-[#14532D]/80 hover:text-[#14532D]"
+                        ? "bg-primary-lime text-black font-extrabold shadow-sm shadow-primary-lime/25" 
+                        : "text-text-tertiary hover:text-text-primary hover:bg-surface-raised/40"
                     }`}
                   >
                     <IconComponent
@@ -671,7 +683,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       strokeWidth={active ? 2.5 : 2}
                       className="mb-0.5 shrink-0"
                     />
-                    <span className={`text-[10px] leading-tight tracking-tight whitespace-nowrap text-center ${active ? 'font-black' : 'font-bold'}`}>
+                    <span className={`text-[10px] leading-tight tracking-tight whitespace-nowrap text-center ${active ? 'font-black' : 'font-semibold'}`}>
                       {link.label}
                     </span>
                   </button>

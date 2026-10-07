@@ -6,6 +6,7 @@ import { FinanceManager } from "../components/owner/FinanceManager";
 import { BusinessSettings } from "../components/owner/BusinessSettings";
 import { StaffManager } from "../components/owner/StaffManager";
 import { OwnerInbox } from "../components/owner/OwnerInbox";
+import { OwnerAnalyticsDashboard } from "../components/owner/OwnerAnalyticsDashboard";
 import { useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -16,7 +17,8 @@ import {
   Users,
   MessageSquare,
   Plus,
-  Compass
+  Compass,
+  TrendingUp
 } from "lucide-react";
 import { useInteractiveWalkthrough } from "../context/InteractiveWalkthroughContext";
 
@@ -46,6 +48,7 @@ export const OwnerDashboard: React.FC = () => {
 
   const navTabs = [
     { id: "Dashboard", label: "Overview", icon: LayoutDashboard },
+    { id: "Analytics", label: "Analytics", icon: TrendingUp },
     { id: "Bookings", label: "Bookings", icon: CalendarCheck },
     { id: "Messages", label: "Messages", icon: MessageSquare },
     { id: "Facilities", label: "Facilities", icon: Building2 },
@@ -59,6 +62,11 @@ export const OwnerDashboard: React.FC = () => {
       label: "Overview",
       title: "Facility Operations & Overview",
       desc: "Live slot reservations, occupancy heatmap, and revenue telemetry."
+    },
+    Analytics: {
+      label: "Analytics",
+      title: "Performance Analytics & Demand Trends",
+      desc: "Visual charts for peak booking hours and monthly revenue trends powered by Recharts."
     },
     Bookings: {
       label: "Bookings",
@@ -98,6 +106,8 @@ export const OwnerDashboard: React.FC = () => {
     switch (activeTab) {
       case "Dashboard":
         return <OwnerOverview />;
+      case "Analytics":
+        return <OwnerAnalyticsDashboard />;
       case "Bookings":
         return <BookingManager />;
       case "Messages":

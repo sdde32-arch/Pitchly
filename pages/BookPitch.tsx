@@ -15,6 +15,33 @@ import { Layout } from "../components/Layout";
 import { Loader2 } from "lucide-react";
 import { MatchWeatherWidget } from "../components/weather/MatchWeatherWidget";
 import { formatBookingDate } from "../lib/dateUtils";
+import { motion, AnimatePresence } from "framer-motion";
+
+const stepVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 18 : -18,
+    opacity: 0,
+    filter: "blur(2px)",
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    filter: "blur(0px)",
+    transition: {
+      duration: 0.28,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  },
+  exit: (direction: number) => ({
+    x: direction > 0 ? -18 : 18,
+    opacity: 0,
+    filter: "blur(2px)",
+    transition: {
+      duration: 0.18,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  }),
+};
 
 export const BookPitch: React.FC = () => {
   const { id } = useParams();
@@ -43,6 +70,7 @@ export const BookPitch: React.FC = () => {
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [bookingStep, setBookingStep] = useState<1 | 2 | 3 | 4>(1); // 1: Date/Time, 2: Details, 3: Payment, 4: Success
+  const [stepDirection, setStepDirection] = useState<number>(1);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.MTN);
   const [uploadingProof, setUploadingProof] = useState(false);
   const [proofUrl, setProofUrl] = useState<string | null>(null);
@@ -51,6 +79,10 @@ export const BookPitch: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState("");
 
   const normalizedId = id?.replace(/^pitch-/, "") || "";
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
 
   useEffect(() => {
     const fetchPitch = async () => {
@@ -321,7 +353,9 @@ export const BookPitch: React.FC = () => {
 
   const handleBack = () => {
     if (bookingStep > 1 && bookingStep < 4) {
+      setStepDirection(-1);
       setBookingStep((prev) => ((prev - 1) as 1 | 2 | 3));
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -331,6 +365,12 @@ export const BookPitch: React.FC = () => {
     } else {
       navigate(id ? `/turf/${id}` : "/home", { replace: true });
     }
+  };
+
+  const handleNextStep = (nextStep: 1 | 2 | 3 | 4) => {
+    setStepDirection(1);
+    setBookingStep(nextStep);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   if (loadingPitch) {
@@ -364,53 +404,115 @@ export const BookPitch: React.FC = () => {
 
   return (
     <Layout>
-      <div className="w-full max-w-2xl mx-auto p-4 mb-24">
+      <motion.div 
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] as const }}
+        className="w-full max-w-2xl mx-auto p-4 mb-24"
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.94 }}
             onClick={handleBack}
             className="w-10 h-10 rounded-full bg-surface-card border border-border-subtle flex items-center justify-center hover:bg-surface-raised transition-colors cursor-pointer"
             title="Go back"
             aria-label="Go back"
           >
             <ArrowLeft size={18} className="text-text-primary" />
-          </button>
+          </motion.button>
           <div className="text-center">
             <h1 id="heading-book-pitch" className="text-text-primary font-bold tracking-tight scroll-mt-24">Book Pitch</h1>
             <p className="text-text-secondary text-[11px] uppercase tracking-wider">{turf.name}</p>
           </div>
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.94 }}
             onClick={() => navigate("/home")}
             className="w-10 h-10 rounded-full bg-surface-card border border-border-subtle flex items-center justify-center hover:bg-surface-raised transition-colors cursor-pointer text-text-secondary hover:text-text-primary"
             title="Return to Home"
             aria-label="Return to Home"
           >
             <Home size={18} />
-          </button>
+          </motion.button>
         </div>
 
-        {/* Step Indicator */}
+        {/* Step Indicator with Framer Motion connecting lines */}
         {bookingStep < 4 && (
-          <div className="flex items-center justify-between relative max-w-[300px] mx-auto mb-8">
-            <div className="flex flex-col items-center gap-2 relative z-10 w-12">
-              <div className="w-8 h-8 rounded-full bg-primary-lime flex items-center justify-center text-accent-text">
-                <CheckCircle2 size={16} />
-              </div>
-              <span className="text-[10px] text-text-primary uppercase tracking-wider font-bold">Slot</span>
+          <div className="flex items-center justify-between relative max-w-[320px] mx-auto mb-8 px-2">
+            <div className="flex flex-col items-center gap-1.5 relative z-10 w-14">
+              <motion.div
+                animate={{
+                  scale: bookingStep === 1 ? 1.08 : 1,
+                  boxShadow: bookingStep === 1 ? "0 0 16px rgba(168,255,0,0.3)" : "none",
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+                  bookingStep >= 1 ? "bg-primary-lime text-accent-text" : "bg-surface-raised text-text-secondary"
+                }`}
+              >
+                {bookingStep > 1 ? <CheckCircle2 size={16} /> : "1"}
+              </motion.div>
+              <span className={`text-[10px] uppercase tracking-wider font-bold ${
+                bookingStep === 1 ? "text-primary-lime" : "text-text-primary"
+              }`}>Slot</span>
             </div>
-            <div className={`flex-1 h-0.5 mx-[-10px] ${bookingStep >= 2 ? 'bg-primary-lime' : 'bg-border-subtle'}`} />
-            <div className="flex flex-col items-center gap-2 relative z-10 w-12">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${bookingStep >= 2 ? 'bg-primary-lime text-accent-text' : 'bg-surface-raised text-text-secondary'}`}>
+
+            <div className="flex-1 h-0.5 mx-[-10px] bg-border-subtle relative overflow-hidden rounded-full self-center mb-5">
+              <motion.div
+                className="absolute inset-0 bg-primary-lime rounded-full"
+                initial={false}
+                animate={{ scaleX: bookingStep >= 2 ? 1 : 0 }}
+                transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }}
+                style={{ transformOrigin: "left" }}
+              />
+            </div>
+
+            <div className="flex flex-col items-center gap-1.5 relative z-10 w-14">
+              <motion.div
+                animate={{
+                  scale: bookingStep === 2 ? 1.08 : 1,
+                  boxShadow: bookingStep === 2 ? "0 0 16px rgba(168,255,0,0.3)" : "none",
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+                  bookingStep >= 2 ? "bg-primary-lime text-accent-text" : "bg-surface-raised text-text-secondary"
+                }`}
+              >
                 {bookingStep > 2 ? <CheckCircle2 size={16} /> : "2"}
-              </div>
-              <span className={`text-[10px] ${bookingStep >= 2 ? 'text-text-primary' : 'text-text-secondary'} uppercase tracking-wider font-bold`}>Details</span>
+              </motion.div>
+              <span className={`text-[10px] uppercase tracking-wider font-bold ${
+                bookingStep === 2 ? "text-primary-lime" : bookingStep > 2 ? "text-text-primary" : "text-text-secondary"
+              }`}>Details</span>
             </div>
-            <div className={`flex-1 h-0.5 mx-[-10px] ${bookingStep >= 3 ? 'bg-primary-lime' : 'bg-border-subtle'}`} />
-            <div className="flex flex-col items-center gap-2 relative z-10 w-12">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${bookingStep >= 3 ? 'bg-primary-lime text-accent-text' : 'bg-surface-raised text-text-secondary'}`}>
+
+            <div className="flex-1 h-0.5 mx-[-10px] bg-border-subtle relative overflow-hidden rounded-full self-center mb-5">
+              <motion.div
+                className="absolute inset-0 bg-primary-lime rounded-full"
+                initial={false}
+                animate={{ scaleX: bookingStep >= 3 ? 1 : 0 }}
+                transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }}
+                style={{ transformOrigin: "left" }}
+              />
+            </div>
+
+            <div className="flex flex-col items-center gap-1.5 relative z-10 w-14">
+              <motion.div
+                animate={{
+                  scale: bookingStep === 3 ? 1.08 : 1,
+                  boxShadow: bookingStep === 3 ? "0 0 16px rgba(168,255,0,0.3)" : "none",
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+                  bookingStep >= 3 ? "bg-primary-lime text-accent-text" : "bg-surface-raised text-text-secondary"
+                }`}
+              >
                 {bookingStep > 3 ? <CheckCircle2 size={16} /> : "3"}
-              </div>
-              <span className={`text-[10px] ${bookingStep >= 3 ? 'text-text-primary' : 'text-text-secondary'} uppercase tracking-wider font-bold`}>Payment</span>
+              </motion.div>
+              <span className={`text-[10px] uppercase tracking-wider font-bold ${
+                bookingStep === 3 ? "text-primary-lime" : "text-text-secondary"
+              }`}>Payment</span>
             </div>
           </div>
         )}
@@ -422,254 +524,314 @@ export const BookPitch: React.FC = () => {
           </div>
         )}
 
-        {/* CONTENT */}
-        {bookingStep === 1 && (
-          <div id="walkthrough-slot-picker" className="space-y-6 scroll-mt-24">
-            <div>
-              <h2 id="heading-select-date" className="text-[14px] font-bold text-text-primary px-1 font-sans mb-3 scroll-mt-24">Select Date</h2>
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 px-1">
-                {calendarDays.map((d) => {
-                  const isSelected = selectedDate === d.fullDateStr;
-                  return (
-                    <button
-                      key={d.fullDateStr}
-                      type="button"
-                      onClick={() => { setSelectedDate(d.fullDateStr); setSelectedTimes([]); }}
-                      className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all min-w-[64px] h-[76px] shrink-0 cursor-pointer ${
-                        isSelected
-                          ? "bg-primary-lime text-accent-text font-bold border border-primary-lime shadow-md shadow-primary-lime/20"
-                          : "bg-surface-card border border-border-subtle text-text-primary hover:border-[#383838] hover:bg-surface-raised"
-                      }`}
-                    >
-                      <div className="w-full flex justify-center text-[11px] mb-0.5">
-                        <span className={isSelected ? "font-bold text-accent-text" : "font-medium text-text-secondary"}>
-                          {d.dayName}
-                        </span>
-                      </div>
-                      <div className="w-full flex justify-center text-[22px] font-black leading-none mb-0.5">
-                        {d.dayNum}
-                      </div>
-                      <div className="w-full flex justify-center text-[9px] uppercase tracking-wider font-bold">
-                        <span className={isSelected ? "text-accent-text/70" : "text-text-secondary"}>
-                          {d.monthStr}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Matchday Weather Forecast Widget */}
-            <MatchWeatherWidget
-              selectedDate={selectedDate}
-              selectedTime={selectedTimes.length > 0 ? selectedTimes[0] : null}
-              endTime={
-                selectedTimes.length > 0
-                  ? `${String(parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1).padStart(2, '0')}:00`
-                  : null
-              }
-              pitchName={turf.name}
-              latitude={turf.latitude}
-              longitude={turf.longitude}
-            />
-
-            <div>
-              <h2 id="heading-select-times" className="text-[14px] font-bold text-text-primary px-1 font-sans mb-3 scroll-mt-24">Select Times</h2>
-              {loadingBookings ? (
-                <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-primary-lime" /></div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {timesList.map((time) => {
-                    const status = getSlotStatus(time);
-                    const isSelected = selectedTimes.includes(time);
-                    const isPassed = isSlotPassed(time, selectedDate);
-                    const isBooked = status === 'booked' || status === 'blocked';
-                    const isHeld = status === 'held';
-                    const isDisabled = hasError || isBooked || isHeld || isPassed;
-                    const endHourNum = parseInt(time.split(':')[0]) + 1;
-                    const endHour = `${String(endHourNum).padStart(2, '0')}:00`;
-                    
+        {/* CONTENT WITH ANIMATED STEPS */}
+        <AnimatePresence mode="wait" custom={stepDirection}>
+          {bookingStep === 1 && (
+            <motion.div
+              key="step-1"
+              custom={stepDirection}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              id="walkthrough-slot-picker"
+              className="space-y-6 scroll-mt-24"
+            >
+              <div>
+                <h2 id="heading-select-date" className="text-[14px] font-bold text-text-primary px-1 font-sans mb-3 scroll-mt-24">Select Date</h2>
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 px-1">
+                  {calendarDays.map((d) => {
+                    const isSelected = selectedDate === d.fullDateStr;
                     return (
-                      <button
-                        key={time}
+                      <motion.button
+                        key={d.fullDateStr}
                         type="button"
-                        disabled={isDisabled}
-                        onClick={() => handleSlotClick(time)}
-                        className={`w-full flex flex-col items-center justify-center py-3 rounded-xl transition-all text-center gap-1 border cursor-pointer ${
+                        whileHover={{ y: -2 }}
+                        whileTap={{ scale: 0.96 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                        onClick={() => { setSelectedDate(d.fullDateStr); setSelectedTimes([]); }}
+                        className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all min-w-[64px] h-[76px] shrink-0 cursor-pointer ${
                           isSelected
-                            ? "bg-primary-lime border-primary-lime text-accent-text shadow-[0_0_15px_rgba(168,255,0,0.2)]"
-                            : isDisabled
-                              ? "bg-surface-raised/50 border-transparent text-text-disabled cursor-not-allowed"
-                              : "bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised"
+                            ? "bg-primary-lime text-accent-text font-bold border border-primary-lime shadow-md shadow-primary-lime/20"
+                            : "bg-surface-card border border-border-subtle text-text-primary hover:border-[#383838] hover:bg-surface-raised"
                         }`}
                       >
-                        <span className="text-[15px] font-extrabold tracking-tight">
-                          {time} - {endHour}
-                        </span>
-                        <span className={`text-[9px] font-bold uppercase tracking-wider ${
-                          isSelected ? "text-accent-text/70" : "text-text-secondary"
-                        }`}>
-                          {isBooked ? "Reserved" : isPassed ? "Passed" : isHeld ? "In Cart" : `UGX ${(turf.pricePerHour / 1000).toFixed(0)}k`}
-                        </span>
-                      </button>
+                        <div className="w-full flex justify-center text-[11px] mb-0.5">
+                          <span className={isSelected ? "font-bold text-accent-text" : "font-medium text-text-secondary"}>
+                            {d.dayName}
+                          </span>
+                        </div>
+                        <div className="w-full flex justify-center text-[22px] font-black leading-none mb-0.5">
+                          {d.dayNum}
+                        </div>
+                        <div className="w-full flex justify-center text-[9px] uppercase tracking-wider font-bold">
+                          <span className={isSelected ? "text-accent-text/70" : "text-text-secondary"}>
+                            {d.monthStr}
+                          </span>
+                        </div>
+                      </motion.button>
                     );
                   })}
                 </div>
-              )}
-            </div>
-
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-app-base border-t border-border-subtle z-40 max-w-2xl mx-auto">
-              <button
-                type="button"
-                disabled={selectedTimes.length === 0}
-                onClick={() => setBookingStep(2)}
-                className="w-full h-14 bg-primary-lime hover:bg-[#96E600] disabled:opacity-50 disabled:hover:bg-primary-lime text-accent-text rounded-xl flex items-center justify-center transition-all shadow-[0_0_20px_rgba(168,255,0,0.2)] disabled:shadow-none font-bold tracking-wide active:scale-[0.98] cursor-pointer"
-              >
-                Continue ({selectedTimes.length} slots)
-              </button>
-            </div>
-          </div>
-        )}
-
-        {bookingStep === 2 && (
-          <div className="space-y-4">
-            <div id="booking-summary-card" className="bg-surface-card rounded-[20px] p-5 border border-border-subtle scroll-mt-24">
-              <div className="flex items-center justify-between mb-4">
-                <h3 id="heading-booking-summary" className="text-text-primary font-bold scroll-mt-24">Booking Summary</h3>
-                <span className="text-primary-lime text-xs font-bold uppercase tracking-wider">{turf.name}</span>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-surface-raised flex items-center justify-center text-text-primary shrink-0">
-                  <Clock size={20} className="text-primary-lime" />
-                </div>
-                <div>
-                  <div className="text-text-secondary text-xs mb-0.5">
-                    {formatBookingDate(selectedDate, { month: 'short', day: 'numeric', year: 'numeric' })}
+
+              {/* Matchday Weather Forecast Widget */}
+              <MatchWeatherWidget
+                selectedDate={selectedDate}
+                selectedTime={selectedTimes.length > 0 ? selectedTimes[0] : null}
+                endTime={
+                  selectedTimes.length > 0
+                    ? `${String(parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1).padStart(2, '0')}:00`
+                    : null
+                }
+                pitchName={turf.name}
+                latitude={turf.latitude}
+                longitude={turf.longitude}
+              />
+
+              <div>
+                <h2 id="heading-select-times" className="text-[14px] font-bold text-text-primary px-1 font-sans mb-3 scroll-mt-24">Select Times</h2>
+                {loadingBookings ? (
+                  <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-primary-lime" /></div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {timesList.map((time) => {
+                      const status = getSlotStatus(time);
+                      const isSelected = selectedTimes.includes(time);
+                      const isPassed = isSlotPassed(time, selectedDate);
+                      const isBooked = status === 'booked' || status === 'blocked';
+                      const isHeld = status === 'held';
+                      const isDisabled = hasError || isBooked || isHeld || isPassed;
+                      const endHourNum = parseInt(time.split(':')[0]) + 1;
+                      const endHour = `${String(endHourNum).padStart(2, '0')}:00`;
+                      
+                      return (
+                        <motion.button
+                          key={time}
+                          type="button"
+                          disabled={isDisabled}
+                          whileHover={!isDisabled ? { scale: 1.02 } : undefined}
+                          whileTap={!isDisabled ? { scale: 0.98 } : undefined}
+                          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                          onClick={() => handleSlotClick(time)}
+                          className={`w-full flex flex-col items-center justify-center py-3 rounded-xl transition-all text-center gap-1 border cursor-pointer ${
+                            isSelected
+                              ? "bg-primary-lime border-primary-lime text-accent-text shadow-[0_0_15px_rgba(168,255,0,0.2)]"
+                              : isDisabled
+                                ? "bg-surface-raised/50 border-transparent text-text-disabled cursor-not-allowed"
+                                : "bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised"
+                          }`}
+                        >
+                          <span className="text-[15px] font-extrabold tracking-tight">
+                            {time} - {endHour}
+                          </span>
+                          <span className={`text-[9px] font-bold uppercase tracking-wider ${
+                            isSelected ? "text-accent-text/70" : "text-text-secondary"
+                          }`}>
+                            {isBooked ? "Reserved" : isPassed ? "Passed" : isHeld ? "In Cart" : `UGX ${(turf.pricePerHour / 1000).toFixed(0)}k`}
+                          </span>
+                        </motion.button>
+                      );
+                    })}
                   </div>
-                  <div className="text-text-primary font-bold text-[15px]">
-                    {selectedTimes[0]} - {parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1}:00
+                )}
+              </div>
+
+              <div className="fixed bottom-0 left-0 right-0 p-4 bg-app-base border-t border-border-subtle z-40 max-w-2xl mx-auto">
+                <motion.button
+                  type="button"
+                  whileHover={selectedTimes.length > 0 ? { scale: 1.01, boxShadow: "0 0 25px rgba(168,255,0,0.3)" } : undefined}
+                  whileTap={selectedTimes.length > 0 ? { scale: 0.98 } : undefined}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  disabled={selectedTimes.length === 0}
+                  onClick={() => handleNextStep(2)}
+                  className="w-full h-14 bg-primary-lime hover:bg-[#96E600] disabled:opacity-50 disabled:hover:bg-primary-lime text-accent-text rounded-xl flex items-center justify-center transition-all shadow-[0_0_20px_rgba(168,255,0,0.2)] disabled:shadow-none font-bold tracking-wide active:scale-[0.98] cursor-pointer"
+                >
+                  Continue ({selectedTimes.length} slots)
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+
+          {bookingStep === 2 && (
+            <motion.div
+              key="step-2"
+              custom={stepDirection}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-4"
+            >
+              <div id="booking-summary-card" className="bg-surface-card rounded-[20px] p-5 border border-border-subtle scroll-mt-24">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 id="heading-booking-summary" className="text-text-primary font-bold scroll-mt-24">Booking Summary</h3>
+                  <span className="text-primary-lime text-xs font-bold uppercase tracking-wider">{turf.name}</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-surface-raised flex items-center justify-center text-text-primary shrink-0">
+                    <Clock size={20} className="text-primary-lime" />
                   </div>
-                </div>
-              </div>
-
-              {/* Expected Match Weather in Summary */}
-              <div className="mt-4 pt-3.5 border-t border-border-subtle">
-                <MatchWeatherWidget
-                  selectedDate={selectedDate}
-                  selectedTime={selectedTimes[0]}
-                  endTime={`${String(parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1).padStart(2, '0')}:00`}
-                  pitchName={turf.name}
-                  latitude={turf.latitude}
-                  longitude={turf.longitude}
-                  compact={true}
-                />
-              </div>
-            </div>
-
-            <div id="payment-summary-card" className="bg-surface-card rounded-[20px] p-5 border border-border-subtle scroll-mt-24">
-              <h3 id="heading-payment-summary" className="text-text-primary font-bold mb-4 scroll-mt-24">Payment Summary</h3>
-              <div className="space-y-3 mb-4">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-text-secondary">Pitch Hire ({selectedTimes.length} hr)</span>
-                  <span className="text-text-primary font-medium">UGX {(turf.pricePerHour * selectedTimes.length).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-text-secondary">Booking Fee</span>
-                  <span className="text-text-primary font-medium">UGX 5,000</span>
-                </div>
-              </div>
-              <div className="pt-3 border-t border-border-subtle flex justify-between items-center">
-                <span className="text-text-primary font-bold">Total Payable</span>
-                <span className="text-primary-lime font-black text-lg">
-                  UGX {(turf.pricePerHour * selectedTimes.length + 5000).toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-app-base border-t border-border-subtle z-40 max-w-2xl mx-auto">
-              <button
-                type="button"
-                onClick={() => setBookingStep(3)}
-                className="w-full h-14 bg-primary-lime hover:bg-[#96E600] text-accent-text rounded-xl flex items-center justify-center transition-all shadow-[0_0_20px_rgba(168,255,0,0.2)] font-bold tracking-wide active:scale-[0.98] cursor-pointer"
-              >
-                Proceed to Payment
-              </button>
-            </div>
-          </div>
-        )}
-
-        {bookingStep === 3 && (
-          <div className="space-y-4">
-            <h3 className="text-text-primary font-bold px-1">Select Payment Method</h3>
-            <div className="grid grid-cols-3 gap-2">
-              <button onClick={() => setPaymentMethod(PaymentMethod.MTN)} className={`flex flex-col items-center justify-center p-3 rounded-[16px] gap-2 transition-all border cursor-pointer ${paymentMethod === PaymentMethod.MTN ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised'}`}>
-                <div className="w-8 h-8 rounded-full bg-[#FFCC00] flex items-center justify-center text-black font-black text-[10px]">MTN</div>
-                <span className="text-xs font-bold uppercase tracking-wider">MoMo</span>
-              </button>
-              <button onClick={() => setPaymentMethod(PaymentMethod.AIRTEL)} className={`flex flex-col items-center justify-center p-3 rounded-[16px] gap-2 transition-all border cursor-pointer ${paymentMethod === PaymentMethod.AIRTEL ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised'}`}>
-                <div className="w-8 h-8 rounded-full bg-[#FF0000] flex items-center justify-center text-white font-black text-[10px]">AIR</div>
-                <span className="text-xs font-bold uppercase tracking-wider">Money</span>
-              </button>
-              <button onClick={() => setPaymentMethod(PaymentMethod.CASH)} className={`flex flex-col items-center justify-center p-3 rounded-[16px] gap-2 transition-all border cursor-pointer ${paymentMethod === PaymentMethod.CASH ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${paymentMethod === PaymentMethod.CASH ? 'bg-primary-lime text-accent-text' : 'bg-surface-raised text-text-primary'}`}><Wallet size={16} /></div>
-                <span className="text-xs font-bold uppercase tracking-wider">Cash</span>
-              </button>
-            </div>
-
-            {(paymentMethod === PaymentMethod.MTN || paymentMethod === PaymentMethod.AIRTEL) && (
-              <div className="bg-surface-card rounded-[20px] p-5 border border-border-subtle space-y-4">
-                <div className="space-y-1">
-                  <h4 className="text-text-primary font-bold text-sm">Payment Instructions</h4>
-                  <p className="text-text-secondary text-xs leading-relaxed">
-                    1. Dial <strong className="text-text-primary">{paymentMethod === PaymentMethod.MTN ? '*165#' : '*185#'}</strong><br/>
-                    2. Send UGX <strong className="text-text-primary">{(turf.pricePerHour * selectedTimes.length + 5000).toLocaleString()}</strong> to <strong className="text-primary-lime">0772 123 456</strong><br/>
-                    3. Screenshot the final confirmation SMS
-                  </p>
-                </div>
-                <div className="pt-2 border-t border-border-subtle">
-                  <h4 className="text-text-primary font-bold text-sm mb-3">Upload Transaction Screenshot</h4>
-                  <label className="block">
-                    <input type="file" className="hidden" accept="image/*" onChange={handleProofUpload} disabled={uploadingProof} />
-                    <div className="w-full h-24 rounded-xl border-2 border-dashed border-border-prominent hover:border-primary-lime hover:bg-primary-lime/5 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer relative overflow-hidden group">
-                      {uploadingProof ? (
-                        <div className="flex flex-col items-center gap-2 text-primary-lime">
-                          <Loader2 size={24} className="animate-spin" />
-                          <span className="text-xs font-bold uppercase tracking-wider">Uploading...</span>
-                        </div>
-                      ) : proofUrl ? (
-                        <div className="flex flex-col items-center gap-1 text-primary-lime bg-primary-lime/10 w-full h-full justify-center">
-                          <CheckCircle2 size={24} />
-                          <span className="text-xs font-bold truncate max-w-[80%] px-4">{proofFileName}</span>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center text-text-secondary group-hover:text-primary-lime group-hover:bg-primary-lime/20 transition-all">
-                            <UploadCloud size={20} />
-                          </div>
-                          <span className="text-text-secondary text-[10px] uppercase font-bold tracking-wider group-hover:text-text-primary transition-colors">Select image</span>
-                        </>
-                      )}
+                  <div>
+                    <div className="text-text-secondary text-xs mb-0.5">
+                      {formatBookingDate(selectedDate, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
-                  </label>
+                    <div className="text-text-primary font-bold text-[15px]">
+                      {selectedTimes[0]} - {parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1}:00
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expected Match Weather in Summary */}
+                <div className="mt-4 pt-3.5 border-t border-border-subtle">
+                  <MatchWeatherWidget
+                    selectedDate={selectedDate}
+                    selectedTime={selectedTimes[0]}
+                    endTime={`${String(parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1).padStart(2, '0')}:00`}
+                    pitchName={turf.name}
+                    latitude={turf.latitude}
+                    longitude={turf.longitude}
+                    compact={true}
+                  />
                 </div>
               </div>
-            )}
 
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-app-base border-t border-border-subtle z-40 max-w-2xl mx-auto">
-              <button
-                type="button"
-                disabled={isSubmitting || (paymentMethod !== PaymentMethod.CASH && !proofUrl)}
-                onClick={handleBookingSubmit}
-                className="w-full h-14 bg-primary-lime hover:bg-[#96E600] disabled:opacity-50 disabled:hover:bg-primary-lime text-accent-text rounded-xl flex items-center justify-center transition-all shadow-[0_0_20px_rgba(168,255,0,0.2)] disabled:shadow-none font-bold tracking-wide active:scale-[0.98] cursor-pointer"
-              >
-                {isSubmitting ? <><Loader2 size={18} className="animate-spin mr-2" /> Processing...</> : 'Confirm Booking'}
-              </button>
-            </div>
-          </div>
-        )}
+              <div id="payment-summary-card" className="bg-surface-card rounded-[20px] p-5 border border-border-subtle scroll-mt-24">
+                <h3 id="heading-payment-summary" className="text-text-primary font-bold mb-4 scroll-mt-24">Payment Summary</h3>
+                <div className="space-y-3 mb-4">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-text-secondary">Pitch Hire ({selectedTimes.length} hr)</span>
+                    <span className="text-text-primary font-medium">UGX {(turf.pricePerHour * selectedTimes.length).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-text-secondary">Booking Fee</span>
+                    <span className="text-text-primary font-medium">UGX 5,000</span>
+                  </div>
+                </div>
+                <div className="pt-3 border-t border-border-subtle flex justify-between items-center">
+                  <span className="text-text-primary font-bold">Total Payable</span>
+                  <span className="text-primary-lime font-black text-lg">
+                    UGX {(turf.pricePerHour * selectedTimes.length + 5000).toLocaleString()}
+                  </span>
+                </div>
+              </div>
 
-      </div>
+              <div className="fixed bottom-0 left-0 right-0 p-4 bg-app-base border-t border-border-subtle z-40 max-w-2xl mx-auto">
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.01, boxShadow: "0 0 25px rgba(168,255,0,0.3)" }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  onClick={() => handleNextStep(3)}
+                  className="w-full h-14 bg-primary-lime hover:bg-[#96E600] text-accent-text rounded-xl flex items-center justify-center transition-all shadow-[0_0_20px_rgba(168,255,0,0.2)] font-bold tracking-wide active:scale-[0.98] cursor-pointer"
+                >
+                  Proceed to Payment
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+
+          {bookingStep === 3 && (
+            <motion.div
+              key="step-3"
+              custom={stepDirection}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-4"
+            >
+              <h3 className="text-text-primary font-bold px-1">Select Payment Method</h3>
+              <div className="grid grid-cols-3 gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  onClick={() => setPaymentMethod(PaymentMethod.MTN)}
+                  className={`flex flex-col items-center justify-center p-3 rounded-[16px] gap-2 transition-all border cursor-pointer ${paymentMethod === PaymentMethod.MTN ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised'}`}
+                >
+                  <div className="w-8 h-8 rounded-full bg-[#FFCC00] flex items-center justify-center text-black font-black text-[10px]">MTN</div>
+                  <span className="text-xs font-bold uppercase tracking-wider">MoMo</span>
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  onClick={() => setPaymentMethod(PaymentMethod.AIRTEL)}
+                  className={`flex flex-col items-center justify-center p-3 rounded-[16px] gap-2 transition-all border cursor-pointer ${paymentMethod === PaymentMethod.AIRTEL ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised'}`}
+                >
+                  <div className="w-8 h-8 rounded-full bg-[#FF0000] flex items-center justify-center text-white font-black text-[10px]">AIR</div>
+                  <span className="text-xs font-bold uppercase tracking-wider">Money</span>
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  onClick={() => setPaymentMethod(PaymentMethod.CASH)}
+                  className={`flex flex-col items-center justify-center p-3 rounded-[16px] gap-2 transition-all border cursor-pointer ${paymentMethod === PaymentMethod.CASH ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised'}`}
+                >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${paymentMethod === PaymentMethod.CASH ? 'bg-primary-lime text-accent-text' : 'bg-surface-raised text-text-primary'}`}><Wallet size={16} /></div>
+                  <span className="text-xs font-bold uppercase tracking-wider">Cash</span>
+                </motion.button>
+              </div>
+
+              {(paymentMethod === PaymentMethod.MTN || paymentMethod === PaymentMethod.AIRTEL) && (
+                <div className="bg-surface-card rounded-[20px] p-5 border border-border-subtle space-y-4">
+                  <div className="space-y-1">
+                    <h4 className="text-text-primary font-bold text-sm">Payment Instructions</h4>
+                    <p className="text-text-secondary text-xs leading-relaxed">
+                      1. Dial <strong className="text-text-primary">{paymentMethod === PaymentMethod.MTN ? '*165#' : '*185#'}</strong><br/>
+                      2. Send UGX <strong className="text-text-primary">{(turf.pricePerHour * selectedTimes.length + 5000).toLocaleString()}</strong> to <strong className="text-primary-lime">0772 123 456</strong><br/>
+                      3. Screenshot the final confirmation SMS
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-border-subtle">
+                    <h4 className="text-text-primary font-bold text-sm mb-3">Upload Transaction Screenshot</h4>
+                    <label className="block">
+                      <input type="file" className="hidden" accept="image/*" onChange={handleProofUpload} disabled={uploadingProof} />
+                      <div className="w-full h-24 rounded-xl border-2 border-dashed border-border-prominent hover:border-primary-lime hover:bg-primary-lime/5 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer relative overflow-hidden group">
+                        {uploadingProof ? (
+                          <div className="flex flex-col items-center gap-2 text-primary-lime">
+                            <Loader2 size={24} className="animate-spin" />
+                            <span className="text-xs font-bold uppercase tracking-wider">Uploading...</span>
+                          </div>
+                        ) : proofUrl ? (
+                          <div className="flex flex-col items-center gap-1 text-primary-lime bg-primary-lime/10 w-full h-full justify-center">
+                            <CheckCircle2 size={24} />
+                            <span className="text-xs font-bold truncate max-w-[80%] px-4">{proofFileName}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center text-text-secondary group-hover:text-primary-lime group-hover:bg-primary-lime/20 transition-all">
+                              <UploadCloud size={20} />
+                            </div>
+                            <span className="text-text-secondary text-[10px] uppercase font-bold tracking-wider group-hover:text-text-primary transition-colors">Select image</span>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              <div className="fixed bottom-0 left-0 right-0 p-4 bg-app-base border-t border-border-subtle z-40 max-w-2xl mx-auto">
+                <motion.button
+                  type="button"
+                  whileHover={!isSubmitting && (paymentMethod === PaymentMethod.CASH || proofUrl) ? { scale: 1.01, boxShadow: "0 0 25px rgba(168,255,0,0.3)" } : undefined}
+                  whileTap={!isSubmitting && (paymentMethod === PaymentMethod.CASH || proofUrl) ? { scale: 0.98 } : undefined}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  disabled={isSubmitting || (paymentMethod !== PaymentMethod.CASH && !proofUrl)}
+                  onClick={handleBookingSubmit}
+                  className="w-full h-14 bg-primary-lime hover:bg-[#96E600] disabled:opacity-50 disabled:hover:bg-primary-lime text-accent-text rounded-xl flex items-center justify-center transition-all shadow-[0_0_20px_rgba(168,255,0,0.2)] disabled:shadow-none font-bold tracking-wide active:scale-[0.98] cursor-pointer"
+                >
+                  {isSubmitting ? <><Loader2 size={18} className="animate-spin mr-2" /> Processing...</> : 'Confirm Booking'}
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+      </motion.div>
     </Layout>
   );
 };

@@ -272,6 +272,7 @@ export interface Review {
   comment: string;
   createdAt: string;
   updatedAt: string;
+  verifiedBooking?: boolean;
 }
 
 /**

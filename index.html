@@ -29,28 +29,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Immediate Service Worker Cleanup & Resilience Polyfills -->
+    <!-- Safe Resilience Polyfills -->
     <script>
       (function() {
-        // 1. Instantly unregister any stale service workers and purge caches to break black screen cache loops
-        try {
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-              for (var i = 0; i < registrations.length; i++) {
-                registrations[i].unregister().catch(function() {});
-              }
-            }).catch(function() {});
-          }
-          if ('caches' in window) {
-            caches.keys().then(function(keys) {
-              for (var i = 0; i < keys.length; i++) {
-                caches.delete(keys[i]).catch(function() {});
-              }
-            }).catch(function() {});
-          }
-        } catch (swErr) {}
-
-        // 2. Safe in-memory storage fallback for partitioned/restricted iframe environments
+        // Safe in-memory storage fallback for partitioned/restricted iframe environments
         function createSafeStorage() {
           var store = {};
           return {
@@ -142,49 +124,14 @@
           };
         }
 
-        // 6. Global error safety net: If React mounting or bundle evaluation throws, show recovery UI instead of a pitch-black frozen screen
+        // 6. Global error safety net: log warnings without destroying DOM
         window.addEventListener('error', function(e) {
-          var root = document.getElementById('root');
-          if (root && (!root.firstElementChild || root.innerHTML.indexOf('pre-loader-spin') !== -1)) {
-            renderEmergencyFallback(e.message || 'Script execution error');
-          }
+          console.warn('[Pitchly] Window error caught:', e.message);
         });
 
         window.addEventListener('unhandledrejection', function(e) {
-          var root = document.getElementById('root');
-          if (root && (!root.firstElementChild || root.innerHTML.indexOf('pre-loader-spin') !== -1)) {
-            var reason = e.reason ? (e.reason.message || String(e.reason)) : 'Unhandled Promise Rejection';
-            renderEmergencyFallback(reason);
-          }
+          console.warn('[Pitchly] Unhandled rejection caught:', e.reason);
         });
-
-        function renderEmergencyFallback(msg) {
-          var root = document.getElementById('root');
-          if (!root) return;
-          root.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background-color:#0D0D0D;padding:20px;color:#FFFFFF;font-family:\'Sora\',sans-serif;">' +
-            '<div style="background:#161616;padding:24px;border-radius:16px;max-width:480px;width:100%;border:1px solid #262626;box-shadow:0 12px 36px rgba(0,0,0,0.6);text-align:center;">' +
-            '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;">' +
-            '<span style="font-size:24px;font-weight:900;letter-spacing:-0.03em;">Pitchly</span>' +
-            '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#A8FF00;"></span>' +
-            '</div>' +
-            '<p style="color:#A1A1AA;font-size:13px;line-height:1.5;margin-bottom:16px;">We noticed the app took longer than expected to launch.</p>' +
-            '<div style="background:#202020;padding:10px 14px;border-radius:10px;font-size:11px;color:#EF4444;margin-bottom:16px;word-break:break-all;text-align:left;">' +
-            (msg || 'Connecting to pitch services...') +
-            '</div>' +
-            '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">' +
-            '<button onclick="window.location.hash=\'#/onboarding\';window.location.reload();" style="padding:10px 18px;background-color:#A8FF00;color:#0D0D0D;border:none;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer;">Launch Pitchly</button>' +
-            '<button onclick="try{localStorage.clear();sessionStorage.clear();}catch(e){}window.location.reload();" style="padding:10px 18px;background-color:#262626;color:#FFF;border:1px solid #383838;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;">Clear & Reload</button>' +
-            '</div>' +
-            '</div></div>';
-        }
-
-        // Failsafe timer: if preloader is still showing after 5 seconds, prompt user with instant action
-        setTimeout(function() {
-          var root = document.getElementById('root');
-          if (root && root.innerHTML.indexOf('pre-loader-spin') !== -1) {
-            renderEmergencyFallback('Loading took longer than expected.');
-          }
-        }, 5000);
       })();
     </script>
     <style>

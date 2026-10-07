@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, MapPin, X, ArrowRight, Bell, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMatchReminder } from '../context/MatchReminderContext';

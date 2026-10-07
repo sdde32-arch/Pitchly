@@ -490,27 +490,43 @@ export const TURFS: Turf[] = [
   },
   {
     id: 'tal-olympic-arena',
-    name: 'Tal Olympic Arena',
+    name: 'Tal Olympic Park',
     location: 'Munyonyo, Kampala',
-    fullAddress: 'Buziga - Munyonyo Hill Road, Munyonyo, Kampala',
+    fullAddress: 'Tal Islamic Model Junior School Road, Munyonyo, Kampala',
     formattedAddress: 'Munyonyo, Kampala, Uganda',
     coordinates: [0.2520, 32.6150],
     latitude: 0.2520,
     longitude: 32.6150,
     rating: 4.9,
     pricePerHour: 80000,
-    image: 'https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aab?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
     images: [
-      'https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aab?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1459865264687-595d652de67e?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1504450758481-7338eba7524a?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1624880357913-a8539238245b?auto=format&fit=crop&w=1200&q=80',
     ],
     additionalImages: [
-      'https://images.unsplash.com/photo-1589487391730-58f20eb2c308?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1624880357913-a8539238245b?auto=format&fit=crop&w=1200&q=80',
     ],
-    amenities: ['Floodlights', 'Championship Seating', 'Changing Rooms & Showers', 'VIP Area', 'Ample Parking', 'Security'],
+    amenities: [
+      '7-a-side Certified Turf',
+      'Floodlights (Night Games)',
+      'Covered Spectator Pavilion',
+      'Shaded Player Dugouts',
+      'Clubhouse & Refreshments',
+      'Changing Rooms & Restrooms',
+      'Perimeter Safety Netting',
+      'Secure On-Site Parking'
+    ],
     pitchFormats: ['7-a-side', 'Tournament Matchplay', 'Floodlit Night Games'],
     type: '7-a-side',
     distance: '8.0 km',
@@ -521,7 +537,7 @@ export const TURFS: Turf[] = [
     isVerified: true,
     contactPhone: '+256 700 882 119',
     contactEmail: 'tal.olympic@footlink.ug',
-    description: 'Official home ground for the WEHAT 7-a-side Soccer Tournament. High-spec synthetic surface, elevated spectator viewing stands, broadcast-standard LED floodlighting, and player dressing suites.'
+    description: 'Official home ground for the WEHAT 7-a-side Soccer Tournament in Munyonyo. Features a high-spec synthetic grass surface, shaded player dugouts, covered spectator viewing stands, clubhouse cafe with refreshments, changing facilities, and secure gated parking.'
   }
 ];
 
@@ -798,6 +814,115 @@ export const MOCK_REVIEWS_BY_PITCH: Record<string, Array<{
   createdAt: string;
   verifiedBooking?: boolean;
 }>> = {
+  'tal-olympic-arena': [
+    {
+      id: 'rev-tal-101',
+      pitchId: 'tal-olympic-arena',
+      bookingId: 'bk-tal-101',
+      playerId: 'p-tal-1',
+      playerName: 'Kenneth Ssenyondo',
+      rating: 5,
+      comment: 'Top-tier AstroTurf pitch in Munyonyo! The surface is soft, even, and well-maintained with zero rubber clumping. Great floodlighting for our 8 PM match.',
+      createdAt: '2026-09-18T20:30:00Z',
+      verifiedBooking: true
+    },
+    {
+      id: 'rev-tal-102',
+      pitchId: 'tal-olympic-arena',
+      bookingId: 'bk-tal-102',
+      playerId: 'p-tal-2',
+      playerName: 'Timothy Musoke',
+      rating: 4.9,
+      comment: 'Super convenient location along Munyonyo road with secure gated parking. The covered spectator pavilion made it easy for our fans to watch comfortably.',
+      createdAt: '2026-09-12T18:15:00Z',
+      verifiedBooking: true
+    },
+    {
+      id: 'rev-tal-103',
+      pitchId: 'tal-olympic-arena',
+      bookingId: 'bk-tal-103',
+      playerId: 'p-tal-3',
+      playerName: 'Grace Namutebi',
+      rating: 4.8,
+      comment: 'Clean changing facilities, attentive pitch caretaker Musa on site, and fresh breeze from the lake in the evenings. Highly recommended for 7-a-side matches!',
+      createdAt: '2026-09-05T19:45:00Z',
+      verifiedBooking: true
+    }
+  ],
+  'tal-olympic': [
+    {
+      id: 'rev-tal-101',
+      pitchId: 'tal-olympic',
+      bookingId: 'bk-tal-101',
+      playerId: 'p-tal-1',
+      playerName: 'Kenneth Ssenyondo',
+      rating: 5,
+      comment: 'Top-tier AstroTurf pitch in Munyonyo! The surface is soft, even, and well-maintained with zero rubber clumping. Great floodlighting for our 8 PM match.',
+      createdAt: '2026-09-18T20:30:00Z',
+      verifiedBooking: true
+    },
+    {
+      id: 'rev-tal-102',
+      pitchId: 'tal-olympic',
+      bookingId: 'bk-tal-102',
+      playerId: 'p-tal-2',
+      playerName: 'Timothy Musoke',
+      rating: 4.9,
+      comment: 'Super convenient location along Munyonyo road with secure gated parking. The covered spectator pavilion made it easy for our fans to watch comfortably.',
+      createdAt: '2026-09-12T18:15:00Z',
+      verifiedBooking: true
+    }
+  ],
+  'panamera-kololo': [
+    {
+      id: 'rev-pan-101',
+      pitchId: 'panamera-kololo',
+      bookingId: 'bk-pan-101',
+      playerId: 'p-pan-1',
+      playerName: 'Robert Kaweesa',
+      rating: 5,
+      comment: 'Vibrant atmosphere in Kololo! Pitch bounce is true and the floodlights are bright. Great sports bar for cold drinks after the game.',
+      createdAt: '2026-09-20T21:00:00Z',
+      verifiedBooking: true
+    },
+    {
+      id: 'rev-pan-102',
+      pitchId: 'panamera-kololo',
+      bookingId: 'bk-pan-102',
+      playerId: 'p-pan-2',
+      playerName: 'David Ochieng',
+      rating: 4.8,
+      comment: 'Smooth booking through Pitchly. Pitch marshals had the nets and match ball ready when we kicked off.',
+      createdAt: '2026-09-14T19:30:00Z',
+      verifiedBooking: true
+    }
+  ],
+  'kinetic-bugolobi': [
+    {
+      id: 'rev-kin-101',
+      pitchId: 'kinetic-bugolobi',
+      bookingId: 'bk-kin-101',
+      playerId: 'p-kin-1',
+      playerName: 'Andrew Lubega',
+      rating: 4.9,
+      comment: 'Top quality caged turf in Bugolobi. Rebound boards keep the match moving with non-stop intensity. Clean restrooms too.',
+      createdAt: '2026-09-22T20:00:00Z',
+      verifiedBooking: true
+    }
+  ],
+  'lugogo-astroturf': [
+    {
+      id: 'rev-lug-101',
+      pitchId: 'lugogo-astroturf',
+      bookingId: 'bk-lug-101',
+      playerId: 'p-lug-1',
+      playerName: 'Brian Ssemwanga',
+      rating: 5,
+      comment: 'Best turf in Lugogo! The synthetic grass is in top condition and the LED floodlights make night games crystal clear. Clean showers and good parking.',
+      createdAt: '2026-08-22T20:15:00Z',
+      verifiedBooking: true
+    }
+  ],
   '1': [
     {
       id: 'rev-101',

@@ -9,35 +9,23 @@ if (typeof window !== 'undefined') {
   console.log('[Pitchly Boot] 🚀 [1/3] Script execution started in index.tsx at', new Date().toISOString());
 }
 
-// Safely clear any stale service workers and caches from previous builds to break black screen cache loops
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  try {
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      if (registrations.length > 0) {
-        console.log(`[Pitchly Boot] 🧹 Found ${registrations.length} stale service worker registration(s); unregistering...`);
-      }
-      for (const registration of registrations) {
-        registration.unregister().catch(() => {});
-      }
-    }).catch(() => {});
-  } catch (e) {
-    console.warn('[PWA] Service worker unregister check failed:', e);
-  }
+// Handle direct /install visits when using HashRouter
+if (typeof window !== 'undefined' && window.location.pathname === '/install' && !window.location.hash) {
+  window.location.replace(`${window.location.origin}/#/install`);
+}
 
-  if ('caches' in window) {
-    try {
-      caches.keys().then((keys) => {
-        if (keys.length > 0) {
-          console.log(`[Pitchly Boot] 🧹 Clearing ${keys.length} cached bucket(s) to avoid stale assets...`);
-        }
-        for (const key of keys) {
-          caches.delete(key).catch(() => {});
-        }
-      }).catch(() => {});
-    } catch (e) {
-      console.warn('[PWA] Cache cleanup failed:', e);
-    }
-  }
+// Register PWA Service Worker for app shell caching
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((reg) => {
+        console.log('[PWA] Service worker registered successfully with scope:', reg.scope);
+      })
+      .catch((err) => {
+        console.warn('[PWA] Service worker registration notice:', err);
+      });
+  });
 }
 
 // Mount React immediately

@@ -54,7 +54,7 @@ export const ExploreMap: React.FC = () => {
     <Layout>
       <div className="min-h-screen bg-app-base text-text-primary pb-28 pt-4 px-3 sm:px-6 max-w-5xl mx-auto">
         {/* Top Header */}
-        <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center justify-between gap-3 mb-5">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/home")}
@@ -68,44 +68,41 @@ export const ExploreMap: React.FC = () => {
                 <h1 className="text-lg sm:text-xl font-bold tracking-tight text-text-primary">
                   Explore Pitches
                 </h1>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                  Map On Hold
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-lime/10 text-primary-lime border border-primary-lime/25">
+                  {filteredPitches.length} Grounds
                 </span>
               </div>
               <p className="text-xs text-text-tertiary">
-                Browse verified Kampala turf grounds and arenas
+                Browse verified Kampala football turfs, arenas, and matchday facilities
               </p>
             </div>
           </div>
 
           <button
             onClick={() => navigate("/tournament")}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-card border border-border-subtle text-xs font-semibold text-text-secondary hover:text-primary-lime hover:border-primary-lime/30 transition-all cursor-pointer"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-card border border-border-subtle text-xs font-semibold text-text-secondary hover:text-primary-lime hover:border-primary-lime/30 transition-all cursor-pointer shadow-2xs"
           >
             <Trophy size={13} className="text-primary-lime" />
             <span>Tournament Hub</span>
           </button>
         </div>
 
-        {/* Map On-Hold Status Notice */}
-        <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-surface-card to-surface-card p-4 sm:p-5 mb-5 shadow-xs">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
-              <Compass size={20} />
+        {/* Kampala Turf Directory Hero Card */}
+        <div className="rounded-2xl border border-border-subtle bg-surface-card p-4 sm:p-5 mb-5 shadow-xs flex items-center justify-between gap-4">
+          <div className="space-y-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-primary-lime shadow-[0_0_8px_rgba(22,163,74,0.6)]" />
+              <span className="text-xs font-bold text-text-primary uppercase tracking-wider">
+                Kampala Pitch Network
+              </span>
             </div>
-            <div className="space-y-1 min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold text-amber-300">
-                  Interactive Map Integration Temporarily On Hold
-                </span>
-                <span className="text-[10px] px-2 py-0.2 rounded-md bg-amber-400/15 text-amber-300 font-semibold border border-amber-400/25">
-                  Configuration in progress
-                </span>
-              </div>
-              <p className="text-xs text-text-secondary leading-relaxed">
-                The satellite GPS map canvas is paused while pitch coordinates and map details are being finalized. In the meantime, you can easily explore, review, and book all Kampala pitches from the directory below without interruption.
-              </p>
-            </div>
+            <p className="text-xs text-text-secondary leading-relaxed max-w-xl">
+              Discover verified synthetic grass, futsal cages, and floodlit arenas across Kampala. Filter by neighborhood to book your next match kickoff.
+            </p>
+          </div>
+          <div className="hidden sm:flex flex-col items-end shrink-0 border-l border-border-subtle pl-5">
+            <span className="text-2xl font-black text-primary-lime font-display tracking-tight">{filteredPitches.length}</span>
+            <span className="text-[10px] uppercase font-bold text-text-tertiary tracking-wider">Active Turfs</span>
           </div>
         </div>
 

@@ -101,9 +101,9 @@ export interface TournamentInfo {
 export const DEFAULT_TOURNAMENT: TournamentInfo = {
   id: "wehat-s2-w2",
   name: "WEHAT Soccer Tournament",
-  season: "Season 2",
-  week: "Matchday 2",
-  date: "20 Sept 2026",
-  venue: "Tal Olympic Stadium, Bayern Munyonyo",
-  description: "Official match center: live standings, Matchday 1 & 2 match results, upcoming fixtures, and official 43-player Top Scorers table.",
+  season: "Season II",
+  week: "Quarter-Finals",
+  date: "3rd Oct 2026",
+  venue: "Tal Olympic Park / Bayern Munyonyo",
+  description: "Official match center: Quarter-Finals knockout fixtures, Matchday 3 results, official 37-player Top Scorers table, and final group standings.",
 };

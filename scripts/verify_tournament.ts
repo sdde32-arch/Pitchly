@@ -61,6 +61,10 @@ async function verify() {
   unsubN();
 
   console.log("\n=== ALL TEST CHECKS PASSED WITH REAL-TIME REACTIVITY! ===");
+  process.exit(0);
 }
 
-verify().catch(console.error);
+verify().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

@@ -836,23 +836,23 @@ export const Teams: React.FC = () => {
           </div>
 
           {/* Tab Switcher */}
-          <div id="teams-tab-switcher" className="p-1 bg-surface-raised rounded-[12px] flex gap-1 border border-border-subtle scroll-mt-24">
+          <div id="teams-tab-switcher" className="p-1 bg-surface-card rounded-2xl flex gap-1 border border-border-subtle scroll-mt-24 shadow-2xs">
             <button
               onClick={() => setActiveTab("MATCHES")}
-              className={`flex-1 py-1.5 rounded-[10px] text-xs font-semibold tracking-wide transition-colors cursor-pointer text-center ${
+              className={`flex-1 py-2 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer text-center ${
                 activeTab === "MATCHES"
-                  ? "bg-[#282a36] text-text-primary shadow-xs"
-                  : "text-text-secondary hover:text-text-primary"
+                  ? "bg-primary-lime text-black shadow-xs font-black"
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface-raised"
               }`}
             >
               Open Matches
             </button>
             <button
               onClick={() => setActiveTab("TEAMS")}
-              className={`flex-1 py-1.5 rounded-[10px] text-xs font-semibold tracking-wide transition-colors cursor-pointer text-center ${
+              className={`flex-1 py-2 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer text-center ${
                 activeTab === "TEAMS"
-                  ? "bg-[#282a36] text-text-primary shadow-xs"
-                  : "text-text-secondary hover:text-text-primary"
+                  ? "bg-primary-lime text-black shadow-xs font-black"
+                  : "text-text-secondary hover:text-text-primary hover:bg-surface-raised"
               }`}
             >
               My Squads

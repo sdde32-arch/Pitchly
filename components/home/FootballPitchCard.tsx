@@ -142,18 +142,16 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
             </div>
           </div>
 
-          {/* Quick Amenities Preview (Max 3) */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Quick Amenities Preview (Max 3) - Clean Typographic Metadata */}
+          <div className="flex items-center gap-1.5 text-[11px] text-text-tertiary truncate">
             {(pitch.amenities && pitch.amenities.length > 0
               ? pitch.amenities.slice(0, 3)
               : ["Floodlights", "Changing Rooms", "Parking"]
-            ).map((amenity, idx) => (
-              <span
-                key={idx}
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-surface-raised text-text-secondary border border-border-subtle"
-              >
-                {amenity}
-              </span>
+            ).map((amenity, idx, arr) => (
+              <React.Fragment key={idx}>
+                <span className="truncate">{amenity}</span>
+                {idx < arr.length - 1 && <span className="text-text-tertiary/60 shrink-0">·</span>}
+              </React.Fragment>
             ))}
           </div>
 

@@ -131,15 +131,44 @@ export const pitchService = {
     if (getDeletedPitchIds().includes(id)) return null;
 
     const cleanId = id.replace(/^pitch-/, "");
-    // Check researched Kampala Turfs first
-    const researched = TURFS.find((t) => t.id === id || t.id === cleanId || `pitch-${t.id}` === id);
-    if (researched) {
-      return turfToPitch(researched);
-    }
-
-    console.log(`Fetching pitch ${id} from ${this.collectionPath}`);
+    const lowerId = id.toLowerCase();
+    
+    // Check for locally saved custom pitch photos / overrides first
+    let localOverride: Partial<Pitch> | null = null;
     try {
-      const docRef = doc(db, this.collectionPath, id);
+      const keys = [
+        `pitchly_custom_pitch_${id}`,
+        `pitchly_custom_pitch_${cleanId}`,
+        `pitchly_custom_photos_${id}`,
+        `pitchly_custom_photos_${cleanId}`
+      ];
+      for (const k of keys) {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            localOverride = { images: parsed, additionalImages: parsed.slice(1) };
+          } else if (parsed && typeof parsed === 'object') {
+            localOverride = parsed;
+          }
+          break;
+        }
+      }
+    } catch {}
+
+    // Flexible match for researched Kampala Turfs (including Tal Olympic aliases)
+    const researched = TURFS.find((t) => 
+      t.id === id || 
+      t.id === cleanId || 
+      `pitch-${t.id}` === id ||
+      (lowerId.includes('tal') && t.id.toLowerCase().includes('tal')) ||
+      ((lowerId.includes('olympic') || lowerId.includes('munyonyo')) && t.id.toLowerCase().includes('tal-olympic'))
+    );
+
+    // Try Firestore to check if pitch was customized or exists in cloud
+    try {
+      const targetDocId = researched?.id || id;
+      const docRef = doc(db, this.collectionPath, targetDocId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const pitch = docSnap.data() as Pitch;
@@ -147,18 +176,37 @@ export const pitchService = {
           const rawImgs = Array.isArray(pitch.images) && pitch.images.length > 0
             ? pitch.images
             : (pitch as any).image ? [(pitch as any).image] : [];
+          const base = researched ? turfToPitch(researched) : {} as Pitch;
           return {
+            ...base,
             ...pitch,
-            images: rawImgs,
-            additionalImages: (pitch as any).additionalImages || (rawImgs.length > 1 ? rawImgs.slice(1) : []),
+            images: rawImgs.length > 0 ? rawImgs : base.images,
+            additionalImages: (pitch as any).additionalImages || (rawImgs.length > 1 ? rawImgs.slice(1) : base.additionalImages),
+            ...(localOverride || {}),
           };
         }
       }
-      return offlineCacheService.getCachedPitchById(id);
     } catch (error) {
-      console.warn("Failed to fetch pitch from Firestore, checking offline cache", error);
-      return offlineCacheService.getCachedPitchById(id);
+      console.warn("Failed to fetch pitch from Firestore, falling back to local/constants", error);
     }
+
+    if (researched) {
+      const base = turfToPitch(researched);
+      if (localOverride) {
+        const mergedImgs = (localOverride.images && localOverride.images.length > 0)
+          ? localOverride.images
+          : base.images;
+        return {
+          ...base,
+          ...localOverride,
+          images: mergedImgs,
+          additionalImages: mergedImgs.slice(1),
+        };
+      }
+      return base;
+    }
+
+    return offlineCacheService.getCachedPitchById(id);
   },
 
   async listPublic(): Promise<Pitch[]> {

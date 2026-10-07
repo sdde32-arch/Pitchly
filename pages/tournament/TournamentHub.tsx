@@ -46,7 +46,7 @@ import { TournamentLeaderboard } from "../../components/tournament/TournamentLea
 
 type ActiveTab = "fixtures" | "stands" | "scorers" | "rosters";
 type FixtureFilter = "all" | "live" | "upcoming" | "finished";
-type RoundFilter = "all" | "live" | "md3" | "previous" | "md2" | "md1";
+type RoundFilter = "all" | "live" | "qf" | "md3" | "previous" | "md2" | "md1";
 type GroupFilter = "all-groups" | "Group A" | "Group B" | "Group C" | "Group D";
 
 const GROUPS = ["Group A", "Group B", "Group C", "Group D"] as const;
@@ -182,7 +182,7 @@ export interface OfficialDay3Standing {
 export const OFFICIAL_DAY3_STANDINGS: OfficialDay3Standing[] = [
   // Group A
   { team: "WEHAT SELECT", group: "Group A", played: 3, won: 2, drawn: 1, lost: 0, goalDifference: 8, points: 7 },
-  { team: "BUSABALA UNITED FC", group: "Group A", played: 3, won: 1, drawn: 2, lost: 0, goalDifference: 3, points: 5 },
+  { team: "BUSABALA UNITED FC", group: "Group A", played: 3, won: 1, drawn: 2, lost: 0, goalDifference: 4, points: 5 },
   { team: "BROTHER LOVE FC", group: "Group A", played: 3, won: 1, drawn: 1, lost: 1, goalDifference: -3, points: 4 },
   { team: "KIRUDDU HOSP FC", group: "Group A", played: 3, won: 0, drawn: 0, lost: 3, goalDifference: -9, points: 0 },
 
@@ -190,19 +190,19 @@ export const OFFICIAL_DAY3_STANDINGS: OfficialDay3Standing[] = [
   { team: "BUNGA FC", group: "Group B", played: 3, won: 2, drawn: 1, lost: 0, goalDifference: 4, points: 7 },
   { team: "LEGENDS FC", group: "Group B", played: 3, won: 2, drawn: 1, lost: 0, goalDifference: 4, points: 7 },
   { team: "PRO PERFORMERS FC", group: "Group B", played: 3, won: 1, drawn: 0, lost: 2, goalDifference: -2, points: 3 },
-  { team: "SENIOR PLAYERS", group: "Group B", played: 3, won: 0, drawn: 0, lost: 3, goalDifference: -5, points: 0 },
+  { team: "SENIOR PLAYERS", group: "Group B", played: 3, won: 0, drawn: 0, lost: 3, goalDifference: -6, points: 0 },
 
   // Group C
   { team: "WEHAT FC", group: "Group C", played: 3, won: 2, drawn: 1, lost: 0, goalDifference: 6, points: 7 },
   { team: "IMDAD FC", group: "Group C", played: 3, won: 2, drawn: 1, lost: 0, goalDifference: 4, points: 7 },
-  { team: "GOOD FRIENDS", group: "Group C", played: 3, won: 0, drawn: 0, lost: 3, goalDifference: -5, points: 0 },
-  { team: "DODGE AMO FC", group: "Group C", played: 3, won: 0, drawn: 0, lost: 3, goalDifference: -5, points: 0 },
+  { team: "GOOD FRIENDS", group: "Group C", played: 3, won: 0, drawn: 1, lost: 2, goalDifference: -5, points: 1 },
+  { team: "DODGE AMO FC", group: "Group C", played: 3, won: 0, drawn: 1, lost: 2, goalDifference: -5, points: 1 },
 
   // Group D
-  { team: "INVESTORS FC", group: "Group D", played: 3, won: 3, drawn: 0, lost: 0, goalDifference: 11, points: 9 },
-  { team: "PURE HEARTS FC", group: "Group D", played: 3, won: 2, drawn: 0, lost: 1, goalDifference: 3, points: 6 },
-  { team: "GENTLE STAR FC", group: "Group D", played: 3, won: 1, drawn: 0, lost: 2, goalDifference: -3, points: 3 },
-  { team: "HMK", group: "Group D", played: 3, won: 0, drawn: 0, lost: 3, goalDifference: -9, points: 0 },
+  { team: "INVESTORS FC", group: "Group D", played: 3, won: 3, drawn: 0, lost: 0, goalDifference: 13, points: 9 },
+  { team: "PURE HEARTS FC", group: "Group D", played: 3, won: 2, drawn: 0, lost: 1, goalDifference: 5, points: 6 },
+  { team: "GENTLE STAR FC", group: "Group D", played: 3, won: 1, drawn: 0, lost: 2, goalDifference: -4, points: 3 },
+  { team: "HMK", group: "Group D", played: 3, won: 0, drawn: 0, lost: 3, goalDifference: -14, points: 0 },
 ];
 
 // Team name normalizer for historical or short forms from tournament posters
@@ -304,7 +304,14 @@ const getTeamBadge = (name: string) => {
 // Compute League & Group Standings dynamically from match fixtures or Day 3 official poster
 function computeStandings(fixtures: TournamentFixture[]): TournamentTeamStanding[] {
   // If we have finished fixtures from Day 3, calculate dynamically; otherwise default to official Day 3 poster results
-  const finishedFixtures = fixtures.filter((f) => f.status === "finished" && f.homeScore !== null && f.awayScore !== null);
+  const finishedFixtures = fixtures.filter(
+    (f) =>
+      f.status === "finished" &&
+      f.homeScore !== null &&
+      f.awayScore !== null &&
+      !f.round?.toLowerCase().includes("quarter") &&
+      f.group !== "Quarter-Finals"
+  );
   
   // Use official Day 3 poster standings as source of truth
   const officialMap = new Map<string, OfficialDay3Standing>();
@@ -467,10 +474,10 @@ export const TournamentHub: React.FC = () => {
 
   const handleFixtureFilterChange = (filter: FixtureFilter) => {
     setFixtureFilter(filter);
-    if (filter === "finished" && (roundFilter === "md3" || roundFilter === "live")) {
-      setRoundFilter("previous");
-    } else if (filter === "upcoming" && (roundFilter === "md1" || roundFilter === "md2" || roundFilter === "previous" || roundFilter === "live")) {
+    if (filter === "finished" && (roundFilter === "qf" || roundFilter === "live")) {
       setRoundFilter("md3");
+    } else if (filter === "upcoming" && (roundFilter === "md1" || roundFilter === "md2" || roundFilter === "md3" || roundFilter === "previous" || roundFilter === "live")) {
+      setRoundFilter("qf");
     } else if (filter === "live") {
       setRoundFilter("all");
     }
@@ -478,7 +485,9 @@ export const TournamentHub: React.FC = () => {
 
   const handleRoundFilterChange = (rf: RoundFilter) => {
     setRoundFilter(rf);
-    if (rf === "md3" && fixtureFilter === "finished") {
+    if (rf === "qf" && fixtureFilter === "finished") {
+      setFixtureFilter("all");
+    } else if (rf === "md3" && fixtureFilter === "upcoming") {
       setFixtureFilter("all");
     } else if ((rf === "md1" || rf === "md2" || rf === "previous") && fixtureFilter === "upcoming") {
       setFixtureFilter("all");
@@ -807,6 +816,12 @@ export const TournamentHub: React.FC = () => {
           f.round?.toLowerCase().includes("matchday 2") ||
           f.round?.toLowerCase().includes("week 2")
       );
+    } else if (roundFilter === "qf") {
+      list = list.filter(
+        (f) =>
+          f.round?.toLowerCase().includes("quarter") ||
+          f.group === "Quarter-Finals"
+      );
     } else if (roundFilter === "md3") {
       list = list.filter(
         (f) =>
@@ -820,6 +835,8 @@ export const TournamentHub: React.FC = () => {
           f.round?.toLowerCase().includes("week 1") ||
           f.round?.toLowerCase().includes("matchday 2") ||
           f.round?.toLowerCase().includes("week 2") ||
+          f.round?.toLowerCase().includes("matchday 3") ||
+          f.round?.toLowerCase().includes("week 3") ||
           f.status === "finished"
       );
     } else if (roundFilter === "live") {
@@ -839,8 +856,11 @@ export const TournamentHub: React.FC = () => {
   }, [fixtures, fixtureFilter, fixtureGroupFilter, roundFilter, fixtureSearch]);
 
   // Group fixtures into organized matchday buckets
-  const { liveMatches, md3Matches, md2Matches, md1Matches, otherMatches } = useMemo(() => {
+  const { liveMatches, qfMatches, md3Matches, md2Matches, md1Matches, otherMatches } = useMemo(() => {
     const live = fixtures.filter((f) => f.status === "live");
+    const qf = filteredFixtures.filter(
+      (f) => f.round?.toLowerCase().includes("quarter") || f.group === "Quarter-Finals"
+    );
     const md3 = filteredFixtures.filter(
       (f) => f.round?.toLowerCase().includes("matchday 3") || f.round?.toLowerCase().includes("week 3")
     );
@@ -850,15 +870,21 @@ export const TournamentHub: React.FC = () => {
     const md1 = filteredFixtures.filter(
       (f) => f.round?.toLowerCase().includes("matchday 1") || f.round?.toLowerCase().includes("week 1")
     );
-    const knownIds = new Set([...md3.map((f) => f.id), ...md2.map((f) => f.id), ...md1.map((f) => f.id)]);
+    const knownIds = new Set([
+      ...qf.map((f) => f.id),
+      ...md3.map((f) => f.id),
+      ...md2.map((f) => f.id),
+      ...md1.map((f) => f.id),
+    ]);
     const other = filteredFixtures.filter((f) => !knownIds.has(f.id));
-    return { liveMatches: live, md3Matches: md3, md2Matches: md2, md1Matches: md1, otherMatches: other };
+    return { liveMatches: live, qfMatches: qf, md3Matches: md3, md2Matches: md2, md1Matches: md1, otherMatches: other };
   }, [fixtures, filteredFixtures]);
 
   const scorerCounts = useMemo(() => {
     return {
       all: scorers.length,
-      g5: scorers.filter((s) => s.goals >= 5).length,
+      g9: scorers.filter((s) => s.goals >= 9).length,
+      g5: scorers.filter((s) => s.goals === 5).length,
       g4: scorers.filter((s) => s.goals === 4).length,
       g3: scorers.filter((s) => s.goals === 3).length,
       g2: scorers.filter((s) => s.goals === 2).length,
@@ -868,8 +894,10 @@ export const TournamentHub: React.FC = () => {
 
   const filteredScorers = useMemo(() => {
     let list = scorers;
-    if (scorerGoalFilter === "5") {
-      list = list.filter((s) => s.goals >= 5);
+    if (scorerGoalFilter === "9") {
+      list = list.filter((s) => s.goals >= 9);
+    } else if (scorerGoalFilter === "5") {
+      list = list.filter((s) => s.goals === 5);
     } else if (scorerGoalFilter === "4") {
       list = list.filter((s) => s.goals === 4);
     } else if (scorerGoalFilter === "3") {

@@ -21,7 +21,8 @@ import {
   LogIn, 
   Sparkles, 
   CalendarCheck,
-  Send
+  Send,
+  Users
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
@@ -32,7 +33,7 @@ interface TurfReviewsProps {
 }
 
 export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded }) => {
-  const { user } = useUser();
+  const { user, isAdmin } = useUser();
   const { bookings: contextBookings } = useBookings();
   const navigate = useNavigate();
   
@@ -51,7 +52,9 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
   const [eligibleBookings, setEligibleBookings] = useState<Booking[]>([]);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState<string>("");
-  const [hasAnyPitchBooking, setHasAnyPitchBooking] = useState(false);
+  const [hasVerifiedBooking, setHasVerifiedBooking] = useState(false);
+
+  const normalizedId = pitchId.replace(/^pitch-/, "");
 
   useEffect(() => {
     fetchReviews();
@@ -62,7 +65,7 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
       checkReviewEligibility();
     } else {
       setEligibleBookings([]);
-      setHasAnyPitchBooking(false);
+      setHasVerifiedBooking(false);
     }
   }, [user, pitchId, reviews, contextBookings]);
 
@@ -73,32 +76,64 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
       if (data && data.length > 0) {
         setReviews(data);
       } else {
-        // Fallback to rich mock reviews for testing
-        const fallback = (MOCK_REVIEWS_BY_PITCH[pitchId] || MOCK_REVIEWS_BY_PITCH['1'] || []) as Review[];
+        // Fallback to rich mock reviews for this pitch if Firestore is empty
+        const fallback = (
+          MOCK_REVIEWS_BY_PITCH[pitchId] || 
+          MOCK_REVIEWS_BY_PITCH[normalizedId] || 
+          (pitchId.toLowerCase().includes("tal") ? MOCK_REVIEWS_BY_PITCH["tal-olympic-arena"] : null) ||
+          MOCK_REVIEWS_BY_PITCH["tal-olympic-arena"] ||
+          MOCK_REVIEWS_BY_PITCH["1"] || 
+          []
+        ) as Review[];
         setReviews(fallback);
       }
     } catch (err) {
       console.error("Error loading reviews:", err);
-      const fallback = (MOCK_REVIEWS_BY_PITCH[pitchId] || MOCK_REVIEWS_BY_PITCH['1'] || []) as Review[];
+      const fallback = (
+        MOCK_REVIEWS_BY_PITCH[pitchId] || 
+        MOCK_REVIEWS_BY_PITCH[normalizedId] || 
+        MOCK_REVIEWS_BY_PITCH["tal-olympic-arena"] ||
+        MOCK_REVIEWS_BY_PITCH["1"] || 
+        []
+      ) as Review[];
       setReviews(fallback);
     } finally {
       setLoading(false);
     }
   };
 
-  const isCompletedBooking = (b: Booking): boolean => {
+  const isEligibleMatchBooking = (b: Booking): boolean => {
     const s = String(b.status || "").toUpperCase();
-    return s === BookingStatus.COMPLETED || s === BookingStatus.CHECKED_IN || s === "COMPLETED" || s === "CHECKED_IN";
+    // Eligible if completed, checked in, confirmed, or paid
+    if (
+      s === BookingStatus.COMPLETED || 
+      s === BookingStatus.CHECKED_IN || 
+      s === BookingStatus.CONFIRMED ||
+      s === "COMPLETED" || 
+      s === "CHECKED_IN" || 
+      s === "CONFIRMED" ||
+      s === "PAID"
+    ) {
+      return true;
+    }
+
+    // Also eligible if match date has arrived or passed
+    if (b.date) {
+      const today = new Date().toISOString().split("T")[0];
+      if (b.date <= today && s !== BookingStatus.CANCELLED && s !== "CANCELLED" && s !== "REJECTED") {
+        return true;
+      }
+    }
+
+    return false;
   };
 
   const checkReviewEligibility = async () => {
     if (!user) return;
     setCheckingEligibility(true);
     try {
-      // 1. Fetch user bookings from Firestore
       const userBookings = await bookingService.listByUser(user.uid);
       
-      // Combine with context bookings for immediate reactivity
       const allUserBookingsMap = new Map<string, Booking>();
       userBookings.forEach((b) => allUserBookingsMap.set(b.id, b));
       contextBookings
@@ -107,29 +142,36 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
       
       const combinedBookings = Array.from(allUserBookingsMap.values());
 
-      // 2. Check if user has ANY booking at this turf (for informational notice)
-      const allPitchBookings = combinedBookings.filter(
-        (b) => b.pitchId === pitchId || b.turfId === pitchId || (b as any).turfName === pitchId
-      );
-      setHasAnyPitchBooking(allPitchBookings.length > 0);
+      // Filter bookings matching this pitch
+      const allPitchBookings = combinedBookings.filter((b) => {
+        const bPid = b.pitchId || b.turfId || "";
+        const bNorm = bPid.replace(/^pitch-/, "");
+        return (
+          bPid === pitchId || 
+          bPid === normalizedId || 
+          bNorm === pitchId || 
+          bNorm === normalizedId ||
+          (pitchId.toLowerCase().includes("tal") && (bPid.toLowerCase().includes("tal") || (b as any).turfName?.toLowerCase().includes("tal")))
+        );
+      });
 
-      // 3. Filter bookings strictly for COMPLETED or CHECKED_IN status at this specific pitch
-      const completedPitchBookings = allPitchBookings.filter(isCompletedBooking);
+      const eligiblePitchBookings = allPitchBookings.filter(isEligibleMatchBooking);
+      setHasVerifiedBooking(eligiblePitchBookings.length > 0);
 
-      // 4. Filter out bookings that have already been reviewed
+      // Filter out bookings that have already been reviewed
       const alreadyReviewedBookingIds = reviews.map((r) => r.bookingId).filter(Boolean);
-      const unreviewedCompletedBookings = completedPitchBookings.filter(
+      const unreviewedBookings = eligiblePitchBookings.filter(
         (b) => !alreadyReviewedBookingIds.includes(b.id)
       );
 
-      setEligibleBookings(unreviewedCompletedBookings);
-      if (unreviewedCompletedBookings.length > 0) {
-        setSelectedBookingId(unreviewedCompletedBookings[0].id);
+      setEligibleBookings(unreviewedBookings);
+      if (unreviewedBookings.length > 0) {
+        setSelectedBookingId(unreviewedBookings[0].id);
       } else {
         setSelectedBookingId("");
       }
     } catch (err) {
-      console.error("Error checking review eligibility:", err);
+      console.warn("Notice checking review eligibility:", err);
     } finally {
       setCheckingEligibility(false);
     }
@@ -138,7 +180,7 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
   // Aggregated ratings calculations
   const totalCount = reviews.length;
   const averageRating = totalCount > 0
-    ? Number((reviews.reduce((acc, r) => acc + r.rating, 0) / totalCount).toFixed(1))
+    ? Number((reviews.reduce((acc, r) => acc + (r.rating || 5), 0) / totalCount).toFixed(1))
     : 0;
 
   // Rating breakdown counts (5 stars down to 1)
@@ -171,12 +213,8 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
       setErrorMessage("Please log in to submit a review.");
       return;
     }
-    if (eligibleBookings.length === 0 || !selectedBookingId) {
-      setErrorMessage("You can only submit a review after completing a verified booking for this pitch.");
-      return;
-    }
     if (!comment.trim()) {
-      setErrorMessage("Please enter your detailed review comments.");
+      setErrorMessage("Please enter your review feedback.");
       return;
     }
 
@@ -185,18 +223,22 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
     setSuccessMessage("");
 
     try {
+      const isVerified = eligibleBookings.length > 0 && Boolean(selectedBookingId);
+      const bookingIdToSave = isVerified ? selectedBookingId : "community";
+
       const newReview = {
         pitchId,
-        bookingId: selectedBookingId,
+        bookingId: bookingIdToSave,
         playerId: user.uid,
         playerName: user.displayName || user.email?.split("@")[0] || "Verified Player",
         rating,
         comment: comment.trim(),
+        verifiedBooking: isVerified,
       };
 
       await reviewService.create(newReview);
       
-      setSuccessMessage("Your review has been submitted successfully! Thank you for sharing your experience.");
+      setSuccessMessage("Your review has been published! Thank you for sharing your match experience.");
       setComment("");
       setRating(5);
       
@@ -207,11 +249,11 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
       // Refresh eligibility
       await checkReviewEligibility();
 
-      // Callback to update parent components if needed
+      // Callback to update parent component rating
       if (onReviewAdded) {
         const nextTotal = updatedReviews.length;
         const nextAvg = nextTotal > 0
-          ? Number((updatedReviews.reduce((acc, r) => acc + r.rating, 0) / nextTotal).toFixed(1))
+          ? Number((updatedReviews.reduce((acc, r) => acc + (r.rating || 5), 0) / nextTotal).toFixed(1))
           : 0;
         onReviewAdded(nextAvg, nextTotal);
       }
@@ -224,7 +266,7 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
   };
 
   const handleDeleteReview = async (reviewId: string) => {
-    if (!window.confirm("Are you sure you want to delete your review?")) return;
+    if (!window.confirm("Are you sure you want to delete this review?")) return;
     try {
       await reviewService.delete(reviewId);
       const updatedReviews = await reviewService.listByPitch(pitchId);
@@ -233,7 +275,7 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
       if (onReviewAdded) {
         const nextTotal = updatedReviews.length;
         const nextAvg = nextTotal > 0
-          ? Number((updatedReviews.reduce((acc, r) => acc + r.rating, 0) / nextTotal).toFixed(1))
+          ? Number((updatedReviews.reduce((acc, r) => acc + (r.rating || 5), 0) / nextTotal).toFixed(1))
           : 0;
         onReviewAdded(nextAvg, nextTotal);
       }
@@ -250,7 +292,7 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
         month: "short",
         day: "numeric",
       });
-    } catch (e) {
+    } catch {
       return dateString;
     }
   };
@@ -259,25 +301,12 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
 
   return (
     <div className="w-full space-y-6 scroll-mt-24" id="turf-reviews-section">
-      {/* SECTION HEADER & SUMMARY */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 id="heading-turf-reviews" className="text-base sm:text-lg font-bold text-text-primary flex items-center gap-2 scroll-mt-24">
-            <MessageSquare size={18} className="text-primary-lime" />
-            Player Ratings & Reviews
-          </h2>
-          <p className="text-xs text-text-secondary mt-0.5">
-            Verified ratings from players who completed matches at this facility
-          </p>
-        </div>
-      </div>
-
       {/* RATINGS SCORE SUMMARY CARD */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Aggregated Score Card */}
-        <Card className="flex flex-col items-center justify-center text-center p-4 bg-surface-card border-border-subtle">
+        <Card className="flex flex-col items-center justify-center text-center p-4 bg-surface-card border-border-subtle shadow-2xs">
           <span className="text-4xl sm:text-5xl font-display font-black text-text-primary mb-1">
-            {averageRating > 0 ? averageRating.toFixed(1) : "0.0"}
+            {averageRating > 0 ? averageRating.toFixed(1) : "4.9"}
           </span>
           <div className="flex items-center gap-1 mb-1.5">
             {[1, 2, 3, 4, 5].map((star) => (
@@ -285,20 +314,20 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
                 key={star}
                 size={16}
                 className={
-                  star <= Math.round(averageRating)
+                  star <= Math.round(averageRating > 0 ? averageRating : 4.9)
                     ? "fill-[#FACC15] text-[#FACC15]"
                     : "text-zinc-700"
                 }
               />
             ))}
           </div>
-          <span className="text-[11px] text-text-secondary font-medium">
+          <span className="text-xs text-text-secondary font-medium">
             {totalCount} {totalCount === 1 ? "verified review" : "verified reviews"}
           </span>
         </Card>
 
         {/* Breakdown Progress Bars */}
-        <Card className="col-span-1 sm:col-span-2 p-4 bg-surface-card border-border-subtle flex flex-col justify-center space-y-2">
+        <Card className="col-span-1 sm:col-span-2 p-4 bg-surface-card border-border-subtle shadow-2xs flex flex-col justify-center space-y-2">
           {breakdown.map((item) => (
             <div key={item.stars} className="flex items-center gap-2.5">
               <span className="text-[11px] font-bold text-text-primary w-3 shrink-0">
@@ -325,46 +354,52 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
       <AnimatePresence mode="wait">
         {user ? (
           checkingEligibility ? (
-            <div className="p-5 bg-surface-card rounded-xl border border-border-subtle flex items-center justify-center gap-2">
+            <div className="p-4 bg-surface-card rounded-xl border border-border-subtle flex items-center justify-center gap-2">
               <Loader2 size={16} className="animate-spin text-primary-lime" />
-              <span className="text-xs text-text-secondary">Verifying booking eligibility...</span>
+              <span className="text-xs text-text-secondary">Checking verified booking status...</span>
             </div>
-          ) : eligibleBookings.length > 0 ? (
-            /* Eligible Logged-in User Form */
+          ) : (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               className="w-full"
             >
-              <Card id="write-review-card" className="p-4 sm:p-5 bg-surface-card border border-primary-lime/40 shadow-[0_8px_30px_rgba(168,255,0,0.06)] rounded-xl relative overflow-hidden scroll-mt-24">
-                {/* Header with verified badge */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-border-subtle">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary-lime/10 border border-primary-lime/30 flex items-center justify-center text-primary-lime">
-                      <ShieldCheck size={16} />
+              <Card id="write-review-card" className="p-4 sm:p-5 bg-surface-card border border-border-subtle hover:border-primary-lime/40 shadow-xs rounded-2xl relative overflow-hidden transition-colors">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-border-subtle/70">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-primary-lime/15 border border-primary-lime/30 flex items-center justify-center text-primary-lime">
+                      {hasVerifiedBooking ? <ShieldCheck size={17} /> : <MessageSquare size={17} />}
                     </div>
                     <div>
-                      <h3 id="heading-write-review" className="font-display font-bold text-sm text-text-primary flex items-center gap-1.5 scroll-mt-24">
-                        Write a Verified Review
-                        <span className="text-[10px] bg-primary-lime/15 text-primary-lime border border-primary-lime/30 px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider">
-                          Verified Player
-                        </span>
+                      <h3 className="font-bold text-sm text-text-primary flex items-center gap-2">
+                        <span>Write a Pitch Review</span>
+                        {hasVerifiedBooking ? (
+                          <span className="text-[10px] bg-primary-lime/15 text-primary-lime border border-primary-lime/30 px-2 py-0.5 rounded-full font-bold">
+                            Verified Player
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-surface-raised text-text-secondary border border-border-subtle px-2 py-0.5 rounded-full font-medium">
+                            Community Player
+                          </span>
+                        )}
                       </h3>
-                      <p className="text-[11px] text-text-secondary">
-                        You completed a match at this pitch. Share your feedback with other players.
+                      <p className="text-[11px] text-text-secondary mt-0.5">
+                        {hasVerifiedBooking
+                          ? "Rate your match session and help other teams choose the best turf."
+                          : "Played here before? Share your experience with the Kampala football community."}
                       </p>
                     </div>
                   </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Select match booking if multiple completed exist */}
-                  {eligibleBookings.length > 1 && (
+                  {/* Select match booking if multiple verified sessions exist */}
+                  {eligibleBookings.length > 0 && (
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-text-secondary flex items-center gap-1">
+                      <label className="text-xs font-bold text-text-secondary flex items-center gap-1.5">
                         <CalendarCheck size={13} className="text-primary-lime" />
-                        Select Completed Session to Review
+                        <span>Link Your Match Session (Verified Badge)</span>
                       </label>
                       <select
                         value={selectedBookingId}
@@ -381,12 +416,12 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
                   )}
 
                   {/* Star Rating Selection */}
-                  <div className="space-y-1.5 bg-surface-raised p-3 rounded-xl border border-border-subtle">
+                  <div className="space-y-1.5 bg-surface-raised/70 p-3 rounded-xl border border-border-subtle">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-text-primary">
-                        Pitch & Facility Rating
+                        Pitch Quality &amp; Facility Rating
                       </label>
-                      <span className="text-[11px] font-semibold text-primary-lime">
+                      <span className="text-[11px] font-bold text-primary-lime">
                         {getRatingLabel(displayRating)}
                       </span>
                     </div>
@@ -405,7 +440,7 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
                             aria-label={`Rate ${star} star`}
                           >
                             <Star
-                              size={28}
+                              size={26}
                               className={`transition-colors duration-150 ${
                                 isFilled
                                   ? "fill-[#FACC15] text-[#FACC15] drop-shadow-[0_0_6px_rgba(250,204,21,0.4)]"
@@ -422,9 +457,9 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-text-secondary">
-                        Your Review & Comments
+                        Your Detailed Feedback
                       </label>
-                      <span className="text-[10px] text-text-secondary">
+                      <span className="text-[10px] text-text-tertiary">
                         {comment.length} / 500 characters
                       </span>
                     </div>
@@ -432,9 +467,9 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
                       maxLength={500}
-                      placeholder="How was the AstroTurf surface, lighting quality, ball bounce, parking, and staff support? Tell the community..."
+                      placeholder="How was the AstroTurf surface, lighting quality, ball bounce, goalpost nets, parking, and caretaker support? Tell the community..."
                       rows={3}
-                      className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime focus:ring-1 focus:ring-primary-lime/40 rounded-xl p-3 text-xs sm:text-sm focus:outline-none text-text-primary transition-all resize-none placeholder-[#71717A]"
+                      className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-xl p-3 text-xs sm:text-sm focus:outline-none text-text-primary transition-all resize-none placeholder:text-text-tertiary"
                     />
                   </div>
 
@@ -458,17 +493,17 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
                       type="submit"
                       variant="primary"
                       disabled={submitting || !comment.trim()}
-                      className="px-5 py-2.5 text-xs font-bold shadow-md flex items-center gap-2 bg-primary-lime hover:bg-[#96E600] text-accent-text rounded-xl cursor-pointer disabled:opacity-50"
+                      className="px-5 py-2.5 text-xs font-black shadow-md flex items-center gap-2 bg-primary-lime hover:bg-primary-lime-hover text-accent-text rounded-xl cursor-pointer disabled:opacity-50 transition-all"
                     >
                       {submitting ? (
                         <>
                           <Loader2 size={14} className="animate-spin" />
-                          Publishing Review...
+                          <span>Publishing...</span>
                         </>
                       ) : (
                         <>
                           <Send size={14} />
-                          Submit Review
+                          <span>Submit Review</span>
                         </>
                       )}
                     </Button>
@@ -476,56 +511,28 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
                 </form>
               </Card>
             </motion.div>
-          ) : (
-            /* Logged-in user without completed booking */
-            <div className="p-5 bg-surface-card rounded-xl border border-border-subtle text-center space-y-3">
-              <div className="w-10 h-10 rounded-full bg-surface-raised border border-border-subtle mx-auto flex items-center justify-center text-primary-lime">
-                <ShieldCheck size={20} />
-              </div>
-              <div className="space-y-1 max-w-md mx-auto">
-                <h3 className="text-xs sm:text-sm font-bold text-text-primary">
-                  Verified Community Reviews Only
-                </h3>
-                <p className="text-xs text-text-secondary leading-relaxed">
-                  To keep ratings genuine and trustworthy, only players who have booked and completed a match at this pitch can submit reviews.
-                </p>
-                {hasAnyPitchBooking && (
-                  <p className="text-[11px] text-primary-lime font-medium pt-1">
-                    ℹ️ You have an upcoming or pending booking. You will be able to review this turf once your session is completed!
-                  </p>
-                )}
-              </div>
-              <div className="pt-1">
-                <button
-                  onClick={() => navigate(`/turf/${pitchId}/book`)}
-                  className="px-4 py-2 bg-surface-raised hover:bg-border-subtle text-xs font-bold text-text-primary rounded-lg border border-[#333333] transition-colors cursor-pointer"
-                >
-                  Book a Match Session
-                </button>
-              </div>
-            </div>
           )
         ) : (
-          /* Guest / Not logged-in user prompt */
-          <div className="p-5 bg-surface-card rounded-xl border border-border-subtle text-center space-y-3">
+          /* Guest prompt */
+          <div className="p-5 bg-surface-card rounded-2xl border border-border-subtle text-center space-y-3">
             <div className="w-10 h-10 rounded-full bg-surface-raised border border-border-subtle mx-auto flex items-center justify-center text-text-secondary">
               <Lock size={18} />
             </div>
             <div className="space-y-1 max-w-sm mx-auto">
               <h3 className="text-xs sm:text-sm font-bold text-text-primary">
-                Sign In to Post a Review
+                Sign In to Review This Pitch
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
-                Log in to review your past match experiences and check ratings from verified community players.
+                Log in to rate this facility and share your matchday experience with verified community players.
               </p>
             </div>
             <div className="pt-1">
               <button
                 onClick={() => navigate("/auth")}
-                className="px-4 py-2 bg-primary-lime hover:bg-[#96E600] text-accent-text text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 mx-auto"
+                className="px-4 py-2 bg-primary-lime hover:bg-primary-lime-hover text-accent-text text-xs font-black uppercase tracking-wider rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 mx-auto shadow-xs active:scale-95"
               >
                 <LogIn size={14} />
-                Sign In / Sign Up
+                <span>Sign In / Register</span>
               </button>
             </div>
           </div>
@@ -534,86 +541,101 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
 
       {/* REVIEWS FEED LIST */}
       <div className="space-y-3">
-        <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider">
-          Community Feedback ({reviews.length})
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+            Player Feedback ({reviews.length})
+          </h3>
+          <span className="text-[11px] text-text-tertiary">
+            Sorted by most recent
+          </span>
+        </div>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-10 gap-2 bg-surface-card rounded-xl border border-border-subtle">
             <Loader2 size={22} className="animate-spin text-primary-lime" />
-            <span className="text-xs text-text-secondary">Loading player feedback...</span>
+            <span className="text-xs text-text-secondary">Loading player reviews...</span>
           </div>
         ) : reviews.length === 0 ? (
-          <div className="py-10 text-center text-text-secondary bg-surface-card border border-border-subtle rounded-xl space-y-2">
+          <div className="py-10 text-center text-text-secondary bg-surface-card border border-border-subtle rounded-2xl space-y-2">
             <Star size={32} className="text-zinc-700 mx-auto" />
-            <p className="font-semibold text-xs text-text-primary">No reviews yet</p>
+            <p className="font-bold text-xs text-text-primary">No reviews yet</p>
             <p className="text-[11px] text-text-secondary">
-              Be the first verified player to review this turf facility!
+              Be the first player to review this venue!
             </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {reviews.map((rev) => (
-              <motion.div
-                key={rev.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card className="p-4 bg-surface-card border-border-subtle relative group hover:border-[#333333] transition-colors rounded-xl">
-                  {/* Review Card Header */}
-                  <div className="flex items-center justify-between gap-3 mb-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-primary-lime font-bold text-xs border border-border-subtle">
-                        {rev.playerName ? rev.playerName.charAt(0).toUpperCase() : <User size={14} />}
+            {reviews.map((rev) => {
+              const isVerified = rev.verifiedBooking !== false && rev.bookingId !== "community";
+              const canDelete = user && (user.uid === rev.playerId || isAdmin || user.uid === "0uVlAOWTy7dpqAW5tsgxQVs4PW43");
+
+              return (
+                <motion.div
+                  key={rev.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Card className="p-4 bg-surface-card border-border-subtle hover:border-border-prominent relative group transition-colors rounded-2xl">
+                    <div className="flex items-start justify-between gap-3 mb-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-primary-lime font-bold text-xs border border-border-subtle">
+                          {rev.playerName ? rev.playerName.charAt(0).toUpperCase() : <User size={14} />}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-bold text-xs text-text-primary leading-tight">
+                              {rev.playerName}
+                            </h4>
+                            {isVerified ? (
+                              <span className="inline-flex items-center gap-0.5 text-[9px] bg-primary-lime/10 border border-primary-lime/25 text-primary-lime px-1.5 py-0.2 rounded font-bold">
+                                <ShieldCheck size={9} />
+                                Verified Player
+                              </span>
+                            ) : (
+                              <span className="text-[9px] bg-surface-raised border border-border-subtle text-text-tertiary px-1.5 py-0.2 rounded font-medium">
+                                Community Player
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] text-text-tertiary mt-0.5">
+                            <Calendar size={10} />
+                            <span>{formatDate(rev.createdAt)}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <h4 className="font-semibold text-xs text-text-primary leading-tight">
-                            {rev.playerName}
-                          </h4>
-                          <span className="text-[9px] bg-primary-lime/10 text-primary-lime px-1.5 py-0.2 rounded font-medium">
-                            Verified Player
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px] text-[#71717A] mt-0.5">
-                          <Calendar size={10} />
-                          <span>{formatDate(rev.createdAt)}</span>
-                        </div>
+
+                      {/* Star Rating Badge */}
+                      <div className="flex items-center gap-1 bg-surface-raised border border-border-subtle px-2 py-0.5 rounded-full shrink-0">
+                        <Star size={11} className="fill-[#FACC15] text-[#FACC15]" />
+                        <span className="text-[11px] font-bold text-text-primary">
+                          {rev.rating.toFixed(1)}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Star Badge */}
-                    <div className="flex items-center gap-1 bg-surface-raised border border-border-subtle px-2 py-0.5 rounded-full shrink-0">
-                      <Star size={11} className="fill-[#FACC15] text-[#FACC15]" />
-                      <span className="text-[11px] font-bold text-text-primary">
-                        {rev.rating.toFixed(1)}
-                      </span>
-                    </div>
-                  </div>
+                    {/* Review Comment Text */}
+                    <p className="text-xs sm:text-sm text-text-secondary leading-relaxed whitespace-pre-wrap pl-0.5">
+                      {rev.comment}
+                    </p>
 
-                  {/* Review Comment Text */}
-                  <p className="text-xs sm:text-sm text-[#D4D4D8] leading-relaxed whitespace-pre-wrap pl-0.5">
-                    {rev.comment}
-                  </p>
-
-                  {/* Delete Option for Author or Admin */}
-                  {user && (user.uid === rev.playerId || user.uid === "0uVlAOWTy7dpqAW5tsgxQVs4PW43") && (
-                    <button
-                      onClick={() => handleDeleteReview(rev.id)}
-                      className="absolute bottom-3 right-3 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-red-950/30 rounded-lg cursor-pointer"
-                      title="Delete Review"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </Card>
-              </motion.div>
-            ))}
+                    {/* Delete Option for Author or Admin */}
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDeleteReview(rev.id)}
+                        className="absolute bottom-3 right-3 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-red-500/10 rounded-lg cursor-pointer"
+                        title="Delete Review"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </Card>
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </div>
     </div>
   );
 };
-

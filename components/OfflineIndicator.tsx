@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { WifiOff, Wifi, CheckCircle2, Database, ChevronDown, ChevronUp } from 'lucide-react';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { offlineCacheService } from '../services/offlineCacheService';

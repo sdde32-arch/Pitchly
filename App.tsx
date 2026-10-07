@@ -45,6 +45,7 @@ import { ExploreMap } from './pages/ExploreMap';
 import { WelcomeBack } from './pages/WelcomeBack';
 import { MatchSummary } from './pages/MatchSummary';
 import { BookingConfirmation } from './pages/BookingConfirmation';
+import { Install } from './pages/Install';
 
 import { ChatList } from './pages/ChatList';
 import { ChatRoom } from './pages/ChatRoom';
@@ -54,7 +55,7 @@ import { TournamentHub } from './pages/tournament/TournamentHub';
 import { TournamentManager } from './pages/admin/TournamentManager';
 
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion } from 'framer-motion';
 const Router = HashRouter;
 
 const ProviderLifecycleTracker: React.FC<{ name: string; children: React.ReactNode }> = ({ name, children }) => {
@@ -137,11 +138,44 @@ const RootRedirect = () => {
   return <Navigate to="/onboarding" replace />;
 };
 
-const PageTransition: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface PageTransitionProps {
+  children: React.ReactNode;
+  flowType?: 'turf-detail' | 'booking-checkout' | 'default';
+}
+
+const pageMotionVariants = {
+  'turf-detail': {
+    initial: { opacity: 0, y: 12, scale: 0.998 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    exit: { opacity: 0, y: -10, scale: 0.998 },
+    transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const }
+  },
+  'booking-checkout': {
+    initial: { opacity: 0, y: 16, scale: 0.995 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    exit: { opacity: 0, y: -12, scale: 0.995 },
+    transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const }
+  },
+  'default': {
+    initial: { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -8 },
+    transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const }
+  }
+};
+
+const PageTransition: React.FC<PageTransitionProps> = ({ children, flowType = 'default' }) => {
+  const variant = pageMotionVariants[flowType] || pageMotionVariants.default;
   return (
-    <div className="min-h-screen w-full">
+    <motion.div
+      initial={variant.initial}
+      animate={variant.animate}
+      exit={variant.exit}
+      transition={variant.transition}
+      className="min-h-screen w-full"
+    >
       {children}
-    </div>
+    </motion.div>
   );
 };
 
@@ -154,14 +188,16 @@ const AnimatedRoutes: React.FC = () => {
   }, [location.pathname, location.search, location.hash]);
 
   return (
-    <Routes location={location} key={location.pathname}>
+    <AnimatePresence mode="wait" initial={false}>
+      <Routes location={location} key={location.pathname}>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/onboarding" element={<PageTransition><Onboarding /></PageTransition>} />
         <Route path="/welcome-back" element={<PageTransition><WelcomeBack /></PageTransition>} />
         <Route path="/auth" element={<PageTransition><Auth /></PageTransition>} />
         <Route path="/design-system" element={<PageTransition><DesignSystemTest /></PageTransition>} />
         
-        {/* Public Tournament Hub Routes (No Auth Required) */}
+        {/* Public Routes (No Auth Required) */}
+        <Route path="/install" element={<PageTransition><Install /></PageTransition>} />
         <Route path="/tournament" element={<Navigate to="/tournament/wehat-s2-w2" replace />} />
         <Route path="/live" element={<Navigate to="/tournament/wehat-s2-w2" replace />} />
         <Route path="/scores" element={<Navigate to="/tournament/wehat-s2-w2" replace />} />
@@ -169,9 +205,9 @@ const AnimatedRoutes: React.FC = () => {
         
         {/* Protected User Routes */}
         <Route path="/home" element={<RequireAuth><PageTransition><Home /></PageTransition></RequireAuth>} />
-        <Route path="/turf/:id" element={<RequireAuth blockAdmin><PageTransition><TurfDetail /></PageTransition></RequireAuth>} />
-        <Route path="/turf/:id/book" element={<RequireAuth blockAdmin><PageTransition><BookPitch /></PageTransition></RequireAuth>} />
-        <Route path="/checkout/:id" element={<RequireAuth blockAdmin><PageTransition><BookPitch /></PageTransition></RequireAuth>} />
+        <Route path="/turf/:id" element={<RequireAuth blockAdmin><PageTransition flowType="turf-detail"><TurfDetail /></PageTransition></RequireAuth>} />
+        <Route path="/turf/:id/book" element={<RequireAuth blockAdmin><PageTransition flowType="booking-checkout"><BookPitch /></PageTransition></RequireAuth>} />
+        <Route path="/checkout/:id" element={<RequireAuth blockAdmin><PageTransition flowType="booking-checkout"><BookPitch /></PageTransition></RequireAuth>} />
         <Route path="/explore-map" element={<RequireAuth><PageTransition><ExploreMap /></PageTransition></RequireAuth>} />
         <Route path="/teams" element={<RequireAuth><PageTransition><Teams /></PageTransition></RequireAuth>} />
         <Route path="/invitations" element={<RequireAuth><PageTransition><Invitations /></PageTransition></RequireAuth>} />
@@ -208,6 +244,7 @@ const AnimatedRoutes: React.FC = () => {
         
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
+    </AnimatePresence>
   );
 };
 

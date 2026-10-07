@@ -42,26 +42,15 @@ async function startServer() {
     }
   });
 
-  // Explicitly return a self-destructing script for any service worker requests
-  // to instantly unregister lingering service workers and flush stale caches in users' browsers
-  app.use((req, res, next) => {
-    if (req.path === '/sw.js' || req.path === '/service-worker.js' || req.path.startsWith('/workbox-')) {
-      res.setHeader('Content-Type', 'application/javascript');
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-      return res.send(`
-        self.addEventListener('install', () => { self.skipWaiting(); });
-        self.addEventListener('activate', (e) => {
-          e.waitUntil(
-            caches.keys().then((ks) => Promise.all(ks.map((k) => caches.delete(k))))
-              .then(() => self.registration.unregister())
-              .then(() => self.clients.claim())
-              .then(() => self.clients.matchAll({ type: 'window' }))
-              .then((clients) => { clients.forEach((c) => c.navigate(c.url)); })
-          );
-        });
-      `);
-    }
-    next();
+  // Serve the PWA Service Worker with appropriate headers
+  app.get('/sw.js', (req, res) => {
+    const swPath = process.env.NODE_ENV === 'production' 
+      ? path.join(process.cwd(), 'dist', 'sw.js')
+      : path.join(process.cwd(), 'public', 'sw.js');
+    res.setHeader('Content-Type', 'application/javascript');
+    res.setHeader('Service-Worker-Allowed', '/');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.sendFile(swPath);
   });
 
   // Vite middleware for development
