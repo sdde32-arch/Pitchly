@@ -56,7 +56,6 @@ import { bookingService } from "../services/bookingService";
 import { optimizeAndUploadPitchPhoto } from "../utils/imageOptimizer";
 import { Pitch, SlotAvailability, Booking } from "../types/firebase";
 import { Turf, ReportTargetType, BookingStatus } from "../types";
-import { TURFS } from "../constants";
 import { ReportModal } from "../components/ReportModal";
 import { Button } from "../components/ui/Button";
 import { TurfImageGallery } from "../components/TurfImageGallery";
@@ -317,10 +316,11 @@ export const TurfDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, userProfile } = useUser();
+  const { user, userProfile, isOwner } = useUser();
   const { turfs, loading: contextLoading } = useBooking();
   const [realPitch, setRealPitch] = useState<Pitch | null>(null);
   const [loadingPitch, setLoadingPitch] = useState(true);
+  const [userOwnedPitchIds, setUserOwnedPitchIds] = useState<string[]>([]);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
   const [dynamicRating, setDynamicRating] = useState<number | null>(null);
@@ -446,8 +446,7 @@ export const TurfDetail: React.FC = () => {
         closingHour: realPitch.closingHour || "23:00",
         blockedDates: [],
       }
-    : turfs.find((t) => t.id === id || t.id === normalizedId || `pitch-${t.id}` === id || (lowerId.includes("tal") && t.id.toLowerCase().includes("tal"))) ||
-      TURFS.find((t) => t.id === id || t.id === normalizedId || `pitch-${t.id}` === id || (lowerId.includes("tal") && t.id.toLowerCase().includes("tal")));
+    : turfs.find((t) => (t.id === id || t.id === normalizedId || `pitch-${t.id}` === id) && t.status === "ACTIVE");
 
   const DEMO_GALLERY_FALLBACKS = [
     { url: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80", label: "Full Pitch Arena" },
@@ -492,7 +491,94 @@ export const TurfDetail: React.FC = () => {
     return DEMO_GALLERY_FALLBACKS.map(f => f.url);
   }, [uploadedPhotos, realPitch, turf, id, normalizedId]);
 
+  // Fetch pitches owned by the user if user has owner role to confirm pitch ownership
+  useEffect(() => {
+    if (!user || (!isOwner && (userProfile?.role || "").toUpperCase() !== "OWNER")) {
+      setUserOwnedPitchIds([]);
+      return;
+    }
+    let isMounted = true;
+    pitchService.listByOwner(user.uid).then((ownerPitches) => {
+      if (isMounted && ownerPitches) {
+        setUserOwnedPitchIds(ownerPitches.map((p) => p.id));
+      }
+    }).catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [user, isOwner, userProfile?.role]);
+
+  // Pitch ownership validation: Only the pitch owner (and no one else) can add or manage photos
+  const isPitchOwner = useMemo(() => {
+    if (!user) return false;
+
+    const currentUid = user.uid;
+    const profileId = userProfile?.id;
+    const userEmail = (user.email || userProfile?.email || "").toLowerCase();
+    const isOwnerRole = isOwner || (userProfile?.role || "").toUpperCase() === "OWNER";
+
+    const pitchOwnerId = realPitch?.ownerId || turf?.ownerId;
+    const pitchContactEmail = (realPitch?.contactEmail || (turf as any)?.contactEmail || "").toLowerCase();
+
+    // 1. Direct owner ID match with logged in user UID or profile ID
+    if (pitchOwnerId && (pitchOwnerId === currentUid || (profileId && pitchOwnerId === profileId))) {
+      return true;
+    }
+
+    // 2. Direct contact email match with owner
+    if (userEmail && pitchContactEmail && userEmail === pitchContactEmail) {
+      return true;
+    }
+
+    // 3. Pitch ID is in the list of pitches owned by this user
+    if (userOwnedPitchIds.length > 0) {
+      const activeId = turf?.id || id || normalizedId;
+      if (userOwnedPitchIds.includes(activeId) || (normalizedId && userOwnedPitchIds.includes(normalizedId))) {
+        return true;
+      }
+    }
+
+    // 4. Role-checked local custom pitch or demo match
+    if (isOwnerRole) {
+      // Local custom pitch created by this owner
+      try {
+        const targetKey = turf?.id || normalizedId || id || "";
+        const customData = localStorage.getItem(`pitchly_custom_pitch_${targetKey}`);
+        if (customData) {
+          const parsed = JSON.parse(customData);
+          if (parsed.ownerId && (parsed.ownerId === currentUid || parsed.ownerId === profileId)) {
+            return true;
+          }
+        }
+      } catch {}
+
+      // Auto-generated pitch ID tied to user's UID slice
+      if ((turf?.id && turf.id.includes(currentUid.slice(0, 8))) || (id && id.includes(currentUid.slice(0, 8)))) {
+        return true;
+      }
+
+      // Demo owner account handles Kigozi Sports Arena / demo arena
+      if (userEmail === "demo.owner@pitchly.ug" && (
+        pitchOwnerId === "owner-kigozi" || 
+        pitchOwnerId === "owner_tal_olympic" ||
+        pitchOwnerId === "demo-owner-id" ||
+        turf?.name?.toLowerCase().includes("kigozi") ||
+        turf?.id?.toLowerCase().includes("kigozi")
+      )) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [user, userProfile, isOwner, realPitch, turf, id, normalizedId, userOwnedPitchIds]);
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isPitchOwner) {
+      showToast("Only the pitch owner can add photos to this pitch.", "error");
+      e.target.value = "";
+      return;
+    }
+
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -542,6 +628,11 @@ export const TurfDetail: React.FC = () => {
 
   const handleRemovePhoto = (indexToRemove: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isPitchOwner) {
+      showToast("Only the pitch owner can remove photos from this pitch.", "error");
+      return;
+    }
+
     const updated = galleryImages.filter((_, idx) => idx !== indexToRemove);
     setUploadedPhotos(updated);
     const targetKey = turf?.id || normalizedId || id || "tal-olympic-arena";
@@ -842,13 +933,13 @@ export const TurfDetail: React.FC = () => {
           <AlertCircle size={28} />
         </div>
         <h2 className="text-xl font-bold text-text-primary mb-2">
-          Pitch Not Available
+          Pitch not found or no longer available
         </h2>
         <p className="text-text-secondary text-sm mb-6 max-w-sm mx-auto leading-relaxed">
-          This pitch is currently inactive or under maintenance. Check our other verified arenas in Kampala.
+          This pitch is not currently available or has been removed.
         </p>
         <Button onClick={() => navigate("/home")} variant="primary">
-          Explore Active Turfs
+          Back to Home
         </Button>
       </div>
     );
@@ -1035,27 +1126,29 @@ export const TurfDetail: React.FC = () => {
 
             {/* Bottom Right Photo Actions */}
             <div className="absolute bottom-4 right-4 flex items-center gap-2">
-              <label
-                className={`px-3 py-2 rounded-xl bg-surface-card/95 hover:bg-surface-raised backdrop-blur-md border border-border-subtle text-xs font-bold text-text-primary shadow-lg flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${
-                  isUploadingPhotos ? "opacity-75 pointer-events-none" : ""
-                }`}
-                title="Add photos to pitch gallery"
-              >
-                {isUploadingPhotos ? (
-                  <Loader2 size={13} className="animate-spin text-primary-lime" />
-                ) : (
-                  <Upload size={13} className="text-primary-lime" />
-                )}
-                <span>Add Photos</span>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  disabled={isUploadingPhotos}
-                  onChange={handlePhotoUpload}
-                />
-              </label>
+              {isPitchOwner && (
+                <label
+                  className={`px-3 py-2 rounded-xl bg-surface-card/95 hover:bg-surface-raised backdrop-blur-md border border-primary-lime/40 text-xs font-bold text-text-primary shadow-lg flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${
+                    isUploadingPhotos ? "opacity-75 pointer-events-none" : ""
+                  }`}
+                  title="Pitch Owner: Add photos to pitch gallery"
+                >
+                  {isUploadingPhotos ? (
+                    <Loader2 size={13} className="animate-spin text-primary-lime" />
+                  ) : (
+                    <Upload size={13} className="text-primary-lime" />
+                  )}
+                  <span>Add Photos</span>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    disabled={isUploadingPhotos}
+                    onChange={handlePhotoUpload}
+                  />
+                </label>
+              )}
 
               <button
                 type="button"
@@ -1101,9 +1194,36 @@ export const TurfDetail: React.FC = () => {
                 </>
               )}
 
-              {/* Photo Counter Pill */}
-              <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md text-white text-[11px] font-bold border border-white/20">
-                {currentImgIndex + 1} / {galleryImages.length}
+              {/* Bottom Actions Bar (Mobile) */}
+              <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                {isPitchOwner ? (
+                  <label
+                    className={`pointer-events-auto px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-primary-lime/40 text-[11px] font-bold text-white shadow-lg flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                      isUploadingPhotos ? "opacity-75 pointer-events-none" : ""
+                    }`}
+                    title="Pitch Owner: Add photos"
+                  >
+                    {isUploadingPhotos ? (
+                      <Loader2 size={12} className="animate-spin text-primary-lime" />
+                    ) : (
+                      <Upload size={12} className="text-primary-lime" />
+                    )}
+                    <span>Add Photos</span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="hidden"
+                      disabled={isUploadingPhotos}
+                      onChange={handlePhotoUpload}
+                    />
+                  </label>
+                ) : <div />}
+
+                {/* Photo Counter Pill */}
+                <div className="pointer-events-auto px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md text-white text-[11px] font-bold border border-white/20">
+                  {currentImgIndex + 1} / {galleryImages.length}
+                </div>
               </div>
             </div>
           </div>
@@ -1760,7 +1880,45 @@ export const TurfDetail: React.FC = () => {
 
               <div className="w-full flex items-center justify-between text-white text-xs mt-3 px-2">
                 <span className="font-bold">{turf.name}</span>
-                <span>Photo {currentImgIndex + 1} of {galleryImages.length}</span>
+                <div className="flex items-center gap-3">
+                  {isPitchOwner && (
+                    <>
+                      <label
+                        className={`px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-semibold text-white flex items-center gap-1.5 cursor-pointer transition-colors ${
+                          isUploadingPhotos ? "opacity-75 pointer-events-none" : ""
+                        }`}
+                        title="Pitch Owner: Add photos to pitch"
+                      >
+                        {isUploadingPhotos ? (
+                          <Loader2 size={12} className="animate-spin text-primary-lime" />
+                        ) : (
+                          <Upload size={12} className="text-primary-lime" />
+                        )}
+                        <span>Add Photos</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isUploadingPhotos}
+                          onChange={handlePhotoUpload}
+                        />
+                      </label>
+                      {galleryImages.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleRemovePhoto(currentImgIndex, e)}
+                          className="px-2.5 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-[11px] font-semibold text-red-300 flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Pitch Owner: Remove current photo"
+                        >
+                          <Trash2 size={12} />
+                          <span>Remove</span>
+                        </button>
+                      )}
+                    </>
+                  )}
+                  <span>Photo {currentImgIndex + 1} of {galleryImages.length}</span>
+                </div>
               </div>
             </div>
           </div>

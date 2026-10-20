@@ -567,7 +567,7 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
           <div className="space-y-3">
             {reviews.map((rev) => {
               const isVerified = rev.verifiedBooking !== false && rev.bookingId !== "community";
-              const canDelete = user && (user.uid === rev.playerId || isAdmin || user.uid === "0uVlAOWTy7dpqAW5tsgxQVs4PW43");
+              const canDelete = user && (user.uid === rev.playerId || isAdmin);
 
               return (
                 <motion.div

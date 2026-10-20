@@ -32,7 +32,7 @@ import { pitchService } from "../services/pitchService";
 import { bookingService } from "../services/bookingService";
 import { Pitch, Booking } from "../types/firebase";
 import { PitchStatus, BookingStatus } from "../types";
-import { TURFS } from "../constants";
+import { NoPitchesCard } from "../components/home/NoPitchesCard";
 import { Skeleton, PitchCardSkeleton } from "../components/ui/Skeleton";
 import { FirstTimeUserTourModal } from "../components/onboarding/FirstTimeUserTourModal";
 import { SmartDashboard } from "../components/dashboard/SmartDashboard";
@@ -80,29 +80,6 @@ const SORT_OPTIONS: { id: SortOptionId; label: string; shortLabel: string }[] = 
   { id: "price-asc", label: "Price: Low to High", shortLabel: "Lowest Price" },
   { id: "price-desc", label: "Price: High to Low", shortLabel: "Highest Price" },
 ];
-
-// Researched pitches mapped from TURFS for complete sports consistency
-const FALLBACK_PITCHES: Partial<Pitch>[] = TURFS.map((t) => ({
-  id: t.id,
-  name: t.name,
-  location: t.location,
-  formattedAddress: t.formattedAddress || t.fullAddress,
-  pricePerHour: t.pricePerHour,
-  pitchFormats: t.pitchFormats || ["7-a-side", "Artificial Turf"],
-  images: t.images && t.images.length > 0 ? t.images : [t.image || ""],
-  status: t.status || PitchStatus.ACTIVE,
-  latitude: t.latitude,
-  longitude: t.longitude,
-  amenities: t.amenities || ["Floodlights", "Changing Rooms", "Parking"],
-  isVerified: true,
-  rating: t.rating || 4.8,
-  distance: t.distance || "1.8 km",
-  surfaceType: t.name.toLowerCase().includes("grass")
-    ? "Natural Grass"
-    : t.name.toLowerCase().includes("futsal") || t.name.toLowerCase().includes("fusion")
-    ? "Indoor Futsal Turf"
-    : "FIFA Synthetic Turf",
-} as any));
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -246,24 +223,17 @@ export const Home: React.FC = () => {
     }
   }, [loading, user]);
 
-  // Combine real pitches with rich fallback data
+  // Real Firestore pitches
   const allPitches = useMemo(() => {
-    if (realPitches.length > 0) {
-      return realPitches.map((p, idx) => ({
-        ...p,
-        images: p.images?.length
-          ? p.images
-          : [FALLBACK_PITCHES[idx % FALLBACK_PITCHES.length]?.images?.[0] || ""],
-        pitchFormats: p.pitchFormats?.length
-          ? p.pitchFormats
-          : [FALLBACK_PITCHES[idx % FALLBACK_PITCHES.length]?.pitchFormats?.[0] || "7-a-side"],
-        status: p.status || PitchStatus.ACTIVE,
-        rating: (p as any).rating || 4.8,
-        reviewsCount: 20 + ((idx * 7) % 35),
-        distance: (p as any).distance || `${(1.2 + (idx * 0.7) % 4).toFixed(1)} km`,
-      }));
-    }
-    return FALLBACK_PITCHES as Pitch[];
+    return realPitches.map((p, idx) => ({
+      ...p,
+      images: p.images?.length ? p.images : [],
+      pitchFormats: p.pitchFormats?.length ? p.pitchFormats : ["7-a-side"],
+      status: p.status || PitchStatus.ACTIVE,
+      rating: (p as any).rating || 4.8,
+      reviewsCount: (p as any).reviewsCount || 0,
+      distance: (p as any).distance || `${(1.2 + (idx * 0.7) % 4).toFixed(1)} km`,
+    }));
   }, [realPitches]);
 
   // Top rated / spotlight pitches
@@ -615,16 +585,16 @@ export const Home: React.FC = () => {
                 aria-label="Available Football Grounds"
                 className="space-y-4 sm:space-y-5 scroll-mt-24"
               >
-                {/* Section Heading & Sort Dropdown - Clean Typographic Hierarchy */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-b border-border-subtle pb-3.5">
-                  <div className="space-y-1">
+                {/* Section Heading & Pulse Control - Realigned, Clean, and Spacious */}
+                <div className="flex items-center justify-between gap-4 pt-1 border-b border-border-subtle/70 pb-4">
+                  <div className="space-y-1.5 min-w-0">
                     <div className="flex items-center gap-2.5">
-                      <span className="w-2 h-2 rounded-full bg-primary-lime shrink-0 shadow-[0_0_8px_rgba(22,163,74,0.5)]" />
-                      <h2 id="heading-available-pitches" className="text-xl sm:text-2xl font-black text-text-primary tracking-tight font-display scroll-mt-24">
+                      <span className="w-2.5 h-2.5 rounded-full bg-primary-lime shrink-0 shadow-[0_0_10px_rgba(163,230,53,0.6)]" />
+                      <h2 id="heading-available-pitches" className="text-xl sm:text-2xl font-black text-text-primary tracking-tight font-display scroll-mt-24 truncate">
                         Available Pitches
                       </h2>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-text-secondary">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-text-secondary">
                       <span className="font-semibold text-text-primary font-mono tabular-nums">
                         {filteredPitches.length} {filteredPitches.length === 1 ? "ground" : "grounds"}
                       </span>
@@ -639,7 +609,7 @@ export const Home: React.FC = () => {
                             ? "Using your real-time GPS location (Click to refresh)"
                             : "Using Kampala City default location (Click to acquire GPS)"
                         }
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-lime hover:underline cursor-pointer ml-1"
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-lime hover:underline cursor-pointer ml-0.5"
                       >
                         {locationLoading ? (
                           <Loader2 size={11} className="animate-spin text-primary-lime" />
@@ -651,124 +621,18 @@ export const Home: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Filters & Sort Controls */}
-                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
-                    {/* Community Pulse Pop-up Trigger */}
+                  {/* Community Pulse Pop-up Trigger - Clean Sole Action */}
+                  <div className="shrink-0">
                     <button
                       id="open-community-activity-btn"
                       type="button"
                       onClick={() => setShowActivityModal(true)}
-                      className="h-9 px-3 sm:px-3.5 rounded-xl border border-border-subtle hover:border-primary-lime/40 bg-surface-card hover:bg-surface-raised flex items-center gap-1.5 text-xs font-bold text-text-secondary hover:text-text-primary transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
-                      title="View live community match results and updates in a popup"
+                      className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl border border-border-subtle hover:border-primary-lime/40 bg-surface-card hover:bg-surface-raised flex items-center gap-2 text-xs font-bold text-text-secondary hover:text-text-primary transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
+                      title="View live community match results and updates"
                     >
-                      <Radio size={13} className="text-primary-lime animate-pulse" />
-                      <span className="hidden sm:inline">Community Pulse</span>
-                      <span className="sm:hidden">Pulse</span>
+                      <Radio size={14} className="text-primary-lime animate-pulse shrink-0" />
+                      <span className="font-bold">Pulse</span>
                     </button>
-
-                    {/* Filters Modal Trigger */}
-                    <button
-                      id="open-filters-modal-btn"
-                      type="button"
-                      onClick={() => setShowFilterModal(true)}
-                      className={`h-9 px-3.5 sm:px-4 rounded-xl border flex items-center gap-2 shrink-0 transition-all cursor-pointer font-bold text-xs active:scale-95 ${
-                        activeFiltersCount > 0
-                          ? "bg-primary-lime text-black border-primary-lime shadow-sm shadow-primary-lime/20"
-                          : "bg-surface-card hover:bg-surface-raised border-border-subtle text-text-secondary hover:text-text-primary shadow-2xs"
-                      }`}
-                      title="Open pitch filters"
-                    >
-                      <SlidersHorizontal size={13} className={activeFiltersCount > 0 ? "text-black" : "text-text-secondary"} />
-                      <span className="text-[11px] font-bold uppercase tracking-wider">Filters</span>
-                      {activeFiltersCount > 0 && (
-                        <span className="min-w-4 h-4 px-1 rounded-full bg-black text-primary-lime text-[10px] font-black flex items-center justify-center shadow-2xs ml-0.5">
-                          {activeFiltersCount}
-                        </span>
-                      )}
-                    </button>
-
-                    {/* Custom Sort Dropdown */}
-                    <div className="relative shrink-0" ref={sortMenuRef}>
-                      <button
-                        id="pitch-sort-menu-btn"
-                        type="button"
-                        onClick={() => setShowSortMenu((prev) => !prev)}
-                        className={`h-9 px-3.5 sm:px-4 rounded-xl border transition-all flex items-center gap-2 text-xs font-bold cursor-pointer shadow-2xs active:scale-95 ${
-                          showSortMenu
-                            ? "bg-surface-raised border-primary-lime/40 text-text-primary"
-                            : "bg-surface-card hover:bg-surface-raised border-border-subtle text-text-secondary hover:text-text-primary"
-                        }`}
-                        aria-haspopup="true"
-                        aria-expanded={showSortMenu}
-                      >
-                        <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">
-                          Sort
-                        </span>
-                        <span className="w-px h-3.5 bg-border-subtle" />
-                        <span className="text-text-primary font-bold text-[11px]">
-                          {SORT_OPTIONS.find((o) => o.id === sortBy)?.shortLabel || "Recommended"}
-                        </span>
-                        <ChevronDown
-                          size={13}
-                          className={`text-text-tertiary transition-transform duration-200 ${
-                            showSortMenu ? "rotate-180 text-primary-lime" : ""
-                          }`}
-                        />
-                      </button>
-
-                      {/* Hidden select for full programmatic & testing accessibility */}
-                      <select
-                        id="pitch-sort-select"
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as any)}
-                        className="sr-only"
-                        aria-label="Sort pitches"
-                      >
-                        {SORT_OPTIONS.map((opt) => (
-                          <option key={opt.id} value={opt.id}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-
-                      {/* Floating Dropdown Menu */}
-                      <AnimatePresence>
-                        {showSortMenu && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -4, scale: 0.97 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                            transition={{ duration: 0.15, ease: "easeOut" }}
-                            className="absolute right-0 mt-1.5 w-48 rounded-2xl bg-surface-card border border-border-subtle shadow-xl py-1.5 z-40 overflow-hidden"
-                          >
-                            <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-text-tertiary border-b border-border-subtle/50 mb-1">
-                              Sort Grounds By
-                            </div>
-                            {SORT_OPTIONS.map((opt) => {
-                              const isSelected = sortBy === opt.id;
-                              return (
-                                <button
-                                  key={opt.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setSortBy(opt.id);
-                                    setShowSortMenu(false);
-                                  }}
-                                  className={`w-full px-3 py-2 text-left text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                                    isSelected
-                                      ? "bg-primary-lime/10 text-primary-lime"
-                                      : "text-text-primary hover:bg-surface-raised"
-                                  }`}
-                                >
-                                  <span>{opt.label}</span>
-                                  {isSelected && <Check size={14} className="text-primary-lime stroke-[2.5]" />}
-                                </button>
-                              );
-                            })}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
                   </div>
                 </div>
 
@@ -794,6 +658,8 @@ export const Home: React.FC = () => {
                         />
                       ))}
                     </div>
+                  ) : realPitches.length === 0 ? (
+                    <NoPitchesCard />
                   ) : (
                     <div className="col-span-full py-16 text-center text-text-tertiary text-xs bg-surface-card rounded-3xl border border-border-subtle space-y-3 p-6">
                       <div className="w-12 h-12 rounded-2xl bg-surface-raised border border-border-subtle flex items-center justify-center mx-auto text-text-tertiary">

@@ -13,7 +13,7 @@ import { MatchReminderProvider } from './context/MatchReminderContext';
 import { MatchReminderToast } from './components/MatchReminderToast';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { useMatchReminders } from './hooks/useMatchReminders';
-import { RequireAuth, RequireAdmin, RequireOwner } from './components/RouteGuards';
+import { RequireAuth, RequireAdmin, RequireOwner, RequireOrganizer } from './components/RouteGuards';
 import { Loader2 } from 'lucide-react';
 import { Logo } from './components/Logo';
 
@@ -140,6 +140,25 @@ const RootRedirect = () => {
   return <Navigate to="/onboarding" replace />;
 };
 
+const AdminIndexRedirect: React.FC = () => {
+  const { isAdmin, userProfile } = useUser();
+  const isOrganizer = Boolean(
+    userProfile &&
+      ((userProfile.roles as string[] | undefined)?.includes("ORGANIZER") ||
+        (userProfile.role as string | undefined) === "ORGANIZER")
+  );
+
+  if (isAdmin) {
+    return <Navigate to="overview" replace />;
+  }
+
+  if (isOrganizer) {
+    return <Navigate to="tournaments" replace />;
+  }
+
+  return <Navigate to="overview" replace />;
+};
+
 interface PageTransitionProps {
   children: React.ReactNode;
   flowType?: 'turf-detail' | 'booking-checkout' | 'default';
@@ -255,19 +274,19 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/owner/edit-pitch/:id" element={<RequireOwner><PageTransition><AddPitch /></PageTransition></RequireOwner>} />
         <Route path="/owner-profile" element={<RequireOwner><PageTransition><OwnerProfile /></PageTransition></RequireOwner>} />
         
-        {/* Protected Admin Routes */}
-        <Route path="/admin" element={<RequireAdmin><PageTransition><AdminLayout /></PageTransition></RequireAdmin>}>
-          <Route index element={<Navigate to="overview" replace />} />
-          <Route path="overview" element={<Overview />} />
-          <Route path="tournaments" element={<TournamentManager />} />
-          <Route path="pitches" element={<PitchReviews />} />
-          <Route path="users" element={<UserManagement />} />
-          <Route path="owners" element={<OwnerManagement />} />
-          <Route path="bookings" element={<BookingManagement />} />
-          <Route path="payments" element={<PaymentDisputes />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="audit-logs" element={<AuditLogs />} />
-          <Route path="settings" element={<PlatformSettings />} />
+        {/* Protected Admin & Organizer Routes */}
+        <Route path="/admin" element={<RequireOrganizer><PageTransition><AdminLayout /></PageTransition></RequireOrganizer>}>
+          <Route index element={<AdminIndexRedirect />} />
+          <Route path="tournaments" element={<RequireOrganizer><TournamentManager /></RequireOrganizer>} />
+          <Route path="overview" element={<RequireAdmin><Overview /></RequireAdmin>} />
+          <Route path="pitches" element={<RequireAdmin><PitchReviews /></RequireAdmin>} />
+          <Route path="users" element={<RequireAdmin><UserManagement /></RequireAdmin>} />
+          <Route path="owners" element={<RequireAdmin><OwnerManagement /></RequireAdmin>} />
+          <Route path="bookings" element={<RequireAdmin><BookingManagement /></RequireAdmin>} />
+          <Route path="payments" element={<RequireAdmin><PaymentDisputes /></RequireAdmin>} />
+          <Route path="reports" element={<RequireAdmin><Reports /></RequireAdmin>} />
+          <Route path="audit-logs" element={<RequireAdmin><AuditLogs /></RequireAdmin>} />
+          <Route path="settings" element={<RequireAdmin><PlatformSettings /></RequireAdmin>} />
         </Route>
         
         <Route path="*" element={<Navigate to="/home" replace />} />

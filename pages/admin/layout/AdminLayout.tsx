@@ -23,7 +23,7 @@ import { Logo } from "../../../components/Logo";
 import { PlayerAvatar } from "../../../components/PlayerAvatars";
 
 export const AdminLayout: React.FC = () => {
-  const { userProfile, user, signOut } = useUser();
+  const { userProfile, user, signOut, isAdmin } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -32,7 +32,13 @@ export const AdminLayout: React.FC = () => {
     navigate("/auth");
   };
 
-  const navItems = [
+  const isOrganizer = Boolean(
+    userProfile &&
+      ((userProfile.roles as string[] | undefined)?.includes("ORGANIZER") ||
+        (userProfile.role as string | undefined) === "ORGANIZER")
+  );
+
+  const allNavItems = [
     {
       path: "/admin/overview",
       label: "Overview",
@@ -84,6 +90,10 @@ export const AdminLayout: React.FC = () => {
       icon: <Settings size={18} />,
     },
   ];
+
+  const navItems = isAdmin
+    ? allNavItems
+    : allNavItems.filter((item) => item.path === "/admin/tournaments");
 
   return (
     <div className="min-h-screen h-screen w-full overflow-hidden bg-app-base flex flex-col lg:flex-row text-text-primary font-sans">

@@ -21,7 +21,10 @@ import {
   Layers,
   ChevronRight,
   Sparkles,
+  Trophy,
 } from "lucide-react";
+import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { db } from "../../lib/firebase";
 
 export const UserManagement: React.FC = () => {
   const { isAdmin, user, loading: authLoading } = useUser();
@@ -202,6 +205,48 @@ export const UserManagement: React.FC = () => {
     } catch (error: any) {
       setRoleError(error.message || "Failed to update role.");
       showToast("error", error?.message || "Failed to update role.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleToggleOrganizer = async (userId: string, isCurrentlyOrganizer: boolean) => {
+    if (!user || !isAdmin) return;
+    setIsUpdating(true);
+    try {
+      const userRef = doc(db, "users", userId);
+      if (isCurrentlyOrganizer) {
+        await updateDoc(userRef, {
+          roles: arrayRemove("ORGANIZER"),
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        await updateDoc(userRef, {
+          roles: arrayUnion("ORGANIZER"),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
+      const updatedRoles = isCurrentlyOrganizer
+        ? (selectedUser?.roles || []).filter((r: string) => r !== "ORGANIZER")
+        : [...(selectedUser?.roles || []), "ORGANIZER"];
+
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, roles: updatedRoles } : u))
+      );
+      if (selectedUser?.id === userId) {
+        setSelectedUser({ ...selectedUser, roles: updatedRoles });
+      }
+
+      showToast(
+        "success",
+        isCurrentlyOrganizer
+          ? "Tournament Organizer permissions revoked."
+          : "Tournament Organizer permissions granted."
+      );
+    } catch (error: any) {
+      console.error("Failed to toggle tournament organizer role:", error);
+      showToast("error", error?.message || "Failed to update organizer permissions.");
     } finally {
       setIsUpdating(false);
     }
@@ -576,6 +621,47 @@ export const UserManagement: React.FC = () => {
                   <p className="text-xs text-[#EF4444] font-medium">{roleError}</p>
                 )}
               </div>
+
+              {/* Tournament Organizer Toggle (Admin Only) */}
+              {isAdmin && (
+                <div className="bg-surface-raised rounded-2xl p-4 border border-border-subtle flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                      (selectedUser.roles || []).includes("ORGANIZER")
+                        ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        : "bg-surface-card text-text-tertiary border border-border-subtle"
+                    }`}>
+                      <Trophy size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-text-primary">
+                        Tournament Organizer
+                      </h4>
+                      <p className="text-[11px] text-text-secondary">
+                        Grant scorekeeper and fixture management rights
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={isUpdating}
+                    onClick={() =>
+                      handleToggleOrganizer(
+                        selectedUser.id,
+                        (selectedUser.roles || []).includes("ORGANIZER")
+                      )
+                    }
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                      (selectedUser.roles || []).includes("ORGANIZER")
+                        ? "bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25"
+                        : "bg-surface-card border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-raised"
+                    }`}
+                  >
+                    {(selectedUser.roles || []).includes("ORGANIZER") ? "Active (Revoke)" : "Grant"}
+                  </button>
+                </div>
+              )}
 
               {/* Recent Bookings Activity */}
               <div>

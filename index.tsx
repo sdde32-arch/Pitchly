@@ -52,11 +52,4 @@ setTimeout(() => {
       return autoSeedIfEmpty();
     })
     .catch((err) => console.warn('Turf seeding notice:', err));
-
-  import('./utils/seedAdmin')
-    .then(({ autoSeedAdmin }) => {
-      console.log('[Pitchly Boot] 👤 Running autoSeedAdmin check...');
-      return autoSeedAdmin();
-    })
-    .catch((err) => console.warn('Admin seeding notice:', err));
 }, 1000);

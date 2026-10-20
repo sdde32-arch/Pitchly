@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { 
-  ArrowLeft, CheckCircle2, Clock, UploadCloud, FileImage, CreditCard, ShieldCheck, Check, Wallet, Home
+  ArrowLeft, CheckCircle2, Clock, UploadCloud, FileImage, CreditCard, ShieldCheck, Check, Wallet, Home,
+  Zap, AlertCircle, Info, Shield, FileCheck, AlertTriangle
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 import { pitchService } from "../services/pitchService";
 import { SlotAvailability, Booking } from "../types/firebase";
-import { Turf, BookingStatus, PaymentMethod } from "../types";
-import { TURFS } from "../constants";
+import { Turf, BookingStatus, PaymentMethod, BookingTier } from "../types";
 import { bookingService } from "../services/bookingService";
 import { storageService } from "../services/storageService";
 import { matchInvitationService } from "../services/matchInvitationService";
@@ -16,6 +16,7 @@ import { Loader2 } from "lucide-react";
 import { MatchWeatherWidget } from "../components/weather/MatchWeatherWidget";
 import { formatBookingDate } from "../lib/dateUtils";
 import { motion, AnimatePresence } from "framer-motion";
+import { BookingProgressIndicator, BookingStep } from "../components/booking/BookingProgressIndicator";
 
 const stepVariants = {
   enter: (direction: number) => ({
@@ -54,6 +55,12 @@ export const BookPitch: React.FC = () => {
   const paramDate = searchParams.get('date');
   const paramTime = searchParams.get('time');
   const proposalId = searchParams.get('proposalId');
+  const paramTier = searchParams.get('tier');
+  const paramDeposit = searchParams.get('deposit');
+
+  const initialTier: BookingTier = paramTier === 'deposit' || paramDeposit === 'true' || paramTier === 'tentative'
+    ? 'DEPOSIT'
+    : 'FULL';
 
   // States
   const todayStr = (() => {
@@ -77,6 +84,10 @@ export const BookPitch: React.FC = () => {
   const [proofFileName, setProofFileName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [holdExpiresAt, setHoldExpiresAt] = useState<number | null>(null);
+  const [holdSecondsRemaining, setHoldSecondsRemaining] = useState<number>(15 * 60);
+  const [selectedTier, setSelectedTier] = useState<BookingTier>(initialTier);
+  const [transactionRef, setTransactionRef] = useState<string>("");
 
   const normalizedId = id?.replace(/^pitch-/, "") || "";
 
@@ -118,9 +129,7 @@ export const BookPitch: React.FC = () => {
     openingHour: realPitch.openingHour || "06:00",
     closingHour: realPitch.closingHour || "23:00",
     blockedDates: [],
-  } : (
-    TURFS.find((t) => t.id === id || t.id === normalizedId || `pitch-${t.id}` === id) || null
-  );
+  } : null;
 
   // Next 14 days calendar starting from today's date
   const calendarDays = React.useMemo(() => {
@@ -164,10 +173,25 @@ export const BookPitch: React.FC = () => {
     return list;
   }, [turf]);
 
+  const depositPercentage = (realPitch as any)?.depositPercentage || (turf as any)?.depositPercentage || 30;
+  const basePitchTotal = turf ? turf.pricePerHour * selectedTimes.length : 0;
+  const depositAmount = Math.max(20000, Math.round((basePitchTotal * (depositPercentage / 100)) / 1000) * 1000);
+  const balanceDue = Math.max(0, basePitchTotal - depositAmount);
+
+  const anySelectedSlotIsTentative = useMemo(() => {
+    return selectedTimes.some(t => {
+      const s = slotAvailabilityList.find(item => item.time === t);
+      return s?.status === 'tentative';
+    });
+  }, [selectedTimes, slotAvailabilityList]);
+
   useEffect(() => {
     if (!id || !selectedDate) return;
     setLoadingBookings(true);
     setHasError(false);
+
+    // Auto-release any expired pending slots/bookings before loading availability
+    bookingService.autoReleasePendingBookings({ pitchId: id, date: selectedDate }).catch(console.warn);
 
     const unsubscribe = bookingService.subscribeSlotAvailabilityByPitchAndDate(id, selectedDate, (slots) => {
       setSlotAvailabilityList(slots);
@@ -182,6 +206,29 @@ export const BookPitch: React.FC = () => {
     return () => unsubscribe();
   }, [id, selectedDate]);
 
+  // 15-minute auto-release payment window timer
+  useEffect(() => {
+    if (bookingStep < 2 || !holdExpiresAt) return;
+
+    const interval = setInterval(() => {
+      const remainingMs = holdExpiresAt - Date.now();
+      if (remainingMs <= 0) {
+        clearInterval(interval);
+        setHoldExpiresAt(null);
+        setSelectedTimes([]);
+        setBookingStep(1);
+        setErrorMsg("Your 15-minute payment window has expired. The held time slots have been automatically released back to the pitch schedule.");
+        if (turf?.id) {
+          bookingService.releaseExpiredSlotLocks(turf.id, selectedDate).catch(console.warn);
+        }
+      } else {
+        setHoldSecondsRemaining(Math.ceil(remainingMs / 1000));
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [bookingStep, holdExpiresAt, turf?.id, selectedDate]);
+
   const getSlotStatus = (time: string) => {
     if (hasError) return 'unavailable';
     const now = Date.now();
@@ -189,6 +236,7 @@ export const BookPitch: React.FC = () => {
     if (!slot) return 'available';
     if (slot.status === 'blocked') return 'blocked';
     if (slot.status === 'booked') return 'booked';
+    if (slot.status === 'tentative') return 'tentative';
     if (slot.status === 'held') {
       const expiresAt = slot.expiresAt ? new Date(slot.expiresAt).getTime() : 0;
       if (expiresAt > now) {
@@ -282,8 +330,12 @@ export const BookPitch: React.FC = () => {
       setErrorMsg("No time slots selected.");
       return;
     }
-    if ((paymentMethod === PaymentMethod.MTN || paymentMethod === PaymentMethod.AIRTEL) && !proofUrl) {
-      setErrorMsg("Please upload proof of payment before continuing.");
+    if (selectedTier === 'TENTATIVE' && anySelectedSlotIsTentative) {
+      setErrorMsg("One or more selected slots are already held tentatively by another team. To secure this slot, you must pay a deposit or pay in full.");
+      return;
+    }
+    if (selectedTier !== 'TENTATIVE' && (paymentMethod === PaymentMethod.MTN || paymentMethod === PaymentMethod.AIRTEL) && !proofUrl && !transactionRef) {
+      setErrorMsg("Please upload proof of payment or enter your transaction reference before continuing.");
       return;
     }
     
@@ -292,7 +344,7 @@ export const BookPitch: React.FC = () => {
     try {
       const sortedTimes = [...selectedTimes].sort((a, b) => timesList.indexOf(a) - timesList.indexOf(b));
       const startTime = sortedTimes[0];
-      const totalPrice = turf.pricePerHour * sortedTimes.length;
+      const totalPrice = basePitchTotal;
       const bookingId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       
       const bookingData: Booking = {
@@ -319,10 +371,20 @@ export const BookPitch: React.FC = () => {
         duration: sortedTimes.length,
         price: totalPrice,
         totalPrice: totalPrice,
-        status: paymentMethod === PaymentMethod.CASH ? BookingStatus.PENDING : BookingStatus.PAYMENT_SUBMITTED,
+        bookingTier: selectedTier,
+        depositAmount: selectedTier === 'DEPOSIT' ? depositAmount : 0,
+        balanceDue: selectedTier === 'DEPOSIT' ? balanceDue : (selectedTier === 'TENTATIVE' ? totalPrice : 0),
+        status: selectedTier === 'TENTATIVE'
+          ? BookingStatus.TENTATIVE
+          : (paymentMethod === PaymentMethod.CASH ? BookingStatus.PENDING : BookingStatus.PAYMENT_SUBMITTED),
         paymentMethod: paymentMethod,
-        paymentStatus: paymentMethod === PaymentMethod.CASH ? "UNPAID" : "SUBMITTED",
+        paymentStatus: selectedTier === 'TENTATIVE'
+          ? "UNPAID"
+          : (selectedTier === 'DEPOSIT' ? "PARTIAL" : (paymentMethod === PaymentMethod.CASH ? "UNPAID" : "SUBMITTED")),
         paymentProofUrl: proofUrl || "",
+        virtualReceiptUrl: proofUrl || "",
+        transactionRef: transactionRef || "",
+        paymentSubmittedAt: selectedTier !== 'TENTATIVE' ? new Date().toISOString() : undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -353,8 +415,12 @@ export const BookPitch: React.FC = () => {
 
   const handleBack = () => {
     if (bookingStep > 1 && bookingStep < 4) {
+      const prevStep = (bookingStep - 1) as 1 | 2 | 3;
+      if (prevStep === 1) {
+        setHoldExpiresAt(null);
+      }
       setStepDirection(-1);
-      setBookingStep((prev) => ((prev - 1) as 1 | 2 | 3));
+      setBookingStep(prevStep);
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -364,9 +430,27 @@ export const BookPitch: React.FC = () => {
   };
 
   const handleNextStep = (nextStep: 1 | 2 | 3 | 4) => {
+    if (nextStep >= 2 && !holdExpiresAt) {
+      const expires = Date.now() + 15 * 60 * 1000;
+      setHoldExpiresAt(expires);
+      setHoldSecondsRemaining(15 * 60);
+    } else if (nextStep === 1) {
+      setHoldExpiresAt(null);
+    }
     setStepDirection(1);
     setBookingStep(nextStep);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleStepIndicatorClick = (step: BookingStep) => {
+    if (step < bookingStep) {
+      if (step === 1) {
+        setHoldExpiresAt(null);
+      }
+      setStepDirection(-1);
+      setBookingStep(step);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   if (loadingPitch) {
@@ -383,15 +467,15 @@ export const BookPitch: React.FC = () => {
     return (
       <Layout>
         <div className="flex flex-col min-h-[60vh] items-center justify-center p-4 text-center">
-          <h2 className="text-xl font-bold text-text-primary mb-2">Pitch Not Available</h2>
+          <h2 className="text-xl font-bold text-text-primary mb-2">Pitch not found or no longer available</h2>
           <p className="text-text-secondary text-sm mb-6 max-w-sm">
-            This pitch schedule could not be loaded or is currently inactive.
+            This pitch could not be found or is not currently active.
           </p>
           <button
             onClick={() => navigate("/home", { replace: true })}
             className="px-6 py-2.5 rounded-xl bg-primary-lime text-accent-text font-bold text-sm cursor-pointer"
           >
-            Return to Explore
+            Back to Home
           </button>
         </div>
       </Layout>
@@ -434,81 +518,28 @@ export const BookPitch: React.FC = () => {
           </motion.button>
         </div>
 
-        {/* Step Indicator with Framer Motion connecting lines */}
+        {/* Multi-step progress indicator */}
         {bookingStep < 4 && (
-          <div className="flex items-center justify-between relative max-w-[320px] mx-auto mb-8 px-2">
-            <div className="flex flex-col items-center gap-1.5 relative z-10 w-14">
-              <motion.div
-                animate={{
-                  scale: bookingStep === 1 ? 1.08 : 1,
-                  boxShadow: bookingStep === 1 ? "0 0 16px rgba(168,255,0,0.3)" : "none",
-                }}
-                transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                  bookingStep >= 1 ? "bg-primary-lime text-accent-text" : "bg-surface-raised text-text-secondary"
-                }`}
-              >
-                {bookingStep > 1 ? <CheckCircle2 size={16} /> : "1"}
-              </motion.div>
-              <span className={`text-[10px] uppercase tracking-wider font-bold ${
-                bookingStep === 1 ? "text-primary-lime" : "text-text-primary"
-              }`}>Slot</span>
-            </div>
+          <BookingProgressIndicator
+            currentStep={bookingStep as BookingStep}
+            onStepClick={handleStepIndicatorClick}
+          />
+        )}
 
-            <div className="flex-1 h-0.5 mx-[-10px] bg-border-subtle relative overflow-hidden rounded-full self-center mb-5">
-              <motion.div
-                className="absolute inset-0 bg-primary-lime rounded-full"
-                initial={false}
-                animate={{ scaleX: bookingStep >= 2 ? 1 : 0 }}
-                transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }}
-                style={{ transformOrigin: "left" }}
-              />
+        {/* 15-Minute Payment Window Banner */}
+        {bookingStep >= 2 && bookingStep < 4 && (
+          <div className="mb-6 bg-[#FACC15]/10 border border-[#FACC15]/30 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-[#FACC15] shadow-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Clock size={18} className="animate-pulse text-[#FACC15] shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-bold leading-tight truncate">15-Minute Payment Window</p>
+                <p className="text-[11px] text-text-secondary truncate">
+                  Slots release automatically if payment is not completed within 15 minutes.
+                </p>
+              </div>
             </div>
-
-            <div className="flex flex-col items-center gap-1.5 relative z-10 w-14">
-              <motion.div
-                animate={{
-                  scale: bookingStep === 2 ? 1.08 : 1,
-                  boxShadow: bookingStep === 2 ? "0 0 16px rgba(168,255,0,0.3)" : "none",
-                }}
-                transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                  bookingStep >= 2 ? "bg-primary-lime text-accent-text" : "bg-surface-raised text-text-secondary"
-                }`}
-              >
-                {bookingStep > 2 ? <CheckCircle2 size={16} /> : "2"}
-              </motion.div>
-              <span className={`text-[10px] uppercase tracking-wider font-bold ${
-                bookingStep === 2 ? "text-primary-lime" : bookingStep > 2 ? "text-text-primary" : "text-text-secondary"
-              }`}>Details</span>
-            </div>
-
-            <div className="flex-1 h-0.5 mx-[-10px] bg-border-subtle relative overflow-hidden rounded-full self-center mb-5">
-              <motion.div
-                className="absolute inset-0 bg-primary-lime rounded-full"
-                initial={false}
-                animate={{ scaleX: bookingStep >= 3 ? 1 : 0 }}
-                transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }}
-                style={{ transformOrigin: "left" }}
-              />
-            </div>
-
-            <div className="flex flex-col items-center gap-1.5 relative z-10 w-14">
-              <motion.div
-                animate={{
-                  scale: bookingStep === 3 ? 1.08 : 1,
-                  boxShadow: bookingStep === 3 ? "0 0 16px rgba(168,255,0,0.3)" : "none",
-                }}
-                transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                  bookingStep >= 3 ? "bg-primary-lime text-accent-text" : "bg-surface-raised text-text-secondary"
-                }`}
-              >
-                {bookingStep > 3 ? <CheckCircle2 size={16} /> : "3"}
-              </motion.div>
-              <span className={`text-[10px] uppercase tracking-wider font-bold ${
-                bookingStep === 3 ? "text-primary-lime" : "text-text-secondary"
-              }`}>Payment</span>
+            <div className="bg-[#FACC15]/20 text-[#FACC15] px-2.5 py-1 rounded-lg border border-[#FACC15]/30 font-mono font-black text-xs tracking-wider shrink-0">
+              {Math.floor(holdSecondsRemaining / 60)}:{String(holdSecondsRemaining % 60).padStart(2, '0')}
             </div>
           </div>
         )}
@@ -597,6 +628,7 @@ export const BookPitch: React.FC = () => {
                       const isPassed = isSlotPassed(time, selectedDate);
                       const isBooked = status === 'booked' || status === 'blocked';
                       const isHeld = status === 'held';
+                      const isTentative = status === 'tentative';
                       const isDisabled = hasError || isBooked || isHeld || isPassed;
                       const endHourNum = parseInt(time.split(':')[0]) + 1;
                       const endHour = `${String(endHourNum).padStart(2, '0')}:00`;
@@ -610,25 +642,40 @@ export const BookPitch: React.FC = () => {
                           whileTap={!isDisabled ? { scale: 0.98 } : undefined}
                           transition={{ type: "spring", stiffness: 400, damping: 25 }}
                           onClick={() => handleSlotClick(time)}
-                          className={`w-full flex flex-col items-center justify-center py-3 rounded-xl transition-all text-center gap-1 border cursor-pointer ${
+                          className={`w-full flex flex-col items-center justify-center py-3 rounded-xl transition-all text-center gap-1 border cursor-pointer relative overflow-hidden ${
                             isSelected
                               ? "bg-primary-lime border-primary-lime text-accent-text shadow-[0_0_15px_rgba(168,255,0,0.2)]"
                               : isDisabled
                                 ? "bg-surface-raised/50 border-transparent text-text-disabled cursor-not-allowed"
-                                : "bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised"
+                                : isTentative
+                                  ? "bg-amber-500/10 border-amber-500/40 text-amber-200 hover:bg-amber-500/20 shadow-xs"
+                                  : "bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised"
                           }`}
                         >
                           <span className="text-[15px] font-extrabold tracking-tight">
                             {time} - {endHour}
                           </span>
                           <span className={`text-[9px] font-bold uppercase tracking-wider ${
-                            isSelected ? "text-accent-text/70" : "text-text-secondary"
+                            isSelected 
+                              ? "text-accent-text/70" 
+                              : isTentative
+                                ? "text-amber-400 font-black flex items-center gap-0.5"
+                                : "text-text-secondary"
                           }`}>
-                            {isBooked ? "Reserved" : isPassed ? "Passed" : isHeld ? "In Cart" : `UGX ${(turf.pricePerHour / 1000).toFixed(0)}k`}
+                            {isBooked ? "Reserved" : isPassed ? "Passed" : isHeld ? "In Cart" : isTentative ? "⚡ Tentative (Claim)" : `UGX ${(turf.pricePerHour / 1000).toFixed(0)}k`}
                           </span>
                         </motion.button>
                       );
                     })}
+                  </div>
+                )}
+
+                {anySelectedSlotIsTentative && (
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 flex items-center gap-3 text-amber-300 text-xs mt-3.5 animate-fadeIn">
+                    <Zap size={16} className="shrink-0 text-amber-400 animate-pulse" />
+                    <p className="leading-relaxed">
+                      <strong>Tentative Slot Selected:</strong> This slot is held provisionally without upfront payment. You can claim and secure it immediately with a deposit or full payment!
+                    </p>
                   </div>
                 )}
               </div>
@@ -659,6 +706,7 @@ export const BookPitch: React.FC = () => {
               exit="exit"
               className="space-y-4"
             >
+              {/* Booking Summary Card */}
               <div id="booking-summary-card" className="bg-surface-card rounded-[20px] p-5 border border-border-subtle scroll-mt-24">
                 <div className="flex items-center justify-between mb-4">
                   <h3 id="heading-booking-summary" className="text-text-primary font-bold scroll-mt-24">Booking Summary</h3>
@@ -673,7 +721,7 @@ export const BookPitch: React.FC = () => {
                       {formatBookingDate(selectedDate, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                     <div className="text-text-primary font-bold text-[15px]">
-                      {selectedTimes[0]} - {parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1}:00
+                      {selectedTimes[0]} - {parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1}:00 ({selectedTimes.length} hr)
                     </div>
                   </div>
                 </div>
@@ -692,26 +740,138 @@ export const BookPitch: React.FC = () => {
                 </div>
               </div>
 
+              {/* Booking Position & Slot Security Selection */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-text-primary font-bold text-sm">Choose Booking Position</h3>
+                  <span className="text-[11px] text-text-secondary">Select how you want to secure this slot</span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {/* Option 1: Instant Full Payment */}
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => setSelectedTier('FULL')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                      selectedTier === 'FULL'
+                        ? 'bg-primary-lime/10 border-primary-lime shadow-md shadow-primary-lime/10'
+                        : 'bg-surface-card border-border-subtle hover:border-[#383838] hover:bg-surface-raised'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                          selectedTier === 'FULL' ? 'bg-primary-lime text-accent-text' : 'bg-surface-raised text-text-secondary'
+                        }`}>
+                          <ShieldCheck size={18} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-extrabold text-sm text-text-primary">Full Payment (Instant Lock)</h4>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30 uppercase tracking-wider">
+                              100% Guaranteed
+                            </span>
+                          </div>
+                          <p className="text-xs text-text-secondary mt-0.5">
+                            Fully secure your slot right away with zero balance due at the pitch.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-black text-primary-lime block">
+                          UGX {(basePitchTotal + 5000).toLocaleString()}
+                        </span>
+                        <span className="text-[10px] text-text-tertiary">Due now</span>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Option 2: Instant Deposit Payment */}
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => setSelectedTier('DEPOSIT')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                      selectedTier === 'DEPOSIT'
+                        ? 'bg-primary-lime/10 border-primary-lime shadow-md shadow-primary-lime/10'
+                        : 'bg-surface-card border-border-subtle hover:border-[#383838] hover:bg-surface-raised'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                          selectedTier === 'DEPOSIT' ? 'bg-primary-lime text-accent-text' : 'bg-surface-raised text-text-secondary'
+                        }`}>
+                          <CreditCard size={18} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-extrabold text-sm text-text-primary">Deposit Payment ({depositPercentage}%)</h4>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-lime/15 text-primary-lime border border-primary-lime/30 uppercase tracking-wider">
+                              Guaranteed Lock
+                            </span>
+                          </div>
+                          <p className="text-xs text-text-secondary mt-0.5">
+                            Lock slot against any takeovers now. Pay remaining balance on arrival.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-black text-primary-lime block">
+                          UGX {(depositAmount + 5000).toLocaleString()}
+                        </span>
+                        <span className="text-[10px] text-text-tertiary">Bal: UGX {balanceDue.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+
+              {/* Payment Breakdown Card */}
               <div id="payment-summary-card" className="bg-surface-card rounded-[20px] p-5 border border-border-subtle scroll-mt-24">
                 <h3 id="heading-payment-summary" className="text-text-primary font-bold mb-4 scroll-mt-24">Payment Summary</h3>
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-text-secondary">Pitch Hire ({selectedTimes.length} hr)</span>
-                    <span className="text-text-primary font-medium">UGX {(turf.pricePerHour * selectedTimes.length).toLocaleString()}</span>
+                    <span className="text-text-primary font-medium">UGX {basePitchTotal.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-text-secondary">Booking Fee</span>
-                    <span className="text-text-primary font-medium">UGX 5,000</span>
+                    <span className="text-text-secondary">Booking & Lights Fee</span>
+                    <span className="text-text-primary font-medium">
+                      {selectedTier === 'TENTATIVE' ? 'UGX 0 (on arrival)' : 'UGX 5,000'}
+                    </span>
                   </div>
+                  {selectedTier === 'DEPOSIT' && (
+                    <div className="flex justify-between items-center text-sm text-text-secondary border-t border-border-subtle/60 pt-2">
+                      <span>Remaining Balance on Matchday</span>
+                      <span className="text-text-primary font-semibold">UGX {balanceDue.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedTier === 'TENTATIVE' && (
+                    <div className="flex justify-between items-center text-sm text-amber-300 border-t border-border-subtle/60 pt-2">
+                      <span>Total Due on Matchday</span>
+                      <span className="text-amber-300 font-semibold">UGX {basePitchTotal.toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
+
                 <div className="pt-3 border-t border-border-subtle flex justify-between items-center">
-                  <span className="text-text-primary font-bold">Total Payable</span>
-                  <span className="text-primary-lime font-black text-lg">
-                    UGX {(turf.pricePerHour * selectedTimes.length + 5000).toLocaleString()}
+                  <div>
+                    <span className="text-text-primary font-bold block text-sm">
+                      {selectedTier === 'TENTATIVE' ? 'Due Right Now' : (selectedTier === 'DEPOSIT' ? 'Deposit Payable Now' : 'Total Payable Now')}
+                    </span>
+                    <span className="text-[10px] text-text-tertiary">
+                      {selectedTier === 'TENTATIVE' ? 'Zero upfront fee' : 'Secures instant reservation'}
+                    </span>
+                  </div>
+                  <span className={`font-black text-xl font-display ${selectedTier === 'TENTATIVE' ? 'text-amber-400' : 'text-primary-lime'}`}>
+                    UGX {selectedTier === 'TENTATIVE' ? '0' : (selectedTier === 'DEPOSIT' ? (depositAmount + 5000).toLocaleString() : (basePitchTotal + 5000).toLocaleString())}
                   </span>
                 </div>
               </div>
 
+              {/* Action Bar */}
               <div className="fixed bottom-0 left-0 right-0 p-4 bg-app-base border-t border-border-subtle z-40 max-w-2xl mx-auto">
                 <motion.button
                   type="button"
@@ -719,9 +879,15 @@ export const BookPitch: React.FC = () => {
                   whileTap={{ scale: 0.98 }}
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   onClick={() => handleNextStep(3)}
-                  className="w-full h-14 bg-primary-lime hover:bg-[#96E600] text-accent-text rounded-xl flex items-center justify-center transition-all shadow-[0_0_20px_rgba(168,255,0,0.2)] font-bold tracking-wide active:scale-[0.98] cursor-pointer"
+                  className={`w-full h-14 rounded-xl flex items-center justify-center transition-all font-bold tracking-wide active:scale-[0.98] cursor-pointer ${
+                    selectedTier === 'TENTATIVE'
+                      ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-[0_0_20px_rgba(245,158,11,0.25)]'
+                      : 'bg-primary-lime hover:bg-[#96E600] text-accent-text shadow-[0_0_20px_rgba(168,255,0,0.2)]'
+                  }`}
                 >
-                  Proceed to Payment
+                  {selectedTier === 'TENTATIVE'
+                    ? 'Review Tentative Hold'
+                    : (selectedTier === 'DEPOSIT' ? `Proceed with Deposit (UGX ${(depositAmount + 5000).toLocaleString()})` : 'Proceed to Full Payment')}
                 </motion.button>
               </div>
             </motion.div>
@@ -737,92 +903,189 @@ export const BookPitch: React.FC = () => {
               exit="exit"
               className="space-y-4"
             >
-              <h3 className="text-text-primary font-bold px-1">Select Payment Method</h3>
-              <div className="grid grid-cols-3 gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  onClick={() => setPaymentMethod(PaymentMethod.MTN)}
-                  className={`flex flex-col items-center justify-center p-3 rounded-[16px] gap-2 transition-all border cursor-pointer ${paymentMethod === PaymentMethod.MTN ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised'}`}
-                >
-                  <div className="w-8 h-8 rounded-full bg-[#FFCC00] flex items-center justify-center text-black font-black text-[10px]">MTN</div>
-                  <span className="text-xs font-bold uppercase tracking-wider">MoMo</span>
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  onClick={() => setPaymentMethod(PaymentMethod.AIRTEL)}
-                  className={`flex flex-col items-center justify-center p-3 rounded-[16px] gap-2 transition-all border cursor-pointer ${paymentMethod === PaymentMethod.AIRTEL ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised'}`}
-                >
-                  <div className="w-8 h-8 rounded-full bg-[#FF0000] flex items-center justify-center text-white font-black text-[10px]">AIR</div>
-                  <span className="text-xs font-bold uppercase tracking-wider">Money</span>
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  onClick={() => setPaymentMethod(PaymentMethod.CASH)}
-                  className={`flex flex-col items-center justify-center p-3 rounded-[16px] gap-2 transition-all border cursor-pointer ${paymentMethod === PaymentMethod.CASH ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised'}`}
-                >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${paymentMethod === PaymentMethod.CASH ? 'bg-primary-lime text-accent-text' : 'bg-surface-raised text-text-primary'}`}><Wallet size={16} /></div>
-                  <span className="text-xs font-bold uppercase tracking-wider">Cash</span>
-                </motion.button>
-              </div>
-
-              {(paymentMethod === PaymentMethod.MTN || paymentMethod === PaymentMethod.AIRTEL) && (
-                <div className="bg-surface-card rounded-[20px] p-5 border border-border-subtle space-y-4">
-                  <div className="space-y-1">
-                    <h4 className="text-text-primary font-bold text-sm">Payment Instructions</h4>
-                    <p className="text-text-secondary text-xs leading-relaxed">
-                      1. Dial <strong className="text-text-primary">{paymentMethod === PaymentMethod.MTN ? '*165#' : '*185#'}</strong><br/>
-                      2. Send UGX <strong className="text-text-primary">{(turf.pricePerHour * selectedTimes.length + 5000).toLocaleString()}</strong> to <strong className="text-primary-lime">0772 123 456</strong><br/>
-                      3. Screenshot the final confirmation SMS
-                    </p>
-                  </div>
-                  <div className="pt-2 border-t border-border-subtle">
-                    <h4 className="text-text-primary font-bold text-sm mb-3">Upload Transaction Screenshot</h4>
-                    <label className="block">
-                      <input type="file" className="hidden" accept="image/*" onChange={handleProofUpload} disabled={uploadingProof} />
-                      <div className="w-full h-24 rounded-xl border-2 border-dashed border-border-prominent hover:border-primary-lime hover:bg-primary-lime/5 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer relative overflow-hidden group">
-                        {uploadingProof ? (
-                          <div className="flex flex-col items-center gap-2 text-primary-lime">
-                            <Loader2 size={24} className="animate-spin" />
-                            <span className="text-xs font-bold uppercase tracking-wider">Uploading...</span>
-                          </div>
-                        ) : proofUrl ? (
-                          <div className="flex flex-col items-center gap-1 text-primary-lime bg-primary-lime/10 w-full h-full justify-center">
-                            <CheckCircle2 size={24} />
-                            <span className="text-xs font-bold truncate max-w-[80%] px-4">{proofFileName}</span>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center text-text-secondary group-hover:text-primary-lime group-hover:bg-primary-lime/20 transition-all">
-                              <UploadCloud size={20} />
-                            </div>
-                            <span className="text-text-secondary text-[10px] uppercase font-bold tracking-wider group-hover:text-text-primary transition-colors">Select image</span>
-                          </>
-                        )}
+              {selectedTier === 'TENTATIVE' ? (
+                /* TENTATIVE HOLD CONFIRMATION VIEW */
+                <div className="space-y-4">
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-[20px] p-5 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                        <Clock size={22} className="text-amber-400 animate-pulse" />
                       </div>
-                    </label>
+                      <div>
+                        <h3 className="text-text-primary font-bold text-base">Tentative Match Reservation</h3>
+                        <p className="text-xs text-amber-300 font-medium">Preemptible hold without upfront payment</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2.5 pt-2 border-t border-amber-500/20 text-xs text-text-secondary leading-relaxed">
+                      <div className="flex items-start gap-2 text-text-primary">
+                        <Check size={15} className="text-amber-400 shrink-0 mt-0.5" />
+                        <span><strong>Zero Payment Today:</strong> Your squad holds this slot provisionally for {selectedTimes.length} hr ({selectedTimes[0]} - {parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1}:00).</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-amber-200">
+                        <Zap size={15} className="text-amber-400 shrink-0 mt-0.5" />
+                        <span><strong>Preemption Term:</strong> If another team books this time and pays the deposit or full amount, this slot will be immediately reallocated to them.</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-text-primary">
+                        <ShieldCheck size={15} className="text-primary-lime shrink-0 mt-0.5" />
+                        <span><strong>Lock In Anytime:</strong> You can secure this slot permanently at any time by paying the deposit from your <em>My Bookings</em> tab.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-surface-card rounded-[20px] p-5 border border-border-subtle space-y-3">
+                    <h4 className="text-text-primary font-bold text-sm">Reservation Details</h4>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-text-secondary">Pitch</span>
+                      <span className="text-text-primary font-bold">{turf.name}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-text-secondary">Date & Time</span>
+                      <span className="text-text-primary font-bold">{formatBookingDate(selectedDate)} at {selectedTimes[0]}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-text-secondary">Matchday Balance Due</span>
+                      <span className="text-amber-400 font-bold">UGX {basePitchTotal.toLocaleString()}</span>
+                    </div>
+                    <div className="pt-2 border-t border-border-subtle flex justify-between items-center text-xs">
+                      <span className="text-text-primary font-bold">Due Right Now</span>
+                      <span className="text-primary-lime font-black text-base">UGX 0</span>
+                    </div>
+                  </div>
+
+                  <div className="fixed bottom-0 left-0 right-0 p-4 bg-app-base border-t border-border-subtle z-40 max-w-2xl mx-auto">
+                    <motion.button
+                      type="button"
+                      whileHover={!isSubmitting ? { scale: 1.01, boxShadow: "0 0 25px rgba(245,158,11,0.3)" } : undefined}
+                      whileTap={!isSubmitting ? { scale: 0.98 } : undefined}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      disabled={isSubmitting}
+                      onClick={handleBookingSubmit}
+                      className="w-full h-14 bg-amber-500 hover:bg-amber-400 text-black font-extrabold rounded-xl flex items-center justify-center transition-all shadow-[0_0_20px_rgba(245,158,11,0.25)] tracking-wide active:scale-[0.98] cursor-pointer"
+                    >
+                      {isSubmitting ? <><Loader2 size={18} className="animate-spin mr-2" /> Reserving Tentatively...</> : 'Confirm Tentative Reservation'}
+                    </motion.button>
+                  </div>
+                </div>
+              ) : (
+                /* GUARANTEED INSTANT (FULL OR DEPOSIT) PAYMENT VIEW */
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                    <h3 className="text-text-primary font-bold">Select Payment Method</h3>
+                    <span className="text-[11px] font-bold text-primary-lime">
+                      {selectedTier === 'DEPOSIT' ? `Deposit (${depositPercentage}%)` : 'Full Payment'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      onClick={() => setPaymentMethod(PaymentMethod.MTN)}
+                      className={`flex flex-col items-center justify-center p-3 rounded-[16px] gap-2 transition-all border cursor-pointer ${paymentMethod === PaymentMethod.MTN ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised'}`}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-[#FFCC00] flex items-center justify-center text-black font-black text-[10px]">MTN</div>
+                      <span className="text-xs font-bold uppercase tracking-wider">MoMo</span>
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      onClick={() => setPaymentMethod(PaymentMethod.AIRTEL)}
+                      className={`flex flex-col items-center justify-center p-3 rounded-[16px] gap-2 transition-all border cursor-pointer ${paymentMethod === PaymentMethod.AIRTEL ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-card border-border-subtle text-text-primary hover:bg-surface-raised'}`}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-[#FF0000] flex items-center justify-center text-white font-black text-[10px]">AIR</div>
+                      <span className="text-xs font-bold uppercase tracking-wider">Money</span>
+                    </motion.button>
+                  </div>
+
+                  {(paymentMethod === PaymentMethod.MTN || paymentMethod === PaymentMethod.AIRTEL) && (
+                    <div className="bg-surface-card rounded-[20px] p-5 border border-border-subtle space-y-4">
+                      <div className="space-y-1">
+                        <h4 className="text-text-primary font-bold text-sm">
+                          {selectedTier === 'DEPOSIT' ? 'Deposit Payment Instructions' : 'Full Payment Instructions'}
+                        </h4>
+                        <p className="text-text-secondary text-xs leading-relaxed">
+                          1. Dial <strong className="text-text-primary">{paymentMethod === PaymentMethod.MTN ? '*165#' : '*185#'}</strong><br/>
+                          2. Send UGX <strong className="text-primary-lime font-black">
+                            {(selectedTier === 'DEPOSIT' ? depositAmount + 5000 : basePitchTotal + 5000).toLocaleString()}
+                          </strong> to <strong className="text-text-primary">{(turf as any).paymentPhone || turf.contactPhone || "0772 123 456"}</strong> ({turf.name})<br/>
+                          3. Enter transaction reference or screenshot the confirmation SMS
+                        </p>
+                      </div>
+
+                      {/* Transaction Reference Input */}
+                      <div className="pt-2 border-t border-border-subtle">
+                        <label className="text-xs font-bold text-text-primary block mb-1.5">
+                          Mobile Money Transaction Reference (Optional if screenshot uploaded)
+                        </label>
+                        <input
+                          type="text"
+                          value={transactionRef}
+                          onChange={(e) => setTransactionRef(e.target.value)}
+                          placeholder="e.g. 248910284 or MTN-TXN-..."
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-surface-raised border border-border-subtle text-text-primary placeholder:text-text-disabled text-xs font-mono focus:outline-hidden focus:border-primary-lime transition-all"
+                        />
+                      </div>
+
+                      {/* Virtual Receipt Upload */}
+                      <div className="pt-2 border-t border-border-subtle">
+                        <h4 className="text-text-primary font-bold text-sm mb-1.5">Upload Virtual Receipt / Payment Screenshot</h4>
+                        <p className="text-[11px] text-text-secondary mb-3">
+                          Upload screenshot of the confirmation SMS or payment receipt to guarantee instant slot verification.
+                        </p>
+                        <label className="block">
+                          <input type="file" className="hidden" accept="image/*" onChange={handleProofUpload} disabled={uploadingProof} />
+                          <div className="w-full h-28 rounded-xl border-2 border-dashed border-border-prominent hover:border-primary-lime hover:bg-primary-lime/5 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer relative overflow-hidden group">
+                            {uploadingProof ? (
+                              <div className="flex flex-col items-center gap-2 text-primary-lime">
+                                <Loader2 size={24} className="animate-spin" />
+                                <span className="text-xs font-bold uppercase tracking-wider">Uploading receipt...</span>
+                              </div>
+                            ) : proofUrl ? (
+                              <div className="flex flex-col items-center gap-1.5 text-primary-lime bg-primary-lime/10 w-full h-full justify-center p-2">
+                                <CheckCircle2 size={26} />
+                                <span className="text-xs font-bold truncate max-w-[85%] px-4">{proofFileName || "Receipt Uploaded"}</span>
+                                <span className="text-[10px] text-text-secondary underline">Click to change screenshot</span>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center text-text-secondary group-hover:text-primary-lime group-hover:bg-primary-lime/20 transition-all">
+                                  <UploadCloud size={20} />
+                                </div>
+                                <span className="text-text-secondary text-[11px] font-bold group-hover:text-text-primary transition-colors">
+                                  Select receipt screenshot (JPG, PNG)
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="fixed bottom-0 left-0 right-0 p-4 bg-app-base border-t border-border-subtle z-40 max-w-2xl mx-auto">
+                    <motion.button
+                      type="button"
+                      whileHover={!isSubmitting && (proofUrl || transactionRef) ? { scale: 1.01, boxShadow: "0 0 25px rgba(168,255,0,0.3)" } : undefined}
+                      whileTap={!isSubmitting && (proofUrl || transactionRef) ? { scale: 0.98 } : undefined}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      disabled={isSubmitting || (!proofUrl && !transactionRef)}
+                      onClick={handleBookingSubmit}
+                      className="w-full h-14 bg-primary-lime hover:bg-[#96E600] disabled:opacity-50 disabled:hover:bg-primary-lime text-accent-text rounded-xl flex items-center justify-center transition-all shadow-[0_0_20px_rgba(168,255,0,0.2)] disabled:shadow-none font-bold tracking-wide active:scale-[0.98] cursor-pointer"
+                    >
+                      {isSubmitting ? (
+                        <><Loader2 size={18} className="animate-spin mr-2" /> Securing Pitch...</>
+                      ) : selectedTier === 'DEPOSIT' ? (
+                        'Confirm Deposit & Secure Slot'
+                      ) : (
+                        'Confirm Full Payment & Secure Slot'
+                      )}
+                    </motion.button>
                   </div>
                 </div>
               )}
-
-              <div className="fixed bottom-0 left-0 right-0 p-4 bg-app-base border-t border-border-subtle z-40 max-w-2xl mx-auto">
-                <motion.button
-                  type="button"
-                  whileHover={!isSubmitting && (paymentMethod === PaymentMethod.CASH || proofUrl) ? { scale: 1.01, boxShadow: "0 0 25px rgba(168,255,0,0.3)" } : undefined}
-                  whileTap={!isSubmitting && (paymentMethod === PaymentMethod.CASH || proofUrl) ? { scale: 0.98 } : undefined}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  disabled={isSubmitting || (paymentMethod !== PaymentMethod.CASH && !proofUrl)}
-                  onClick={handleBookingSubmit}
-                  className="w-full h-14 bg-primary-lime hover:bg-[#96E600] disabled:opacity-50 disabled:hover:bg-primary-lime text-accent-text rounded-xl flex items-center justify-center transition-all shadow-[0_0_20px_rgba(168,255,0,0.2)] disabled:shadow-none font-bold tracking-wide active:scale-[0.98] cursor-pointer"
-                >
-                  {isSubmitting ? <><Loader2 size={18} className="animate-spin mr-2" /> Processing...</> : 'Confirm Booking'}
-                </motion.button>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>

@@ -60,7 +60,12 @@ export const Auth: React.FC = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [isOwner, setIsOwner] = useState(false);
+  const [isOwner, setIsOwner] = useState<boolean>(() => {
+    if (stateParams.isOwner || stateParams.role === "owner" || stateParams.role === "OWNER") return true;
+    const roleParam = searchParams.get("role")?.toLowerCase();
+    const ownerParam = searchParams.get("isOwner")?.toLowerCase();
+    return roleParam === "owner" || ownerParam === "true";
+  });
 
   // If already authenticated, redirect directly to the designated tab
   useEffect(() => {

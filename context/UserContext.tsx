@@ -297,18 +297,16 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     setUser(null);
   };
 
-  const targetUid = "0uVlAOWTy7dpqAW5tsgxQVs4PW43";
-  const isHardcodedAdmin =
-    userProfile?.id === targetUid ||
-    user?.uid === targetUid ||
-    user?.email?.toLowerCase() === "sdde32@gmail.com" ||
-    userProfile?.email?.toLowerCase() === "sdde32@gmail.com";
+  const targetUid = "qC5nIOnLw3TdGko6OdStE7OvDBG3";
+  const isHardcodedAdmin = user?.uid === targetUid;
   const isAdmin =
     isHardcodedAdmin ||
     userProfile?.role === "admin" ||
     userProfile?.role === "ADMIN" ||
     userProfile?.role === "super_admin";
-  const isSuperAdmin = userProfile?.role === "super_admin";
+  const isSuperAdmin =
+    isHardcodedAdmin ||
+    userProfile?.role === "super_admin";
   const isOwner = userProfile?.role === "owner" || userProfile?.role === "OWNER";
   const isStaff = (userProfile?.role as any) === "staff" || (userProfile?.role as any) === "STAFF";
   const isPlayer =

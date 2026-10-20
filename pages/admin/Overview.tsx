@@ -88,7 +88,7 @@ export const Overview: React.FC = () => {
         </div>
         <h2 className="text-lg font-bold text-text-primary">Admin Access Required</h2>
         <p className="text-xs text-text-secondary max-w-sm">
-          Please sign in with your organizer account (<strong className="text-text-primary">sdde32@gmail.com</strong>) or unlock via Tournament Hub.
+          Please sign in with an authorized platform administrator account.
         </p>
         <div className="flex items-center gap-3">
           <button

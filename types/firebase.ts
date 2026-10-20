@@ -92,6 +92,13 @@ export interface Booking {
   qrToken?: string;
   status: BookingStatus;
   paymentStatus: 'PAID' | 'PARTIAL' | 'UNPAID' | 'APPROVED' | 'REJECTED' | 'SUBMITTED' | 'DISPUTED';
+  bookingTier?: 'FULL' | 'DEPOSIT' | 'TENTATIVE';
+  depositAmount?: number;
+  balanceDue?: number;
+  virtualReceiptUrl?: string;
+  transactionRef?: string;
+  preemptedAt?: string;
+  preemptedByBookingId?: string;
   paymentMethod?: PaymentMethod;
   paymentProofUrl?: string;
   paymentSubmittedAt?: string;
@@ -126,7 +133,9 @@ export interface SlotAvailability {
   pitchId: string;
   date: string;
   time: string; // e.g. "19:00"
-  status: 'held' | 'booked' | 'open' | 'blocked';
+  status: 'held' | 'booked' | 'open' | 'blocked' | 'tentative';
+  bookingId?: string;
+  bookingTier?: 'FULL' | 'DEPOSIT' | 'TENTATIVE';
   expiresAt?: string;
   updatedAt?: string;
 }

@@ -2,6 +2,9 @@ export enum BookingStatus {
   PENDING_PAYMENT = 'PENDING_PAYMENT',
   PAYMENT_SUBMITTED = 'PAYMENT_SUBMITTED',
   CONFIRMED = 'CONFIRMED',
+  DEPOSIT_PAID = 'DEPOSIT_PAID',
+  TENTATIVE = 'TENTATIVE',
+  PREEMPTED = 'PREEMPTED',
   REJECTED = 'REJECTED',
   CANCELLED = 'CANCELLED',
   COMPLETED = 'COMPLETED',
@@ -10,6 +13,8 @@ export enum BookingStatus {
   NO_SHOW = 'NO_SHOW',
   PENDING = 'PENDING'
 }
+
+export type BookingTier = 'FULL' | 'DEPOSIT' | 'TENTATIVE';
 
 export enum PaymentMethod {
   CASH = 'CASH',

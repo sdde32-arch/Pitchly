@@ -1,13 +1,29 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Turf, Booking } from '../types';
-import { TURFS, MY_BOOKINGS } from '../constants';
 import { useUser } from './UserContext';
 import { db } from '../lib/firebase';
 import { collection, getDocs, addDoc, query, where, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { slotAlertService } from '../services/slotAlertService';
 import { pitchService, markPitchAsDeleted } from '../services/pitchService';
+import { bookingService } from '../services/bookingService';
 
-interface BookingContextType { turfs: Turf[]; bookings: Booking[]; loading: boolean; updateTurf: (id: string, updates: Partial<Turf>) => void; addTurf: (turf: Turf) => void; deleteTurf: (id: string) => void; addBooking: (booking: Partial<Booking>) => Promise<{success: boolean, error?: string}>; updateBookingStatus: (id: string, status: Booking['status']) => Promise<void>; updateBooking: (id: string, updates: Partial<Booking>) => Promise<void>; removeBooking: (id: string) => Promise<void>; toggleBlockDate: (turfId: string, date: string) => void;
+interface BookingContextType {
+  turfs: Turf[];
+  bookings: Booking[];
+  loading: boolean;
+  updateTurf: (id: string, updates: Partial<Turf>) => void;
+  addTurf: (turf: Turf) => void;
+  deleteTurf: (id: string) => void;
+  addBooking: (booking: Partial<Booking>) => Promise<{success: boolean, error?: string}>;
+  updateBookingStatus: (id: string, status: Booking['status']) => Promise<void>;
+  updateBooking: (id: string, updates: Partial<Booking>) => Promise<void>;
+  removeBooking: (id: string) => Promise<void>;
+  toggleBlockDate: (turfId: string, date: string) => void;
+  releasePendingBooking: (bookingId: string, reason?: string) => Promise<boolean>;
+  autoReleasePendingBookings: (options?: { pitchId?: string; date?: string; userId?: string; bookingId?: string; forceNow?: boolean }) => Promise<{ releasedCount: number; releasedBookingIds: string[] }>;
+  upgradeTentativeBooking: (bookingId: string, tier: 'DEPOSIT' | 'FULL', paymentDetails: { paymentMethod: any; paymentProofUrl?: string; transactionRef?: string; depositAmount?: number; balanceDue?: number }) => Promise<Booking>;
+  isPendingBookingExpired: (booking: Partial<Booking>) => boolean;
+  getRemainingPaymentTimeMs: (booking: Partial<Booking>) => number;
 }
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 const BOOKINGS_CACHE_KEY = 'pitchly_offline_bookings_cache';
@@ -40,10 +56,62 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     loadData();
   }, [user, authLoading]);
 
+  // Background auto-release timer: checks every 30s to release any pending booking where payment wasn't completed in 15 mins
+  useEffect(() => {
+    const stopInterval = bookingService.startAutoReleaseInterval(30000);
+
+    const handleBookingReleased = (e: any) => {
+      const releasedId = e.detail?.bookingId;
+      if (releasedId) {
+        setBookings(prev => {
+          const updated = prev.map(b => b.id === releasedId ? {
+            ...b,
+            status: 'CANCELLED' as any,
+            cancellationReason: e.detail?.reason || 'Payment window expired (15-minute window exceeded)'
+          } : b);
+          setCachedBookings(updated);
+          return updated;
+        });
+      }
+    };
+
+    const handleBookingPreempted = (e: any) => {
+      const preemptedIds: string[] = e.detail?.preemptedBookingIds || [];
+      if (preemptedIds.length > 0) {
+        setBookings(prev => {
+          const updated = prev.map(b => preemptedIds.includes(b.id) ? {
+            ...b,
+            status: 'PREEMPTED' as any,
+            cancellationReason: 'Tentative reservation was reallocated to an instant deposit booking.'
+          } : b);
+          setCachedBookings(updated);
+          return updated;
+        });
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pitchly:pending_booking_released', handleBookingReleased);
+      window.addEventListener('pitchly:tentative_booking_preempted', handleBookingPreempted);
+    }
+
+    return () => {
+      stopInterval();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('pitchly:pending_booking_released', handleBookingReleased);
+        window.removeEventListener('pitchly:tentative_booking_preempted', handleBookingPreempted);
+      }
+    };
+  }, []);
+
   const loadData = async () => {
     if (authLoading) return;
     try {
       setLoading(true);
+      // Auto-release any expired pending bookings first
+      if (user) {
+        await bookingService.autoReleasePendingBookings({ userId: user.uid }).catch(console.warn);
+      }
       // Load researched turfs and active pitches via pitchService
       const publicPitches = await pitchService.listPublic();
       const mappedTurfs: Turf[] = publicPitches.map((p) => ({
@@ -73,7 +141,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         pitchFormats: p.pitchFormats,
         rating: (p as any).rating || 4.8,
       }));
-      setTurfs(mappedTurfs.length > 0 ? mappedTurfs : TURFS);
+      setTurfs(mappedTurfs);
       
       // Load bookings if logged in 
       if (user) { 
@@ -96,7 +164,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     } catch (e) {
       console.error('BookingContext load error:', e);
-      setTurfs(TURFS);
+      setTurfs([]);
       const cached = getCachedBookings();
       setBookings(cached.length > 0 ? cached : []);
     } finally {
@@ -202,7 +270,88 @@ const deleteTurf = (id: string) => {
 const toggleBlockDate = (turfId: string, date: string) => { setTurfs(prev => prev.map(t => { if (t.id !== turfId) return t;
 const blocked = t.blockedDates?.includes(date) ? t.blockedDates.filter(d => d !== date) : [...(t.blockedDates || []), date]; updateDoc(doc(db, 'pitches', turfId), { blockedDates: blocked }).catch(console.error);
 return { ...t, blockedDates: blocked }; })); };
-return ( <BookingContext.Provider value={{ turfs, bookings, loading, updateTurf, addTurf, deleteTurf, addBooking, updateBookingStatus, updateBooking, removeBooking, toggleBlockDate }}> {children} </BookingContext.Provider> );
+  const releasePendingBooking = async (bookingId: string, reason?: string) => {
+    const res = await bookingService.releasePendingBooking(bookingId, reason);
+    if (res) {
+      setBookings(prev => {
+        const updated = prev.map(b => b.id === bookingId ? {
+          ...b,
+          status: 'CANCELLED' as any,
+          cancellationReason: reason || 'Payment window expired (15 minutes exceeded without completed payment)'
+        } : b);
+        setCachedBookings(updated);
+        return updated;
+      });
+    }
+    return res;
+  };
+
+  const autoReleasePendingBookings = async (options?: { pitchId?: string; date?: string; userId?: string; bookingId?: string; forceNow?: boolean }) => {
+    const res = await bookingService.autoReleasePendingBookings({
+      ...options,
+      userId: options?.userId || user?.uid
+    });
+    if (res.releasedCount > 0) {
+      setBookings(prev => {
+        const updated = prev.map(b => res.releasedBookingIds.includes(b.id) ? {
+          ...b,
+          status: 'CANCELLED' as any,
+          cancellationReason: 'Payment window expired (15 minutes exceeded without completed payment)'
+        } : b);
+        setCachedBookings(updated);
+        return updated;
+      });
+    }
+    return res;
+  };
+
+  const upgradeTentativeBooking = async (
+    bookingId: string,
+    tier: 'DEPOSIT' | 'FULL',
+    paymentDetails: {
+      paymentMethod: any;
+      paymentProofUrl?: string;
+      transactionRef?: string;
+      depositAmount?: number;
+      balanceDue?: number;
+    }
+  ) => {
+    const updated = await bookingService.upgradeTentativeBooking(bookingId, tier, paymentDetails);
+    setBookings(prev => {
+      const list = prev.map(b => b.id === bookingId ? updated : b);
+      setCachedBookings(list);
+      return list;
+    });
+    return updated;
+  };
+
+  const isPendingBookingExpired = (b: Partial<Booking>) => bookingService.isPendingBookingExpired(b);
+  const getRemainingPaymentTimeMs = (b: Partial<Booking>) => bookingService.getRemainingPaymentTimeMs(b);
+
+  return (
+    <BookingContext.Provider
+      value={{
+        turfs,
+        bookings,
+        loading,
+        updateTurf,
+        addTurf,
+        deleteTurf,
+        addBooking,
+        updateBookingStatus,
+        updateBooking,
+        removeBooking,
+        toggleBlockDate,
+        releasePendingBooking,
+        autoReleasePendingBookings,
+        upgradeTentativeBooking,
+        isPendingBookingExpired,
+        getRemainingPaymentTimeMs
+      }}
+    >
+      {children}
+    </BookingContext.Provider>
+  );
 };
 export const useBookings = () => { const context = useContext(BookingContext);
 if (!context) throw new Error('useBookings must be used within a BookingProvider');

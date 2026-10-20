@@ -55,32 +55,32 @@ function isSlotLocked(booking: { status: BookingStatus; holdExpiresAt?: string }
   return false;
 }
 
-function create10MinHold(fromTime: Date): string {
-  const expires = new Date(fromTime.getTime() + 10 * 60 * 1000);
+function create15MinHold(fromTime: Date): string {
+  const expires = new Date(fromTime.getTime() + 15 * 60 * 1000);
   return expires.toISOString();
 }
 
 {
   const now = new Date("2026-09-07T18:00:00.000Z");
   
-  // Test 2.1: 10-minute hold creates accurate expiration timestamp
-  const holdExpiry = create10MinHold(now);
+  // Test 2.1: 15-minute hold creates accurate expiration timestamp
+  const holdExpiry = create15MinHold(now);
   const diffMinutes = (new Date(holdExpiry).getTime() - now.getTime()) / (60 * 1000);
-  assert(diffMinutes === 10, "10-minute slot hold generates exact +10min expiration");
+  assert(diffMinutes === 15, "15-minute slot hold generates exact +15min expiration");
 
-  // Test 2.2: Active pending hold locks slot
+  // Test 2.2: Active pending hold within 15 minutes locks slot
   const activePendingBooking = {
     status: BookingStatus.PENDING_PAYMENT,
-    holdExpiresAt: new Date("2026-09-07T18:08:00.000Z").toISOString()
+    holdExpiresAt: new Date("2026-09-07T18:14:00.000Z").toISOString()
   };
-  assert(isSlotLocked(activePendingBooking, now) === true, "Pending booking with future expiry is locked");
+  assert(isSlotLocked(activePendingBooking, now) === true, "Pending booking with future expiry within 15m is locked");
 
-  // Test 2.3: Expired pending hold releases slot
+  // Test 2.3: Expired pending hold releases slot after 15 minutes
   const expiredPendingBooking = {
     status: BookingStatus.PENDING_PAYMENT,
-    holdExpiresAt: new Date("2026-09-07T17:55:00.000Z").toISOString()
+    holdExpiresAt: new Date("2026-09-07T17:44:00.000Z").toISOString()
   };
-  assert(isSlotLocked(expiredPendingBooking, now) === false, "Expired pending booking automatically frees up slot");
+  assert(isSlotLocked(expiredPendingBooking, now) === false, "Expired pending booking automatically frees up slot after 15 minutes");
 
   // Test 2.4: Confirmed booking locks slot indefinitely
   const confirmedBooking = {

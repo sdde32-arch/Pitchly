@@ -403,10 +403,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     links = [...links, ...adminLinks];
   }
   const getRoleBadgeConfig = () => {
-    if (
-      userProfile?.id === "0uVlAOWTy7dpqAW5tsgxQVs4PW43" ||
-      user?.uid === "0uVlAOWTy7dpqAW5tsgxQVs4PW43"
-    ) {
+    if (isAdmin) {
       return { label: "Admin", color: "text-[#A78BFA]", bg: "bg-[#A78BFA]/10", border: "border-[#A78BFA]/25" };
     }
     const r = userProfile?.role?.toLowerCase() || role?.toLowerCase();

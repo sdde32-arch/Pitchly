@@ -3,13 +3,14 @@ import { Layout } from "../components/Layout";
 import { useBooking } from "../context/BookingContext";
 import { useUser } from "../context/UserContext";
 import { chatService } from "../services/chatService";
-import { ArrowLeft, ChevronLeft, MapPin, AlertTriangle, ShieldAlert, User, Calendar, Trophy, Trash2, Loader2, CheckCircle2, X, MessageSquare, Phone, QrCode } from "lucide-react";
+import { ArrowLeft, ChevronLeft, MapPin, AlertTriangle, ShieldAlert, User, Calendar, Trophy, Trash2, Loader2, CheckCircle2, X, MessageSquare, Phone, QrCode, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ReportModal } from "../components/ReportModal";
 import { ReportTargetType, BookingStatus } from "../types";
 import { EmptyState } from "../components/ui/EmptyState";
 import { BookingCardSkeleton } from "../components/ui/Skeleton";
 import { formatBookingDate, formatBookingTime } from "../lib/dateUtils";
+import { bookingService } from "../services/bookingService";
 
 export const Bookings: React.FC = () => {
   const navigate = useNavigate();
@@ -277,6 +278,16 @@ export const Bookings: React.FC = () => {
 
           {/* List */}
           <div id="walkthrough-qr-pass-section" className="flex flex-col gap-4 scroll-mt-24">
+            {/* 15-Minute Payment Policy Notice */}
+            {activeTab === "upcoming" && filteredBookings.some(b => b.status === BookingStatus.PENDING || b.status === BookingStatus.PENDING_PAYMENT) && (
+              <div className="bg-[#FACC15]/10 border border-[#FACC15]/30 rounded-2xl p-3 flex items-center gap-2.5 text-[#FACC15] text-xs">
+                <Clock size={16} className="shrink-0 animate-pulse" />
+                <p>
+                  <strong>15-Minute Payment Policy:</strong> Pending reservations are automatically released if payment is not completed within 15 minutes.
+                </p>
+              </div>
+            )}
+
             {loading ? (
               Array.from({ length: 3 }).map((_, idx) => (
                 <BookingCardSkeleton key={idx} />
@@ -292,7 +303,18 @@ export const Bookings: React.FC = () => {
                 className="my-4"
               />
             ) : (
-              filteredBookings.map((b) => (
+              filteredBookings.map((b) => {
+                const bAny = b as any;
+                const isPendingPayment = b.status === BookingStatus.PENDING || b.status === BookingStatus.PENDING_PAYMENT || (b.paymentStatus === 'UNPAID' && b.status !== BookingStatus.CONFIRMED);
+                const isPendingExpired = isPendingPayment && bookingService.isPendingBookingExpired(bAny);
+                const remainingMs = isPendingPayment ? bookingService.getRemainingPaymentTimeMs(bAny) : 0;
+
+                // If expired in memory or Firestore, trigger background auto-release
+                if (isPendingExpired && b.status !== BookingStatus.CANCELLED) {
+                  bookingService.releasePendingBooking(b.id, 'Payment window expired (15 minutes exceeded without completed payment)').catch(console.warn);
+                }
+
+                return (
                 <div key={b.id} className="bg-surface-card rounded-2xl p-4 border border-border-subtle space-y-4 hover:border-[#383838] transition-all">
                   <div className="flex justify-between items-center pb-3 border-b border-border-subtle">
                     <div>
@@ -307,15 +329,43 @@ export const Bookings: React.FC = () => {
                       <p className="text-text-primary font-black text-sm">
                         UGX {((b as any).totalPrice || (b as any).price || 0).toLocaleString()}
                       </p>
-                      <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${
-                        b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.COMPLETED || b.status === BookingStatus.CHECKED_IN
-                          ? "bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30"
-                          : b.status === BookingStatus.CANCELLED || b.status === BookingStatus.REJECTED || b.status === BookingStatus.NO_SHOW
-                            ? "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30"
-                            : "bg-[#FACC15]/10 text-[#FACC15] border-[#FACC15]/30"
-                      }`}>
-                        {b.status.toUpperCase().replace('_', ' ')}
-                      </span>
+                      {isPendingExpired ? (
+                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30">
+                          EXPIRED (15M)
+                        </span>
+                      ) : b.status === BookingStatus.PREEMPTED ? (
+                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30">
+                          REALLOCATED
+                        </span>
+                      ) : (b.status === BookingStatus.TENTATIVE || (b as any).bookingTier === 'TENTATIVE') ? (
+                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-amber-500/10 text-amber-300 border-amber-500/30 flex items-center gap-1">
+                          <Clock size={10} />
+                          TENTATIVE HOLD
+                        </span>
+                      ) : b.status === BookingStatus.DEPOSIT_PAID ? (
+                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-primary-lime/10 text-primary-lime border-primary-lime/30">
+                          DEPOSIT PAID
+                        </span>
+                      ) : ((b.status === BookingStatus.PAYMENT_SUBMITTED || b.status === BookingStatus.PENDING_PAYMENT) && (b as any).bookingTier === 'DEPOSIT') ? (
+                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-[#FACC15]/10 text-[#FACC15] border-[#FACC15]/30">
+                          AWAITING VERIFICATION
+                        </span>
+                      ) : isPendingPayment ? (
+                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-[#FACC15]/10 text-[#FACC15] border-[#FACC15]/30 flex items-center gap-1">
+                          <Clock size={10} className="animate-pulse" />
+                          PAY IN {Math.max(1, Math.ceil(remainingMs / 60000))}M
+                        </span>
+                      ) : (
+                        <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${
+                          b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.COMPLETED || b.status === BookingStatus.CHECKED_IN
+                            ? "bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30"
+                            : b.status === BookingStatus.CANCELLED || b.status === BookingStatus.REJECTED || b.status === BookingStatus.NO_SHOW
+                              ? "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30"
+                              : "bg-[#FACC15]/10 text-[#FACC15] border-[#FACC15]/30"
+                        }`}>
+                          {b.status.toUpperCase().replace('_', ' ')}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -350,6 +400,42 @@ export const Bookings: React.FC = () => {
                           {(b as any).pitchFormat || (b as any).type || "7-a-side AstroTurf"}
                         </span>
                       </div>
+
+                      {/* Tentative Preemption Warning Note */}
+                      {(b.status === BookingStatus.TENTATIVE || (b as any).bookingTier === 'TENTATIVE') && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-amber-300 bg-amber-500/10 px-2.5 py-1.5 rounded-md border border-amber-500/20 mt-2">
+                          <Clock size={12} className="shrink-0 text-amber-400" />
+                          <span className="truncate">Preemptible hold: unconfirmed without deposit. Lock in now!</span>
+                        </div>
+                      )}
+
+                      {/* Preempted Status Note */}
+                      {b.status === BookingStatus.PREEMPTED && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-[#EF4444] bg-[#EF4444]/10 px-2.5 py-1.5 rounded-md border border-[#EF4444]/20 mt-2">
+                          <AlertTriangle size={12} className="shrink-0" />
+                          <span>Slot reallocated to a paying squad. Choose another slot.</span>
+                        </div>
+                      )}
+
+                      {/* Deposit Paid Note */}
+                      {b.status === BookingStatus.DEPOSIT_PAID ? (
+                        <div className="flex items-center gap-1.5 text-[11px] text-primary-lime bg-primary-lime/10 px-2.5 py-1 rounded-md border border-primary-lime/20 mt-2">
+                          <CheckCircle2 size={12} className="shrink-0" />
+                          <span>Deposit Paid · Balance: UGX {((b as any).balanceDue || Math.max(0, ((b as any).totalPrice || (b as any).price || 0) - ((b as any).depositAmount || 0))).toLocaleString()}</span>
+                        </div>
+                      ) : ((b.status === BookingStatus.PAYMENT_SUBMITTED || b.status === BookingStatus.PENDING_PAYMENT) && (b as any).bookingTier === 'DEPOSIT') ? (
+                        <div className="flex items-center gap-1.5 text-[11px] text-[#FACC15] bg-[#FACC15]/10 px-2.5 py-1 rounded-md border border-[#FACC15]/20 mt-2">
+                          <Clock size={12} className="shrink-0" />
+                          <span>Deposit Payment Submitted · Awaiting Verification</span>
+                        </div>
+                      ) : null}
+
+                      {bAny.cancellationReason && b.status !== BookingStatus.PREEMPTED && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-[#EF4444] bg-[#EF4444]/10 px-2 py-1 rounded-md border border-[#EF4444]/20 mt-2">
+                          <AlertTriangle size={12} className="shrink-0" />
+                          <span className="truncate">{bAny.cancellationReason}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -371,8 +457,30 @@ export const Bookings: React.FC = () => {
                       <span>Chat Host</span>
                     </button>
 
+                    {/* Preempted or Cancelled button to find new slot */}
+                    {(b.status === BookingStatus.PREEMPTED || b.status === BookingStatus.CANCELLED) && (
+                      <button
+                        className="px-3 py-1.5 rounded-xl bg-surface-raised hover:bg-surface-card border border-border-subtle text-text-primary text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                        onClick={() => navigate('/home')}
+                      >
+                        <Calendar size={13} className="text-primary-lime" />
+                        <span>Book New Slot</span>
+                      </button>
+                    )}
+
                     {activeTab === "upcoming" && (
                       <>
+                        {/* Lock in tentative reservation button */}
+                        {(b.status === BookingStatus.TENTATIVE || (b as any).bookingTier === 'TENTATIVE') && (
+                          <button
+                            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                            onClick={() => navigate(`/booking-confirmation/${b.id}`)}
+                          >
+                            <ShieldAlert size={13} />
+                            <span>Lock In Slot</span>
+                          </button>
+                        )}
+
                         <button
                           disabled={actionLoadingId === b.id}
                           className="px-3 py-1.5 rounded-xl bg-surface-raised hover:bg-[#EF4444]/20 hover:text-[#EF4444] border border-border-subtle text-text-secondary text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
@@ -458,8 +566,9 @@ export const Bookings: React.FC = () => {
                     </div>
                   )}
                 </div>
-              ))
-            )}
+              );
+            })
+          )}
           </div>
         </div>
       </div>

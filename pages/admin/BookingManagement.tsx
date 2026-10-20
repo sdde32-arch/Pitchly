@@ -165,21 +165,25 @@ export const BookingManagement: React.FC = () => {
         }
       } else if (modalAction.type === "CONFIRM") {
         const { bookingService } = await import("../../services/bookingService");
+        const nextStatus = selectedBooking.bookingTier === 'DEPOSIT' ? BookingStatus.DEPOSIT_PAID : BookingStatus.CONFIRMED;
+        const nextPaymentStatus = selectedBooking.bookingTier === 'DEPOSIT' ? 'PARTIAL' : 'PAID';
         await bookingService.update(selectedBooking.id, {
-          status: BookingStatus.CONFIRMED,
+          status: nextStatus,
+          paymentStatus: nextPaymentStatus,
           approvedAt: new Date().toISOString(),
         });
         const updated = bookings.map((b) =>
           b.id === selectedBooking.id
-            ? { ...b, status: BookingStatus.CONFIRMED }
+            ? { ...b, status: nextStatus, paymentStatus: nextPaymentStatus }
             : b,
         );
         setBookings(updated);
         setSelectedBooking({
           ...selectedBooking,
-          status: BookingStatus.CONFIRMED,
+          status: nextStatus,
+          paymentStatus: nextPaymentStatus,
         });
-        showToast("success", "Booking marked as Confirmed.");
+        showToast("success", selectedBooking.bookingTier === 'DEPOSIT' ? "Deposit verified (DEPOSIT_PAID)." : "Booking marked as Confirmed.");
       }
     } catch (error: any) {
       console.error(error);

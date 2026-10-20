@@ -33,7 +33,7 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
   const navigate = useNavigate();
   const [selectedTime, setSelectedTime] = useState<string>(initialTimeSlot);
   const [duration, setDuration] = useState<number>(1); // hours
-  const [paymentOption, setPaymentOption] = useState<"deposit" | "full">("deposit");
+  const [paymentOption, setPaymentOption] = useState<"deposit" | "full" | "tentative">("deposit");
 
   // Keep state in sync with prop changes
   React.useEffect(() => {
@@ -44,9 +44,10 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
 
   if (!isOpen || !pitch) return null;
 
+  const depositPercentage = (pitch as any)?.depositPercentage || 30;
   const pricePerHour = pitch.pricePerHour || 75000;
   const totalPrice = pricePerHour * duration;
-  const depositAmount = Math.round(totalPrice * 0.5);
+  const depositAmount = Math.max(20000, Math.round((totalPrice * (depositPercentage / 100)) / 1000) * 1000);
 
   // Available slots preview around selected time
   const availableSlots = [
@@ -60,6 +61,7 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
       date: selectedDate,
       time: selectedTime,
       duration: duration.toString(),
+      tier: paymentOption,
       deposit: paymentOption === "deposit" ? "true" : "false",
     });
     navigate(`/turf/${pitch.id}/book?${queryParams.toString()}`);
@@ -194,12 +196,12 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
           </div>
         </div>
 
-        {/* Mobile Money Payment Preference */}
+        {/* Booking & Payment Option Selection */}
         <div className="space-y-2">
           <label className="text-xs font-bold text-text-primary block">
-            Payment Option (MTN / Airtel Mobile Money)
+            Select Booking Position
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <button
               type="button"
               id="payment-opt-deposit"
@@ -211,15 +213,15 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
               }`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-black text-text-primary">50% Deposit</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary-lime/20 text-primary-lime">
-                  Hold Pitch
+                <span className="text-xs font-black text-text-primary">{depositPercentage}% Deposit</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary-lime/20 text-primary-lime">
+                  Lock
                 </span>
               </div>
               <p className="text-xs font-bold text-primary-lime">
                 UGX {depositAmount.toLocaleString()}
               </p>
-              <span className="text-[10px] text-text-tertiary">Pay balance on turf arrival</span>
+              <span className="text-[10px] text-text-tertiary">Pay balance at turf</span>
             </button>
 
             <button
@@ -233,15 +235,15 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
               }`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-black text-text-primary">Full Payment</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-raised text-text-tertiary">
-                  Complete
+                <span className="text-xs font-black text-text-primary">Full Pay</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-surface-card text-text-tertiary">
+                  100%
                 </span>
               </div>
               <p className="text-xs font-bold text-text-primary">
                 UGX {totalPrice.toLocaleString()}
               </p>
-              <span className="text-[10px] text-text-tertiary">Instant confirmation & pass</span>
+              <span className="text-[10px] text-text-tertiary">Zero balance left</span>
             </button>
           </div>
         </div>
@@ -262,8 +264,8 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
           </div>
           <div className="pt-2 border-t border-border-subtle flex justify-between items-baseline">
             <span className="text-xs font-bold text-text-primary">Due Right Now</span>
-            <span className="text-base font-black text-primary-lime">
-              UGX {(paymentOption === "deposit" ? depositAmount : totalPrice).toLocaleString()}
+            <span className={`text-base font-black ${paymentOption === "tentative" ? "text-amber-400" : "text-primary-lime"}`}>
+              UGX {(paymentOption === "tentative" ? 0 : (paymentOption === "deposit" ? depositAmount : totalPrice)).toLocaleString()}
             </span>
           </div>
         </div>

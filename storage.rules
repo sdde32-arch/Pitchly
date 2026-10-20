@@ -9,6 +9,7 @@ service firebase.storage {
     }
     match /pitch-photos/{userId}/{fileName} {
       allow write: if request.auth != null
+                   && request.auth.uid == userId
                    && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
       allow read: if true;

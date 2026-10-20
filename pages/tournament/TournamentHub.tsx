@@ -433,28 +433,16 @@ export const TournamentHub: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAdmin, userProfile, signInWithGoogle } = useUser();
 
-  const [pitchsideAuth, setPitchsideAuth] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      return (
-        localStorage.getItem("pitchly_organizer_access") === "true" ||
-        sessionStorage.getItem("pitchly_organizer_access") === "true"
-      );
-    }
-    return false;
-  });
+  const isOrganizer = Boolean(
+    userProfile &&
+      ((userProfile.roles as string[] | undefined)?.includes("ORGANIZER") ||
+        (userProfile.role as string | undefined) === "ORGANIZER")
+  );
 
-  const canManageTournament =
-    isAdmin ||
-    pitchsideAuth ||
-    user?.email?.toLowerCase() === "sdde32@gmail.com" ||
-    userProfile?.email?.toLowerCase() === "sdde32@gmail.com" ||
-    userProfile?.role === "admin" ||
-    userProfile?.role === "ADMIN" ||
-    userProfile?.role === "super_admin";
+  const canManageTournament = isAdmin || isOrganizer;
 
   const [organizerModalOpen, setOrganizerModalOpen] = useState<boolean>(false);
-  const [organizerPasscode, setOrganizerPasscode] = useState<string>("");
-  const [organizerPasscodeError, setOrganizerPasscodeError] = useState<string>("");
+  const [organizerAccessError, setOrganizerAccessError] = useState<string>("");
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("fixtures");
   const [fixtures, setFixtures] = useState<TournamentFixture[]>([]);
@@ -1781,7 +1769,7 @@ export const TournamentHub: React.FC = () => {
                     Organizer Score Access
                   </h3>
                   <p className="text-[10px] text-text-secondary">
-                    Authorized for sdde32@gmail.com
+                    Tournament Admin &amp; Organizer Access
                   </p>
                 </div>
               </div>
@@ -1793,76 +1781,33 @@ export const TournamentHub: React.FC = () => {
               </button>
             </div>
 
-            {organizerPasscodeError && (
+            {organizerAccessError && (
               <p className="text-[11px] font-bold text-[#EF4444] bg-[#EF4444]/10 p-2 rounded-lg border border-[#EF4444]/20">
-                {organizerPasscodeError}
+                {organizerAccessError}
               </p>
             )}
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const code = organizerPasscode.trim().toLowerCase();
-                if (code === "wehat2026" || code === "admin" || code === "sdde32" || code === "pitchly") {
-                  try {
-                    localStorage.setItem("pitchly_organizer_access", "true");
-                    sessionStorage.setItem("pitchly_organizer_access", "true");
-                  } catch {}
-                  setPitchsideAuth(true);
-                  setOrganizerModalOpen(false);
-                  navigate("/admin/tournaments");
-                } else {
-                  setOrganizerPasscodeError("Incorrect passcode. Try 'wehat2026' or sign in with Google.");
-                }
-              }}
-              className="space-y-3"
-            >
-              <div>
-                <label className="block text-[10px] font-bold text-text-secondary uppercase mb-1">
-                  Pitchside Organizer Passcode
-                </label>
-                <input
-                  type="password"
-                  value={organizerPasscode}
-                  onChange={(e) => {
-                    setOrganizerPasscode(e.target.value);
-                    setOrganizerPasscodeError("");
-                  }}
-                  placeholder="Enter passcode (e.g. wehat2026)"
-                  className="w-full h-10 px-3 bg-app-base border border-border-subtle rounded-xl text-xs text-text-primary focus:border-primary-lime text-center tracking-wider"
-                />
-              </div>
+            <div className="space-y-3">
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Direct access to the scorekeeper and fixture management console is restricted to authenticated tournament organizers and platform administrators.
+              </p>
 
               <button
-                type="submit"
-                className="w-full py-2.5 rounded-xl bg-primary-lime hover:bg-[#96E600] text-black font-black text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-xs"
+                type="button"
+                onClick={async () => {
+                  try {
+                    await signInWithGoogle();
+                    setOrganizerModalOpen(false);
+                    navigate("/admin/tournaments");
+                  } catch (err: any) {
+                    setOrganizerAccessError(err?.message || "Google sign-in failed");
+                  }
+                }}
+                className="w-full py-2.5 rounded-xl bg-primary-lime hover:bg-[#96E600] text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs"
               >
-                Unlock Organizer Portal
+                <span>Sign In with Authorized Google Account</span>
               </button>
-            </form>
-
-            <div className="relative flex items-center justify-center">
-              <div className="border-t border-border-subtle w-full" />
-              <span className="bg-surface-card px-2 text-[9px] uppercase font-bold text-text-tertiary absolute">
-                Or Sign In
-              </span>
             </div>
-
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  await signInWithGoogle();
-                  setOrganizerModalOpen(false);
-                  navigate("/admin/tournaments");
-                } catch (err: any) {
-                  setOrganizerPasscodeError(err?.message || "Google sign-in failed");
-                }
-              }}
-              className="w-full py-2.5 rounded-xl bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-primary font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
-            >
-              <span>Sign In with Google</span>
-            </button>
           </div>
         </div>
       )}

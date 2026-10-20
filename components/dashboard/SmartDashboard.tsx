@@ -14,7 +14,6 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../context/UserContext";
-import { TURFS } from "../../constants";
 import { Booking } from "../../types/firebase";
 import { MatchWeatherWidget } from "../weather/MatchWeatherWidget";
 import { SmartDashboardSkeleton } from "../ui/Skeleton";
@@ -41,7 +40,7 @@ export const SmartDashboard: React.FC<SmartDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<"match" | "quickbook">("match");
 
   // Quick Booking mini selector
-  const [selectedQuickPitchId, setSelectedQuickPitchId] = useState<string>(TURFS[0]?.id || "1");
+  const [selectedQuickPitchId, setSelectedQuickPitchId] = useState<string>("");
   const [selectedQuickTime, setSelectedQuickTime] = useState<string>("Tonight 07:00 PM");
 
   // Live countdown timer for the next match

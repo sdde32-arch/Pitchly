@@ -15,6 +15,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { NoPitchesCard } from "../components/home/NoPitchesCard";
 
 export const ExploreMap: React.FC = () => {
   const navigate = useNavigate();
@@ -158,6 +159,8 @@ export const ExploreMap: React.FC = () => {
               />
             ))}
           </div>
+        ) : turfs.length === 0 ? (
+          <NoPitchesCard />
         ) : filteredPitches.length === 0 ? (
           <div className="bg-surface-card rounded-2xl border border-border-subtle p-8 text-center space-y-3">
             <MapPin size={32} className="text-text-tertiary mx-auto" />

@@ -2,19 +2,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ─────────────────────────────────────────────────────────────
+    // HELPER FUNCTIONS & ROLE DEFINITIONS
+    // ─────────────────────────────────────────────────────────────
+
     function isAuthenticated() {
       return request.auth != null;
     }
 
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
 
     function isAdmin() {
       return request.auth != null && (
-        request.auth.uid in ['0uVlAOWTy7dpqAW5tsgxQVs4PW43', 'CoBBTwSqq1Zvv8uPn8S9mdrFXWz1'] ||
-        request.auth.token.get('email', '') in ['Sdde32@gmail.com', 'sdde32@gmail.com', 'admin.test@pitchly.com'] ||
-        request.auth.token.get('role', '') in ['admin', 'super_admin', 'ADMIN']
+        request.auth.uid == 'qC5nIOnLw3TdGko6OdStE7OvDBG3' ||
+        request.auth.token.get('role', '') in ['admin', 'super_admin', 'ADMIN'] ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') in ['admin', 'ADMIN', 'super_admin', 'SUPER_ADMIN'])
       );
     }
 
@@ -23,9 +28,86 @@ service cloud.firestore {
       let uid = isAuthenticatedUser ? request.auth.uid : 'none';
       let userDoc = isAuthenticatedUser && exists(/databases/$(database)/documents/users/$(uid)) ? get(/databases/$(database)/documents/users/$(uid)) : null;
       return isAuthenticatedUser && (
-        request.auth.token.role == 'super_admin' || 
-        (userDoc != null && userDoc.data.get('role', '') == 'super_admin')
+        request.auth.uid == 'qC5nIOnLw3TdGko6OdStE7OvDBG3' ||
+        request.auth.token.get('role', '') in ['super_admin', 'SUPER_ADMIN'] || 
+        (userDoc != null && userDoc.data.get('role', '') in ['super_admin', 'SUPER_ADMIN'])
       );
+    }
+
+    function isOwnerRole() {
+      return isAuthenticated() && (
+        request.auth.token.get('role', '') in ['OWNER', 'owner'] ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') in ['OWNER', 'owner'] ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('roles', []).hasAny(['OWNER', 'owner'])
+        ))
+      );
+    }
+
+    function isOrganizer() {
+      return isAdmin() || (isAuthenticated() && (
+        request.auth.token.get('role', '') in ['ORGANIZER', 'organizer'] ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') in ['ORGANIZER', 'organizer'] ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('roles', []).hasAny(['ORGANIZER', 'organizer'])
+        ))
+      ));
+    }
+
+    // Role enum validation
+    function isValidUserRole(role) {
+      return role in ['PLAYER', 'OWNER', 'player', 'owner', 'staff', 'STAFF', 'ADMIN', 'admin', 'super_admin', 'CARETAKER', 'caretaker'];
+    }
+
+    // Strict PitchStatus enum validation
+    function isValidPitchStatus(status) {
+      return status in [
+        'ACTIVE',
+        'MAINTENANCE',
+        'CLOSED',
+        'PENDING_APPROVAL',
+        'PENDING_INSPECTION',
+        'REJECTED',
+        'changes_requested',
+        'pending_review',
+        'pending_inspection'
+      ];
+    }
+
+    // Strict BookingStatus enum validation
+    function isValidBookingStatus(status) {
+      return status in [
+        'PENDING_PAYMENT',
+        'PAYMENT_SUBMITTED',
+        'CONFIRMED',
+        'DEPOSIT_PAID',
+        'TENTATIVE',
+        'PREEMPTED',
+        'REJECTED',
+        'CANCELLED',
+        'COMPLETED',
+        'DISPUTED',
+        'CHECKED_IN',
+        'NO_SHOW',
+        'PENDING',
+        'temporarily_held'
+      ];
+    }
+
+    // Strict PaymentMethod enum validation
+    function isValidPaymentMethod(method) {
+      return method == null || method in [
+        'CASH',
+        'MTN',
+        'AIRTEL',
+        'MOBILE_MONEY',
+        'CARD',
+        'cash',
+        'mtn',
+        'airtel',
+        'mobile_money',
+        'card'
+      ];
     }
 
     function isBookingParticipant(bId) {
@@ -37,50 +119,131 @@ service cloud.firestore {
       );
     }
 
-    // USERS
+    // ─────────────────────────────────────────────────────────────
+    // USERS COLLECTION
+    // Strictly restricts self-promotion to ADMIN/super_admin/OWNER escalation
+    // ─────────────────────────────────────────────────────────────
     match /users/{userId} {
       allow read: if isAuthenticated();
+      
+      // On creation: Normal signups can ONLY be PLAYER (or OWNER if registering via owner toggle)
+      // Strictly BLOCKS self-assigning ADMIN or super_admin or writing privileged fields
       allow create: if isAuthenticated() 
         && userId == request.auth.uid
         && request.resource.data.id == request.auth.uid
-        && (!request.resource.data.keys().hasAll(['role']) || request.resource.data.role in ['PLAYER', 'OWNER']);
-      // Users can't escalate privileges (but can update role to staff from accepted invite or switch between their authorized roles)
-      allow update, delete: if (
+        && (!request.resource.data.keys().hasAll(['role']) || request.resource.data.role in ['PLAYER', 'OWNER'])
+        && (!request.resource.data.keys().hasAll(['roles']) || 
+            (request.resource.data.roles.hasOnly(['PLAYER', 'OWNER']) && !request.resource.data.roles.hasAny(['ADMIN', 'admin', 'super_admin'])))
+        && !request.resource.data.keys().hasAny(['isAdmin', 'isSuperAdmin', 'permissions']);
+      
+      // On update: Users cannot self-promote to ADMIN or OWNER roles without authorization,
+      // and cannot tamper with roles array or privileged flags. Only existing admins may promote.
+      allow update: if (
         isOwner(userId) && 
-        request.resource.data.get('roles', resource.data.roles) == resource.data.roles &&
+        // User cannot elevate roles array or write privileged flags
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['roles', 'isAdmin', 'isSuperAdmin', 'permissions'])) &&
+        // User cannot self-promote to ADMIN or OWNER if not already authorized in their existing roles array
         (
-          request.resource.data.get('role', resource.data.role) == resource.data.role || 
-          request.resource.data.get('role', resource.data.role) in ['staff', 'STAFF'] ||
-          (request.resource.data.get('role', resource.data.role) in ['PLAYER', 'OWNER'] && request.resource.data.get('role', resource.data.role) in resource.data.roles)
+          request.resource.data.get('role', resource.data.role) == resource.data.role ||
+          (
+            request.resource.data.get('role', resource.data.role) in ['PLAYER', 'OWNER'] &&
+            request.resource.data.get('role', resource.data.role) in resource.data.get('roles', ['PLAYER'])
+          )
         )
       ) || isAdmin();
+
+      allow delete: if isAdmin();
     }
 
-    // PITCHES
+    // ─────────────────────────────────────────────────────────────
+    // PITCHES COLLECTION
+    // Enforces PitchStatus, validates owner ownership, restricts unverified writes
+    // ─────────────────────────────────────────────────────────────
     match /pitches/{pitchId} {
-      allow read, write: if true;
+      // Public read so players & visitors can discover pitches
+      allow read: if true;
+
+      // Owners can create their own pitches; status must start as PENDING_APPROVAL / PENDING_INSPECTION
+      // Strict PitchStatus enforcement: nobody can create an already-approved pitch except Admin
+      allow create: if isAuthenticated() &&
+        request.resource.data.get('ownerId', '') == request.auth.uid &&
+        request.resource.data.get('status', '') in ['PENDING_APPROVAL', 'PENDING_INSPECTION', 'pending_review'] &&
+        isValidPitchStatus(request.resource.data.status) &&
+        (isOwnerRole() || isAdmin());
+
+      // Pitch updates:
+      // 1. Authenticated players can update review aggregate ratings (stopgap measure: not proof of real review)
+      // 2. Platform Admins can update all fields with valid status
+      // 3. Pitch Owners can update their own pitch without changing ownerId, aggregates, or admin-controlled fields
+      allow update: if isAuthenticated() && (
+        // Allow review aggregate updates from players (stopgap measure: not proof of real review)
+        (
+          resource.data.get('status', '') == 'ACTIVE' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'reviewCount', 'updatedAt']) &&
+          request.resource.data.get('rating', 0) is number &&
+          request.resource.data.get('rating', 0) >= 0 &&
+          request.resource.data.get('rating', 0) <= 5 &&
+          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['reviewCount']) ||
+           (request.resource.data.get('reviewCount', 0) is int && request.resource.data.get('reviewCount', 0) >= 0))
+        ) ||
+        // Admin update
+        (isAdmin() && isValidPitchStatus(request.resource.data.get('status', resource.data.status))) ||
+        // Owner update: cannot tamper with rating/review aggregates or admin-moderated fields
+        (
+          resource.data.ownerId == request.auth.uid &&
+          request.resource.data.ownerId == resource.data.ownerId &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'rating', 'reviewCount', 'isVerified', 'featured', 'isFeatured', 'commission', 'commissionRate',
+            'approvalStage', 'approvedAt', 'approvedBy', 'rejectedAt', 'rejectedBy', 'rejectionReason',
+            'reviewedAt', 'reviewedBy', 'changeRequestMessage', 'adminFeedback', 'inspectedAt', 'inspectedBy', 'certificationNumber'
+          ]) &&
+          isValidPitchStatus(request.resource.data.get('status', resource.data.status)) &&
+          (
+            request.resource.data.status == resource.data.status ||
+            request.resource.data.status in ['PENDING_APPROVAL', 'PENDING_INSPECTION', 'MAINTENANCE', 'CLOSED'] ||
+            (resource.data.status == 'ACTIVE' && request.resource.data.status == 'ACTIVE')
+          )
+        )
+      );
+
+      // Only Pitch Owner or Platform Admin can delete
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.ownerId == request.auth.uid);
     }
 
+    // ─────────────────────────────────────────────────────────────
     // SLOT LOCKS
+    // Atomic concurrency locks for real-time checkout & preemption
+    // ─────────────────────────────────────────────────────────────
     match /slotLocks/{lockId} {
       allow read: if true;
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAuthenticated() && (request.resource.data.userId == request.auth.uid || isAdmin());
-      allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow update: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid || 
+        isAdmin() || 
+        request.resource.data.status in ['expired', 'released', 'preempted'] ||
+        resource.data.status == 'tentative' ||
+        resource.data.get('tier', '') == 'TENTATIVE'
+      );
+      allow delete: if isAdmin() || (isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.status in ['expired', 'released', 'preempted'] ||
+        resource.data.status == 'tentative'
+      ));
     }
 
-    // SLOT AVAILABILITY (Public lightweight slot status mirror: only pitchId, date, time, status)
+    // ─────────────────────────────────────────────────────────────
+    // SLOT AVAILABILITY (Public lightweight mirror without PII)
+    // ─────────────────────────────────────────────────────────────
     match /slotAvailability/{slotId} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
+    // ─────────────────────────────────────────────────────────────
     // STAFF
+    // Pitch staff / caretaker invitations & ground check-in rights
+    // ─────────────────────────────────────────────────────────────
     match /staff/{staffId} {
-      // NOTE: Client-side timestamp comparison is currently used for invite expiry. 
-      // In production, a Cloud Function should be implemented to securely invalidate 
-      // or clean up expired staff invites and prevent acceptance of expired invites 
-      // by validating inviteExpiresAt against request.time.
       allow read: if isAuthenticated() && (
         resource == null ||
         resource.data.ownerId == request.auth.uid || 
@@ -101,55 +264,140 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
-    // BOOKINGS
+    // ─────────────────────────────────────────────────────────────
+    // BOOKINGS COLLECTION
+    // Enforces BookingStatus, PaymentMethod, price tampering prevention,
+    // and limits read/write strictly to authorized participants & admin
+    // ─────────────────────────────────────────────────────────────
     match /bookings/{bookingId} {
-      // Allow read only for participant player, pitch owner, or admin
+      // Read access restricted strictly to: booking player, pitch owner, or platform admin
       allow read: if isAuthenticated() && (
-        resource.data.playerId == request.auth.uid || 
-        resource.data.userId == request.auth.uid || 
-        resource.data.ownerId == request.auth.uid || 
+        resource == null ||
+        resource.data.playerId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        resource.data.ownerId == request.auth.uid ||
         isAdmin()
       );
       
+      // Create: Enforce player identity, valid BookingStatus, and valid PaymentMethod
+      // Must target an ACTIVE pitch, and ownerId on the booking must match pitch.ownerId
       allow create: if isAuthenticated() && 
         (request.resource.data.playerId == request.auth.uid || request.resource.data.userId == request.auth.uid) &&
-        (request.resource.data.status in ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'temporarily_held', 'PENDING']);
+        isValidBookingStatus(request.resource.data.status) &&
+        isValidPaymentMethod(request.resource.data.get('paymentMethod', null)) &&
+        (
+          isAdmin() ||
+          (
+            !(request.resource.data.get('paymentMethod', '') in ['CASH', 'cash']) &&
+            request.resource.data.status in [
+              'PENDING_PAYMENT',
+              'PAYMENT_SUBMITTED',
+              'temporarily_held',
+              'PENDING'
+            ] &&
+            exists(/databases/$(database)/documents/pitches/$(request.resource.data.get('pitchId', request.resource.data.get('turfId', '')))) &&
+            get(/databases/$(database)/documents/pitches/$(request.resource.data.get('pitchId', request.resource.data.get('turfId', '')))).data.ownerId == request.resource.data.ownerId &&
+            get(/databases/$(database)/documents/pitches/$(request.resource.data.get('pitchId', request.resource.data.get('turfId', '')))).data.get('status', '') in ['ACTIVE', 'active', 'approved', 'APPROVED']
+          )
+        );
 
-      allow update: if isAuthenticated() && (
-        isAdmin() ||
-        // Player Updates
+      // Update: Strict authorization per participant role
+      allow update: if isAuthenticated() && 
+        isValidBookingStatus(request.resource.data.status) &&
+        isValidPaymentMethod(request.resource.data.get('paymentMethod', null)) &&
         (
-          (request.resource.data.playerId == request.auth.uid || request.resource.data.userId == request.auth.uid) &&
-          request.resource.data.ownerId == resource.data.ownerId &&
-          request.resource.data.pitchId == resource.data.pitchId &&
-          request.resource.data.get('totalPrice', 0) == resource.data.get('totalPrice', 0) &&
-          request.resource.data.get('totalAmount', 0) == resource.data.get('totalAmount', 0) &&
-          !(request.resource.data.status in ['CONFIRMED', 'CHECKED_IN', 'COMPLETED']) &&
+          isAdmin() ||
+          // Preemption of tentative bookings by paying players: strictly restricted to preemption fields only
           (
-            (request.resource.data.status == 'CANCELLED' && (resource.data.status in ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'temporarily_held', 'PENDING'])) ||
-            (request.resource.data.status == 'PAYMENT_SUBMITTED' && (resource.data.status in ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'temporarily_held', 'PENDING'])) ||
-            (request.resource.data.status == 'PENDING_PAYMENT' && (resource.data.status in ['PAYMENT_SUBMITTED', 'PENDING_PAYMENT', 'temporarily_held', 'PENDING'])) ||
-            (request.resource.data.status == resource.data.status)
-          )
-        ) ||
-        // Owner / Staff / Admin Updates
-        (
-          (resource.data.get('ownerId', '') == request.auth.uid || resource.data.get('ownerId', '') == '' || !('ownerId' in resource.data) || request.resource.data.status in ['CHECKED_IN', 'COMPLETED', 'CONFIRMED', 'CANCELLED', 'REJECTED'] || isAdmin()) &&
+            resource.data.status == 'TENTATIVE' &&
+            request.resource.data.status == 'PREEMPTED' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status', 'preemptedAt', 'preemptedByBookingId', 'cancellationReason', 'updatedAt'
+            ])
+          ) ||
+          // Player Updates: Can submit receipt, upgrade tier, or cancel their unconfirmed booking.
+          // Absolutely CANNOT tamper with price, ownerId, pitchId, or self-confirm!
           (
-             (request.resource.data.status in ['CONFIRMED', 'REJECTED', 'CANCELLED', 'CHECKED_IN', 'COMPLETED']) ||
-             (request.resource.data.status == resource.data.status)
+            (resource.data.playerId == request.auth.uid || resource.data.userId == request.auth.uid) &&
+            request.resource.data.playerId == resource.data.playerId &&
+            request.resource.data.userId == resource.data.userId &&
+            request.resource.data.ownerId == resource.data.ownerId &&
+            request.resource.data.pitchId == resource.data.pitchId &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status', 'bookingTier', 'paymentStatus', 'paymentMethod',
+              'paymentProofUrl', 'virtualReceiptUrl', 'transactionRef',
+              'depositAmount', 'balanceDue', 'paymentSubmittedAt', 'updatedAt',
+              'cancellationReason', 'cancelledAt', 'holdExpiresAt'
+            ]) &&
+            // bookingTier may change only when existing booking status is TENTATIVE
+            (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['bookingTier']) ||
+             request.resource.data.bookingTier == resource.data.bookingTier ||
+             resource.data.status == 'TENTATIVE') &&
+            // holdExpiresAt may change only during TENTATIVE upgrade
+            (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['holdExpiresAt']) ||
+             request.resource.data.holdExpiresAt == resource.data.holdExpiresAt ||
+             resource.data.status == 'TENTATIVE') &&
+            // paymentStatus may never be set to PAID by players (only SUBMITTED, PARTIAL, or unchanged)
+            (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['paymentStatus']) ||
+             request.resource.data.paymentStatus == resource.data.paymentStatus ||
+             request.resource.data.paymentStatus in ['SUBMITTED', 'PARTIAL']) &&
+            // Price is strictly immutable
+            request.resource.data.get('totalPrice', 0) == resource.data.get('totalPrice', 0) &&
+            request.resource.data.get('price', 0) == resource.data.get('price', 0) &&
+            // Deposit amount & balance due validation
+            (
+              (request.resource.data.get('depositAmount', 0) == resource.data.get('depositAmount', 0) &&
+               request.resource.data.get('balanceDue', 0) == resource.data.get('balanceDue', 0)) ||
+              (
+                resource.data.status == 'TENTATIVE' && (
+                  (request.resource.data.bookingTier == 'DEPOSIT' &&
+                   request.resource.data.get('depositAmount', 0) > 0 &&
+                   request.resource.data.get('depositAmount', 0) + request.resource.data.get('balanceDue', 0) == resource.data.get('totalPrice', resource.data.get('price', 0))) ||
+                  (request.resource.data.bookingTier == 'FULL' &&
+                   request.resource.data.get('depositAmount', 0) == 0 &&
+                   request.resource.data.get('balanceDue', 0) == 0)
+                )
+              )
+            ) &&
+            !(request.resource.data.status in ['CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'DEPOSIT_PAID']) &&
+            (
+              (request.resource.data.status == 'CANCELLED' && (resource.data.status in ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'temporarily_held', 'PENDING', 'TENTATIVE'])) ||
+              (request.resource.data.status in ['PAYMENT_SUBMITTED', 'PENDING_PAYMENT'] && (resource.data.status in ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'temporarily_held', 'PENDING', 'TENTATIVE'])) ||
+              (request.resource.data.status == resource.data.status)
+            )
+          ) ||
+          // Owner Updates: Can confirm receipts, check in players, or reject bookings for their own pitch
+          (
+            resource.data.ownerId == request.auth.uid &&
+            request.resource.data.ownerId == resource.data.ownerId &&
+            request.resource.data.pitchId == resource.data.pitchId &&
+            (
+              request.resource.data.status in ['CONFIRMED', 'REJECTED', 'CANCELLED', 'CHECKED_IN', 'COMPLETED', 'DEPOSIT_PAID', 'DISPUTED'] ||
+              request.resource.data.status == resource.data.status
+            )
           )
-        )
-      );
+        );
+
+      // Delete: Restricted to participants or admin, and only for unconfirmed/cancelled/rejected statuses
       allow delete: if isAdmin() || (
         isAuthenticated() && (
           resource.data.playerId == request.auth.uid || 
           resource.data.userId == request.auth.uid || 
           resource.data.ownerId == request.auth.uid
+        ) && (
+          resource.data.status in [
+            'PENDING_PAYMENT',
+            'TENTATIVE',
+            'PENDING',
+            'temporarily_held',
+            'PREEMPTED',
+            'CANCELLED',
+            'REJECTED'
+          ]
         )
       );
 
-      // MOTM VOTES & MATCH SUMMARIES
+      // MOTM VOTES & MATCH SUMMARIES SUBCOLLECTIONS
       match /motmVotes/{voteId} {
         allow read: if isAuthenticated();
         allow create, update: if isAuthenticated() && 
@@ -166,15 +414,23 @@ service cloud.firestore {
       }
     }
 
-    // TEAMS
+    // ─────────────────────────────────────────────────────────────
+    // TEAMS & SQUADS
+    // ─────────────────────────────────────────────────────────────
     match /teams/{teamId} {
       allow read: if true;
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.captainId == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.captainId == request.auth.uid ||
+        request.auth.uid in resource.data.get('memberIds', []) ||
+        isAdmin()
+      );
       allow delete: if isAuthenticated() && (resource.data.captainId == request.auth.uid || isAdmin());
     }
 
-    // CONVERSATIONS
+    // ─────────────────────────────────────────────────────────────
+    // CONVERSATIONS & MESSAGES
+    // ─────────────────────────────────────────────────────────────
     match /conversations/{conversationId} {
       allow read: if isAuthenticated() && request.auth.uid in resource.data.participants;
       allow create: if isAuthenticated() && 
@@ -195,7 +451,9 @@ service cloud.firestore {
       }
     }
 
-    // MATCHES
+    // ─────────────────────────────────────────────────────────────
+    // MATCHES & LINEUPS
+    // ─────────────────────────────────────────────────────────────
     match /{path=**}/matchPlayers/{playerId} {
       allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
     }
@@ -207,7 +465,7 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/matches/$(matchId)/matchPlayers/$(request.auth.uid)) ||
         isAdmin()
       );
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.captainId == request.auth.uid;
       allow update, delete: if isAuthenticated() && (resource.data.captainId == request.auth.uid || isAdmin());
       
       match /matchPlayers/{playerId} {
@@ -229,18 +487,18 @@ service cloud.firestore {
       }
     }
 
-    // PAYMENTS
+    // ─────────────────────────────────────────────────────────────
+    // PAYMENTS & FINANCIAL TRANSACTIONS
+    // ─────────────────────────────────────────────────────────────
     match /payments/{paymentId} {
       allow read: if isAuthenticated() && (
         resource.data.payerId == request.auth.uid ||
         resource.data.payeeId == request.auth.uid ||
         isAdmin()
       );
-      // Client shouldn't directly create successful payments unless it's a webhook or function
       allow write: if isAdmin(); 
     }
     
-    // TRANSACTIONS
     match /transactions/{transactionId} {
       allow read: if isAuthenticated() && (
         resource.data.ownerId == request.auth.uid ||
@@ -249,7 +507,9 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // OWNERS
+    // ─────────────────────────────────────────────────────────────
+    // OWNERS BUSINESS PROFILES
+    // ─────────────────────────────────────────────────────────────
     match /owners/{ownerId} {
       allow read: if true;
       allow create: if isAuthenticated() && ownerId == request.auth.uid;
@@ -257,20 +517,26 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ─────────────────────────────────────────────────────────────
     // REVIEWS
+    // ─────────────────────────────────────────────────────────────
     match /reviews/{reviewId} {
       allow read: if true;
       allow create: if isAuthenticated() && request.resource.data.playerId == request.auth.uid;
       allow update, delete: if isAuthenticated() && (resource.data.playerId == request.auth.uid || isAdmin());
     }
 
+    // ─────────────────────────────────────────────────────────────
     // NOTIFICATIONS
+    // ─────────────────────────────────────────────────────────────
     match /notifications/{notificationId} {
       allow read, update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create: if isAuthenticated();
     }
 
-    // MATCH INVITATIONS (Proposed games before a slot is booked)
+    // ─────────────────────────────────────────────────────────────
+    // MATCH INVITATIONS
+    // ─────────────────────────────────────────────────────────────
     match /matchInvitations/{invitationId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
@@ -283,48 +549,49 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && (resource.data.creatorId == request.auth.uid || isAdmin());
     }
 
-    // REPORTS
+    // ─────────────────────────────────────────────────────────────
+    // ADMINISTRATIVE LOGS, REPORTS & SETTINGS
+    // ─────────────────────────────────────────────────────────────
     match /reports/{reportId} {
       allow read, write: if isAdmin();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.reportedBy == request.auth.uid;
     }
 
-    // ADMIN REVIEWS
     match /adminReviews/{adminReviewId} {
       allow read, write: if isAdmin();
     }
 
-    // DISPUTES
-    match /disputes/{disputeId} {
+    match /bookingAdminNotes/{noteId} {
       allow read, write: if isAdmin();
     }
 
-    // AUDIT LOGS
-    match /auditLogs/{logId} {
-      allow read: if isAdmin();
-      allow write: if isAdmin(); // Since admins create logs via client SDK
+    match /disputes/{disputeId} {
+      allow read, write: if isAdmin();
+      allow create: if isAuthenticated();
     }
 
-    // PLATFORM SETTINGS
+    match /auditLogs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
     match /platformSettings/{docId} {
       allow read: if isAdmin();
       allow write: if isSuperAdmin();
     }
 
-    // SLOT SUBSCRIPTIONS & NOTIFICATIONS
+    // ─────────────────────────────────────────────────────────────
+    // SLOT SUBSCRIPTIONS & ALERTS
+    // ─────────────────────────────────────────────────────────────
     match /slotAlertSubscriptions/{subId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     match /slotNotifications/{notifId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
-    // SLOT CANCELLATIONS (Option A)
     match /slotCancellations/{cancelId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated()
@@ -334,38 +601,58 @@ service cloud.firestore {
         && request.resource.data.time is string;
     }
 
-    // ==========================================
-    // TOURNAMENT HUB (WEHAT & PUBLIC TOURNAMENTS)
-    // ==========================================
+    // ─────────────────────────────────────────────────────────────
+    // TOURNAMENT HUB & PUBLIC TOURNAMENTS
+    // ─────────────────────────────────────────────────────────────
     match /tournamentFixtures/{fixtureId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isOrganizer();
     }
 
     match /tournamentScorers/{scorerId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isOrganizer();
     }
 
     match /tournamentNominees/{nomineeId} {
-      allow read, write: if true;
+      allow read: if true;
+      // Allow voters to update voteCount atomically by exactly +1
+      allow update: if isAuthenticated() && (
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voteCount', 'updatedAt']) &&
+          request.resource.data.get('voteCount', 0) == resource.data.get('voteCount', 0) + 1
+        ) || isOrganizer()
+      );
+      allow create, delete: if isOrganizer();
     }
 
     match /tournamentTeams/{teamId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isOrganizer();
     }
 
     match /tournamentPlayers/{playerId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isOrganizer();
     }
 
     match /tournamentStandings/{standingId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isOrganizer();
     }
 
-    // ==========================================
+    // ─────────────────────────────────────────────────────────────
     // COMMUNITY ACTIVITY FEED
-    // ==========================================
+    // ─────────────────────────────────────────────────────────────
     match /communityActivities/{activityId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if isAuthenticated();
+      // Allow liking/celebrating reactions atomically
+      allow update: if isAuthenticated() && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'celebrationsCount', 'likedBy', 'celebratedBy']) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
     }
   }
 }

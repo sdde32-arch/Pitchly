@@ -617,7 +617,7 @@ export const TournamentManager: React.FC = () => {
                 WEHAT Tournament Admin Portal
               </h1>
               <p className="text-xs text-text-secondary mt-0.5">
-                Real-time pitchside score updater, live matchboard, results &amp; Golden Boot manager.
+                Real-time matchday score updater, live matchboard, results &amp; Golden Boot manager.
               </p>
             </div>
           </div>

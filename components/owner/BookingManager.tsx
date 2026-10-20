@@ -46,7 +46,7 @@ export const BookingManager: React.FC = () => {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filter, setFilter] = useState<
-    "ALL" | "PENDING" | "CONFIRMED" | "CANCELLED" | "PAYMENT_REVIEWS"
+    "ALL" | "PENDING" | "CONFIRMED" | "TENTATIVE" | "CANCELLED" | "PAYMENT_REVIEWS"
   >("ALL");
   const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string } | null>(null);
   const [activeReportMenu, setActiveReportMenu] = useState<string | null>(null);
@@ -68,6 +68,7 @@ export const BookingManager: React.FC = () => {
     null,
   );
   const [thisMonthOnly, setThisMonthOnly] = useState(false);
+  const [releasingBatch, setReleasingBatch] = useState(false);
   const [viewMode, setViewMode] = useState<"bookings" | "payments">("bookings");
   const [activePaymentBucket, setActivePaymentBucket] = useState<"SUBMITTED" | "CASH" | "UNPAID">("SUBMITTED");
 
@@ -143,11 +144,16 @@ export const BookingManager: React.FC = () => {
     };
 
     if (action === "CONFIRMED") {
-      updates.status = BookingStatus.CONFIRMED;
-      updates.approvedAt = new Date().toISOString();
-      if (booking.status === BookingStatus.PAYMENT_SUBMITTED || booking.paymentStatus === "SUBMITTED") {
-        updates.paymentStatus = "PAID";
+      if ((booking as any).bookingTier === 'DEPOSIT') {
+        updates.status = BookingStatus.DEPOSIT_PAID;
+        updates.paymentStatus = "PARTIAL";
+      } else {
+        updates.status = BookingStatus.CONFIRMED;
+        if (booking.status === BookingStatus.PAYMENT_SUBMITTED || booking.paymentStatus === "SUBMITTED") {
+          updates.paymentStatus = "PAID";
+        }
       }
+      updates.approvedAt = new Date().toISOString();
     } else if (action === "CHECKED_IN") {
       updates.status = BookingStatus.CHECKED_IN;
     } else if (action === "REJECTED" || action === "CANCELLED") {
@@ -235,10 +241,11 @@ export const BookingManager: React.FC = () => {
     if (!matchMonth) return false;
 
     if (filter === "PAYMENT_REVIEWS") return b.status === BookingStatus.PAYMENT_SUBMITTED;
+    if (filter === "TENTATIVE") return b.status === BookingStatus.TENTATIVE || (b as any).bookingTier === 'TENTATIVE';
     const matchStatus =
       filter === "ALL" ||
       b.status === filter ||
-      (filter === "PENDING" && b.status === BookingStatus.PENDING_PAYMENT);
+      (filter === "PENDING" && (b.status === BookingStatus.PENDING_PAYMENT || b.status === BookingStatus.PENDING));
     const matchSearch =
       !searchQuery ||
       (b.userName || "")
@@ -348,6 +355,43 @@ export const BookingManager: React.FC = () => {
             <Calendar size={13} />
             <span>This Month Only</span>
           </button>
+
+          <button
+            onClick={async () => {
+              setReleasingBatch(true);
+              try {
+                const res = await bookingService.autoReleasePendingBookings();
+                if (res.releasedCount > 0) {
+                  setToast({
+                    type: "success",
+                    title: "Pending Slots Released",
+                    message: `Successfully released ${res.releasedCount} expired pending booking(s) back to schedule.`
+                  });
+                } else {
+                  setToast({
+                    type: "info",
+                    title: "Schedule Up to Date",
+                    message: "No expired pending bookings found beyond the 15-minute window."
+                  });
+                }
+              } catch (err: any) {
+                setToast({
+                  type: "error",
+                  title: "Release Error",
+                  message: err.message || "Failed to run auto-release check."
+                });
+              } finally {
+                setReleasingBatch(false);
+              }
+            }}
+            disabled={releasingBatch}
+            className="flex-1 sm:flex-initial px-3.5 h-9 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border border-border-subtle bg-surface-raised hover:bg-[#EF4444]/15 hover:border-[#EF4444]/30 hover:text-[#EF4444] text-text-secondary cursor-pointer active:scale-95 disabled:opacity-50"
+            title="Scan and release bookings with pending payment over 15 minutes"
+          >
+            {releasingBatch ? <Loader2 size={13} className="animate-spin" /> : <Clock size={13} />}
+            <span className="hidden sm:inline">Release Expired (15m)</span>
+            <span className="sm:hidden">Auto-Release</span>
+          </button>
         </div>
       </div>
 
@@ -391,8 +435,9 @@ export const BookingManager: React.FC = () => {
                   "ALL",
                   "PENDING",
                   "CONFIRMED",
-                  "CANCELLED",
+                  "TENTATIVE",
                   "PAYMENT_REVIEWS",
+                  "CANCELLED",
                 ] as const
               ).map((f) => (
                 <button
@@ -518,19 +563,53 @@ export const BookingManager: React.FC = () => {
                         </div>
                       </div>
 
-                      <span
-                        className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0 border ${
-                          isConfirmed
-                            ? "bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30"
-                            : isPending
-                            ? "bg-primary-lime/15 text-primary-lime border-primary-lime/30 animate-pulse"
-                            : isPaymentReview
-                            ? "bg-[#FACC15]/10 text-[#FACC15] border-[#FACC15]/30"
-                            : "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30"
-                        }`}
-                      >
-                        {isPending ? "Awaiting Approval" : isPaymentReview ? "Review MoMo" : booking.status}
-                      </span>
+                      {(() => {
+                        const isTentative = booking.status === BookingStatus.TENTATIVE || (booking as any).bookingTier === 'TENTATIVE';
+                        const isPreempted = booking.status === BookingStatus.PREEMPTED;
+                        const isDepositPaid = booking.status === BookingStatus.DEPOSIT_PAID;
+                        const isDepositAwaitingVerification = (booking.status === BookingStatus.PAYMENT_SUBMITTED || booking.status === BookingStatus.PENDING_PAYMENT) && (booking as any).bookingTier === 'DEPOSIT';
+                        const isExpiredPending = isPending && bookingService.isPendingBookingExpired(booking);
+                        const pendingRemMs = isPending ? bookingService.getRemainingPaymentTimeMs(booking) : 0;
+                        return (
+                          <span
+                            className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0 border ${
+                              isPreempted
+                                ? "bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/30"
+                                : isTentative
+                                ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                                : isDepositPaid
+                                ? "bg-primary-lime/15 text-primary-lime border-primary-lime/30"
+                                : isDepositAwaitingVerification
+                                ? "bg-[#FACC15]/15 text-[#FACC15] border-[#FACC15]/30"
+                                : isConfirmed
+                                ? "bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30"
+                                : isExpiredPending
+                                ? "bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/30"
+                                : isPending
+                                ? "bg-[#FACC15]/15 text-[#FACC15] border-[#FACC15]/30"
+                                : isPaymentReview
+                                ? "bg-[#FACC15]/10 text-[#FACC15] border-[#FACC15]/30"
+                                : "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30"
+                            }`}
+                          >
+                            {isPreempted
+                              ? "Reallocated"
+                              : isTentative
+                              ? "Tentative (Preemptible)"
+                              : isDepositPaid
+                              ? "Deposit Paid"
+                              : isDepositAwaitingVerification
+                              ? "Awaiting Verification"
+                              : isExpiredPending
+                              ? "Expired (15m Unpaid)"
+                              : isPending
+                              ? `Awaiting Pay (${Math.max(1, Math.ceil(pendingRemMs / 60000))}m)`
+                              : isPaymentReview
+                              ? "Review MoMo"
+                              : booking.status}
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     {/* Rich Facility, Slot & Pricing Specification Grid */}
@@ -701,6 +780,43 @@ export const BookingManager: React.FC = () => {
                               <X size={14} />
                               <span>Decline</span>
                             </button>
+
+                            {bookingService.isPendingBookingExpired(booking) && (
+                              <button
+                                onClick={async () => {
+                                  setProcessingId(booking.id);
+                                  try {
+                                    await bookingService.releasePendingBooking(
+                                      booking.id,
+                                      'Payment window expired (15 minutes exceeded without completed payment)'
+                                    );
+                                    setToast({
+                                      type: "success",
+                                      title: "Slot Released",
+                                      message: `Booking #${bookingRef} auto-released back to available schedule.`
+                                    });
+                                  } catch (err: any) {
+                                    setToast({
+                                      type: "error",
+                                      title: "Failed to release",
+                                      message: err.message || "Failed to release booking slot."
+                                    });
+                                  } finally {
+                                    setProcessingId(null);
+                                  }
+                                }}
+                                disabled={processingId === booking.id}
+                                className="h-9 px-3 bg-[#EF4444]/15 hover:bg-[#EF4444]/25 border border-[#EF4444]/30 text-[#EF4444] rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                                title="Release slot back to public schedule"
+                              >
+                                {processingId === booking.id ? (
+                                  <Loader2 size={13} className="animate-spin" />
+                                ) : (
+                                  <Clock size={13} />
+                                )}
+                                <span>Release Expired (15m)</span>
+                              </button>
+                            )}
                           </>
                         )}
 

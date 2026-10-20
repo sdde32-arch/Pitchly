@@ -2,7 +2,6 @@ import { Pitch } from '../types/firebase';
 import { db } from '../lib/firebase';
 import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { offlineCacheService } from './offlineCacheService';
-import { TURFS } from '../constants';
 import { Turf, PitchStatus } from '../types';
 
 const DELETED_PITCHES_KEY = 'pitchly_deleted_pitch_ids';
@@ -131,9 +130,8 @@ export const pitchService = {
     if (getDeletedPitchIds().includes(id)) return null;
 
     const cleanId = id.replace(/^pitch-/, "");
-    const lowerId = id.toLowerCase();
     
-    // Check for locally saved custom pitch photos / overrides first
+    // Check for locally saved custom pitch photos / overrides
     let localOverride: Partial<Pitch> | null = null;
     try {
       const keys = [
@@ -156,19 +154,9 @@ export const pitchService = {
       }
     } catch {}
 
-    // Flexible match for researched Kampala Turfs (including Tal Olympic aliases)
-    const researched = TURFS.find((t) => 
-      t.id === id || 
-      t.id === cleanId || 
-      `pitch-${t.id}` === id ||
-      (lowerId.includes('tal') && t.id.toLowerCase().includes('tal')) ||
-      ((lowerId.includes('olympic') || lowerId.includes('munyonyo')) && t.id.toLowerCase().includes('tal-olympic'))
-    );
-
-    // Try Firestore to check if pitch was customized or exists in cloud
+    // Fetch strictly from Firestore
     try {
-      const targetDocId = researched?.id || id;
-      const docRef = doc(db, this.collectionPath, targetDocId);
+      const docRef = doc(db, this.collectionPath, id);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const pitch = docSnap.data() as Pitch;
@@ -176,71 +164,42 @@ export const pitchService = {
           const rawImgs = Array.isArray(pitch.images) && pitch.images.length > 0
             ? pitch.images
             : (pitch as any).image ? [(pitch as any).image] : [];
-          const base = researched ? turfToPitch(researched) : {} as Pitch;
           return {
-            ...base,
             ...pitch,
-            images: rawImgs.length > 0 ? rawImgs : base.images,
-            additionalImages: (pitch as any).additionalImages || (rawImgs.length > 1 ? rawImgs.slice(1) : base.additionalImages),
+            images: rawImgs,
+            additionalImages: (pitch as any).additionalImages || (rawImgs.length > 1 ? rawImgs.slice(1) : []),
             ...(localOverride || {}),
           };
         }
       }
     } catch (error) {
-      console.warn("Failed to fetch pitch from Firestore, falling back to local/constants", error);
+      console.warn("Failed to fetch pitch from Firestore:", error);
     }
 
-    if (researched) {
-      const base = turfToPitch(researched);
-      if (localOverride) {
-        const mergedImgs = (localOverride.images && localOverride.images.length > 0)
-          ? localOverride.images
-          : base.images;
-        return {
-          ...base,
-          ...localOverride,
-          images: mergedImgs,
-          additionalImages: mergedImgs.slice(1),
-        };
-      }
-      return base;
-    }
-
-    return offlineCacheService.getCachedPitchById(id);
+    return null;
   },
 
   async listPublic(): Promise<Pitch[]> {
     console.log(`Fetching active public pitches from ${this.collectionPath}`);
     const deletedIds = getDeletedPitchIds();
-    const researchedPitches = TURFS.map(turfToPitch).filter((p) => !deletedIds.includes(p.id));
 
     try {
       const q = query(collection(db, this.collectionPath), where("status", "==", "ACTIVE"));
       const querySnapshot = await getDocs(q);
-      const userCreatedPitches: Pitch[] = [];
+      const activePitches: Pitch[] = [];
 
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data() as Pitch;
         if (!isLegacyTestPitch(data) && !deletedIds.includes(data.id)) {
-          userCreatedPitches.push(data);
+          activePitches.push(data);
         }
       });
 
-      // Combine user-created custom pitches with researched Kampala pitches
-      const combinedMap = new Map<string, Pitch>();
-      userCreatedPitches.forEach((p) => combinedMap.set(p.id, p));
-      researchedPitches.forEach((p) => {
-        if (!combinedMap.has(p.id)) {
-          combinedMap.set(p.id, p);
-        }
-      });
-
-      const result = Array.from(combinedMap.values());
-      offlineCacheService.cachePitches(result);
-      return result;
+      offlineCacheService.cachePitches(activePitches);
+      return activePitches;
     } catch (error) {
-      console.warn("Failed to fetch public pitches from Firestore, using researched turfs", error);
-      return researchedPitches;
+      console.warn("Failed to fetch public pitches from Firestore:", error);
+      return [];
     }
   },
 
