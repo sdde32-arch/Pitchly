@@ -120,187 +120,14 @@ interface Match {
   };
 }
 
-const INITIAL_TEAMS: Team[] = [
-  {
-    id: "team-mock-1",
-    name: "Ntinda Legends",
-    type: "7-a-side",
-    location: "Ntinda, Kampala",
-    description: "Friday night competitive 7v7 squad.",
-    captainId: "demo-user-id",
-    ownerId: "demo-user-id",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    status: "ACTIVE",
-    inviteCode: "NTINDA-7701",
-    inviteUrl: generateSquadInviteUrl("NTINDA-7701"),
-    members: [
-      {
-        id: "m1",
-        name: "John Doe",
-        contact: "0770000000",
-        isCaptain: true,
-        hasPaid: true,
-        userId: "demo-user-id",
-      },
-      {
-        id: "m2",
-        name: "Kato Paul",
-        contact: "0782123456",
-        isCaptain: false,
-        hasPaid: true,
-        avatar:
-          "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100",
-      },
-      {
-        id: "m3",
-        name: "Mike Ross",
-        contact: "0754123456",
-        isCaptain: false,
-        hasPaid: false,
-      },
-      {
-        id: "m4",
-        name: "Harvey S.",
-        contact: "0701123456",
-        isCaptain: false,
-        hasPaid: true,
-        avatar:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
-      },
-    ],
-  },
-];
-
-const INITIAL_MATCHES: Match[] = [
-  {
-    id: "match-mock-completed-1",
-    title: "Ntinda Sunday Floodlit Derby",
-    pitchId: "arena-lugogo",
-    pitchName: "Lugogo Arena AstroTurf",
-    date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    time: "18:00",
-    type: "7-a-side",
-    playersNeeded: 14,
-    joinedPlayers: [
-      {
-        id: "m1",
-        name: "John Doe",
-        contact: "0770000000",
-        isCaptain: true,
-        hasPaid: true,
-        userId: "demo-user-id",
-        paymentStatus: "paid",
-      },
-      {
-        id: "m2",
-        name: "Kato Paul",
-        contact: "0782123456",
-        isCaptain: false,
-        hasPaid: true,
-        avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100",
-        paymentStatus: "paid",
-      },
-      {
-        id: "m3",
-        name: "Allan Wandera",
-        contact: "0785112233",
-        isCaptain: false,
-        hasPaid: true,
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
-        paymentStatus: "paid",
-      },
-      {
-        id: "m4",
-        name: "Denis Mukasa",
-        contact: "0772445566",
-        isCaptain: false,
-        hasPaid: true,
-        paymentStatus: "paid",
-      },
-    ],
-    captainId: "demo-user-id",
-    visibility: "Public",
-    status: "Completed",
-    notes: "High tempo match under floodlights. Clean match with no injuries.",
-    createdAt: new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString(),
-    result: {
-      teamAName: "Ntinda Dark (Bibs)",
-      teamBName: "Ntinda White",
-      teamAScore: 4,
-      teamBScore: 2,
-      winner: "teamA",
-      scorers: [
-        { playerId: "p1", playerName: "Allan Wandera", goals: 2, team: "teamA" },
-        { playerId: "p2", playerName: "John Doe", goals: 1, team: "teamA" },
-        { playerId: "p3", playerName: "Kato Paul", goals: 1, team: "teamA" },
-        { playerId: "p4", playerName: "Denis Mukasa", goals: 2, team: "teamB" },
-      ],
-      mvpPlayerName: "Allan Wandera",
-      recordedAt: new Date(Date.now() - 22 * 60 * 60 * 1000).toISOString(),
-      notes: "Allan W. commanded the midfield with a brace and an assist.",
-    },
-    payment: {
-      totalCost: 140000,
-      costPerPlayer: 10000,
-      collectedAmount: 140000,
-      remainingAmount: 0,
-      currency: "UGX",
-    },
-  },
-  {
-    id: "match-mock-1",
-    title: "Friday Night Lights",
-    pitchId: "arena-1",
-    pitchName: "Downtown Arena Turf",
-    date: new Date().toISOString().split("T")[0],
-    time: "19:00",
-    type: "7-a-side",
-    playersNeeded: 14,
-    joinedPlayers: [
-      {
-        id: "m1",
-        name: "John Doe",
-        contact: "0770000000",
-        isCaptain: true,
-        hasPaid: true,
-        userId: "demo-user-id",
-        paymentStatus: "paid",
-      },
-      {
-        id: "m2",
-        name: "Kato Paul",
-        contact: "0782123456",
-        isCaptain: false,
-        hasPaid: true,
-        avatar:
-          "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100",
-        paymentStatus: "pending",
-      },
-    ],
-    captainId: "demo-user-id",
-    visibility: "Public",
-    status: "Open",
-    notes: "Bring a dark and white bib. Standard rules. No metal studs.",
-    createdAt: new Date().toISOString(),
-    payment: {
-      totalCost: 140000,
-      costPerPlayer: 10000,
-      collectedAmount: 10000,
-      remainingAmount: 130000,
-      currency: "UGX",
-    },
-  },
-];
-
 export const Teams: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { bookings } = useBooking();
   const { userProfile, user } = useUser();
   const [activeTab, setActiveTab] = useState<"MATCHES" | "TEAMS">("MATCHES");
-  const [teams, setTeams] = useState<Team[]>(INITIAL_TEAMS);
-  const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCreateMatchModal, setShowCreateMatchModal] = useState(false);
@@ -442,15 +269,21 @@ export const Teams: React.FC = () => {
           } else {
             const localTeams = localStorage.getItem(`pitchly_teams_${user.uid}`);
             if (localTeams) setTeams(JSON.parse(localTeams));
+            else setTeams([]);
           }
           const localMatches = localStorage.getItem(`pitchly_matches_${user.uid}`);
           if (localMatches) setMatches(JSON.parse(localMatches));
+          else setMatches([]);
         } else {
           const publicTeams = await teamService.listPublic();
           if (publicTeams.length > 0) setTeams(publicTeams);
+          else setTeams([]);
+          setMatches([]);
         }
       } catch (e) {
         console.warn("Could not load squads data", e);
+        setTeams([]);
+        setMatches([]);
       } finally {
         setLoading(false);
       }
@@ -1309,14 +1142,25 @@ export const Teams: React.FC = () => {
                   <SquadCardSkeleton key={idx} />
                 ))
               ) : teams.length === 0 ? (
-                <div className="py-12 px-4 text-center bg-surface-card border border-border-subtle rounded-2xl space-y-2">
-                  <Shield size={28} className="mx-auto text-slate-400" />
-                  <p className="text-xs font-medium text-text-primary">
-                    No squads joined yet
-                  </p>
-                  <p className="text-xs text-text-secondary">
-                    Create a squad or join one with an invite code.
-                  </p>
+                <div className="py-12 px-4 text-center bg-surface-card border border-border-subtle rounded-2xl space-y-3">
+                  <Shield size={32} className="mx-auto text-primary-lime/60" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-text-primary">
+                      No squads yet
+                    </p>
+                    <p className="text-xs text-text-secondary">
+                      Create your own squad or join an existing team with an invite code.
+                    </p>
+                  </div>
+                  <div className="pt-2 flex justify-center">
+                    <button
+                      onClick={handleStartCreate}
+                      className="px-4 py-2 rounded-xl bg-primary-lime hover:bg-primary-lime-hover text-black text-xs font-black flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-95"
+                    >
+                      <Plus size={14} strokeWidth={3} />
+                      <span>Create a squad</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 teams.map((team) => {

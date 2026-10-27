@@ -253,6 +253,7 @@ export const notificationService = {
     try {
       await updateDoc(doc(db, this.collectionPath, id), {
         isRead: true,
+        read: true,
         updatedAt: new Date().toISOString(),
       });
     } catch (err) {

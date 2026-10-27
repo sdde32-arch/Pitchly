@@ -44,6 +44,7 @@ import { collection, doc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { LocationPicker } from '../../components/LocationPicker';
 import { optimizeAndUploadPitchPhoto } from '../../utils/imageOptimizer';
+import { Toggle } from '../../components/ui/Toggle';
 
 // Preset High Quality Turf Gallery Images for instant selection & testing
 const PRESET_TURF_IMAGES = [
@@ -99,6 +100,18 @@ const SURFACE_OPTIONS = [
 
 const FORMAT_OPTIONS = ['5-a-side', '7-a-side', '8-a-side', '9-a-side', '11-a-side'];
 
+// Critical fields that trigger admin re-verification when modified on an approved pitch
+// Note: depositPercentage and allowUnpaidReservations are non-critical policy settings and do NOT trigger re-approval
+export const CRITICAL_FIELDS = [
+  'name',
+  'location',
+  'pricePerHour',
+  'latitude',
+  'longitude',
+  'formattedAddress',
+  'coverImage'
+] as const;
+
 export const AddPitch: React.FC = () => {
   const { user } = useUser();
   const navigate = useNavigate();
@@ -137,6 +150,7 @@ export const AddPitch: React.FC = () => {
     pricePerHour: '70000',
     peakPricePerHour: '90000',
     depositPercentage: 50,
+    allowUnpaidReservations: true,
     acceptedPaymentMethods: ['MTN', 'AIRTEL', 'CASH'],
     paymentPhone: '',
     paymentAccountName: '',
@@ -198,7 +212,8 @@ export const AddPitch: React.FC = () => {
               closingHour: pitch.closingHour || '23:00',
               pricePerHour: String(pitch.pricePerHour || '70000'),
               peakPricePerHour: pitch.peakPricePerHour ? String(pitch.peakPricePerHour) : '',
-              depositPercentage: pitch.depositPercentage ?? 50,
+              depositPercentage: (pitch.depositPercentage && pitch.depositPercentage >= 10) ? pitch.depositPercentage : 50,
+              allowUnpaidReservations: pitch.allowUnpaidReservations !== false,
               acceptedPaymentMethods: pitch.acceptedPaymentMethods || ['MTN', 'AIRTEL', 'CASH'],
               paymentPhone: pitch.paymentPhone || '',
               paymentAccountName: pitch.paymentAccountName || '',
@@ -380,6 +395,10 @@ export const AddPitch: React.FC = () => {
     if (!formData.pricePerHour || Number(formData.pricePerHour) <= 0) {
       return 'Please enter a valid standard hourly booking rate.';
     }
+    const depositPct = Number(formData.depositPercentage);
+    if (isNaN(depositPct) || depositPct < 10 || depositPct > 100) {
+      return 'Advance deposit requirement must be between 10% and 100%.';
+    }
     if (formData.pitchFormats.length === 0) {
       return 'Please select at least one match format (e.g. 5-a-side, 7-a-side).';
     }
@@ -436,6 +455,7 @@ export const AddPitch: React.FC = () => {
           pricePerHour: Number(formData.pricePerHour),
           ...(formData.peakPricePerHour ? { peakPricePerHour: Number(formData.peakPricePerHour) } : {}),
           depositPercentage: Number(formData.depositPercentage),
+          allowUnpaidReservations: Boolean(formData.allowUnpaidReservations),
           acceptedPaymentMethods: formData.acceptedPaymentMethods,
           paymentPhone: formData.paymentPhone.trim() || '',
           paymentAccountName: formData.paymentAccountName.trim() || '',
@@ -480,6 +500,7 @@ export const AddPitch: React.FC = () => {
           pricePerHour: Number(formData.pricePerHour),
           ...(formData.peakPricePerHour ? { peakPricePerHour: Number(formData.peakPricePerHour) } : {}),
           depositPercentage: Number(formData.depositPercentage),
+          allowUnpaidReservations: Boolean(formData.allowUnpaidReservations),
           acceptedPaymentMethods: formData.acceptedPaymentMethods,
           paymentPhone: formData.paymentPhone.trim() || '',
           paymentAccountName: formData.paymentAccountName.trim() || '',
@@ -969,32 +990,55 @@ export const AddPitch: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Deposit & Advance Payment Policy */}
-                <div className="space-y-2">
-                  <label className="text-[11px] font-extrabold text-text-secondary uppercase tracking-wider block">
-                    Advance Deposit Requirement
+                {/* Deposit Requirement (Required Number Input 10-100%) */}
+                <div className="space-y-1.5">
+                  <label htmlFor="depositPercentage" className="text-[11px] font-extrabold text-text-secondary uppercase tracking-wider block">
+                    Advance Deposit Requirement (%) <span className="text-primary-lime font-bold">*</span>
                   </label>
-                  <div className="grid grid-cols-3 gap-2.5">
-                    {[
-                      { val: 0, label: '0% (Pay on Pitch)', desc: 'Pay cash on arrival' },
-                      { val: 50, label: '50% Half Deposit', desc: 'Secure slot with 50%' },
-                      { val: 100, label: '100% Full Payment', desc: 'Prepaid upfront' }
-                    ].map(dep => (
-                      <button
-                        key={dep.val}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, depositPercentage: dep.val }))}
-                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                          formData.depositPercentage === dep.val
-                            ? 'bg-primary-lime/10 border-primary-lime text-text-primary'
-                            : 'bg-surface-raised border-border-subtle text-text-secondary'
-                        }`}
-                      >
-                        <span className="text-xs font-extrabold block text-text-primary">{dep.label}</span>
-                        <span className="text-[10px] text-text-secondary font-medium">{dep.desc}</span>
-                      </button>
-                    ))}
+                  <div className="relative">
+                    <input
+                      id="depositPercentage"
+                      name="depositPercentage"
+                      type="number"
+                      min={10}
+                      max={100}
+                      step={5}
+                      required
+                      value={formData.depositPercentage}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        setFormData(prev => ({
+                          ...prev,
+                          depositPercentage: isNaN(val) ? ('' as any) : val
+                        }));
+                      }}
+                      placeholder="50"
+                      className="w-full bg-surface-raised border border-border-subtle rounded-xl px-4 py-3 text-sm font-bold text-text-primary focus:border-primary-lime outline-none transition-all"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-text-tertiary">
+                      % Deposit
+                    </span>
                   </div>
+                  <span className="text-[11px] text-text-tertiary mt-1 block">
+                    Players pay this share to secure their slot. The rest is paid at the pitch.
+                  </span>
+                </div>
+
+                {/* Allow Unpaid Reservations Toggle */}
+                <div className="bg-surface-raised/60 border border-border-subtle rounded-2xl p-4 flex items-center justify-between gap-4">
+                  <div className="space-y-0.5 min-w-0">
+                    <label htmlFor="allowUnpaidReservations" className="text-xs font-extrabold text-text-primary block cursor-pointer">
+                      Allow unpaid reservations (pay at the pitch)
+                    </label>
+                    <p className="text-[11px] text-text-tertiary">
+                      When enabled, players can reserve slots with zero deposit. Other players paying a deposit can preempt these holds.
+                    </p>
+                  </div>
+                  <Toggle
+                    id="allowUnpaidReservations"
+                    checked={formData.allowUnpaidReservations}
+                    onChange={(checked) => setFormData(prev => ({ ...prev, allowUnpaidReservations: checked }))}
+                  />
                 </div>
 
                 {/* Accepted Payment Methods */}

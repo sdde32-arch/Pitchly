@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Layout } from "../components/Layout";
 import { useBooking } from "../context/BookingContext";
 import { bookingService } from "../services/bookingService";
@@ -7,6 +7,8 @@ import { pitchService } from "../services/pitchService";
 import { Turf, BookingStatus, PaymentMethod } from "../types";
 import { formatBookingDate } from "../lib/dateUtils";
 import { storageService } from "../services/storageService";
+import { computeDeposit } from "../utils/pricing";
+import { isValidTransactionRef } from "../utils/validation";
 import { 
   Check, 
   ShieldCheck, 
@@ -32,6 +34,8 @@ import {
 export const BookingConfirmation: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { bookings } = useBooking();
   
   const [booking, setBooking] = useState<any | null>(null);
@@ -41,7 +45,7 @@ export const BookingConfirmation: React.FC = () => {
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [isAutoReleased, setIsAutoReleased] = useState(false);
 
-  // Upgrade tentative booking state
+  // Upgrade tentative booking state (auto-opens if navigated with ?openUpgrade=true only when valid and active)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeTier, setUpgradeTier] = useState<'DEPOSIT' | 'FULL'>('DEPOSIT');
   const [upgradeMethod, setUpgradeMethod] = useState<PaymentMethod>(PaymentMethod.MTN);
@@ -59,35 +63,6 @@ export const BookingConfirmation: React.FC = () => {
         let foundBooking: any = bookings.find(b => b.id === id) || null;
         if (!foundBooking) {
           foundBooking = await bookingService.getById(id);
-        }
-        
-        // Check for mock booking fallback
-        if (!foundBooking) {
-          if (id === "booking_mock_1" || id.startsWith("booking_mock_")) {
-            foundBooking = {
-              id: id,
-              turfId: "panamera-kololo",
-              pitchId: "panamera-kololo",
-              turfName: "Panamera Sports Lounge & Turf",
-              pitchName: "Panamera Sports Lounge & Turf",
-              playerId: "player_mock_1",
-              userName: "David Okello",
-              ownerId: "owner_panamera_kololo",
-              date: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
-              time: "18:00 - 19:00",
-              slots: ["18:00"],
-              duration: 1,
-              status: BookingStatus.CONFIRMED,
-              price: 70000,
-              totalPrice: 70000,
-              paymentStatus: "PAID",
-              paymentMethod: "MTN",
-              location: "Plot 24 Saddler Way, Kololo, Kampala",
-              image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80",
-              pitchFormat: "7-a-side AstroTurf",
-              bookingRef: "FTL-88219"
-            };
-          }
         }
         
         if (foundBooking) {
@@ -111,7 +86,7 @@ export const BookingConfirmation: React.FC = () => {
               pricePerHour: foundBooking.price || 70000,
               image: foundBooking.image || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80",
               pitchFormats: [foundBooking.pitchFormat || "7-a-side AstroTurf"],
-              contactPhone: foundBooking.contactPhone || "+256 701 556 778"
+              contactPhone: foundBooking.contactPhone || ""
             };
           }
           setTurf(foundTurf as any);
@@ -163,11 +138,21 @@ export const BookingConfirmation: React.FC = () => {
     }
   };
 
-  const isTentative = booking?.status === BookingStatus.TENTATIVE || booking?.bookingTier === 'TENTATIVE';
+  const isTentative = booking?.status === BookingStatus.TENTATIVE;
   const isPreempted = booking?.status === BookingStatus.PREEMPTED;
+  const isHoldExpired = Boolean(booking && isTentative && bookingService.isHoldExpired(booking));
   const isDepositPaid = booking?.status === BookingStatus.DEPOSIT_PAID;
   const isDepositAwaitingVerification = (booking?.status === BookingStatus.PAYMENT_SUBMITTED || booking?.status === BookingStatus.PENDING_PAYMENT) && booking?.bookingTier === 'DEPOSIT';
   const isCancelled = booking?.status === BookingStatus.CANCELLED;
+
+  // Open upgrade modal from ?openUpgrade=true only when booking is TENTATIVE, not expired, and not preempted
+  useEffect(() => {
+    if (!booking) return;
+    const wantsUpgrade = searchParams.get('openUpgrade') === 'true' || location.state?.openUpgrade === true;
+    if (wantsUpgrade && isTentative && !isHoldExpired && !isPreempted) {
+      setShowUpgradeModal(true);
+    }
+  }, [booking?.id, booking?.status, isTentative, isHoldExpired, isPreempted, searchParams, location.state]);
 
   const handleUpgradeProofUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -185,25 +170,35 @@ export const BookingConfirmation: React.FC = () => {
     }
   };
 
+  const pitchPaymentPhone = (turf as any)?.paymentPhone || turf?.contactPhone || (booking as any)?.paymentPhone || (booking as any)?.contactPhone || "";
+  const isUpgradeTxRefValid = isValidTransactionRef(upgradeTxRef);
+  const isUpgradeProofUrlValid = Boolean(upgradeProofUrl && upgradeProofUrl.trim().length > 10);
+  const isUpgradeValid = (isUpgradeTxRefValid || isUpgradeProofUrlValid) && Boolean(pitchPaymentPhone);
+
   const handleUpgradeTentative = async () => {
     if (!booking) return;
-    if ((upgradeMethod === PaymentMethod.MTN || upgradeMethod === PaymentMethod.AIRTEL) && !upgradeProofUrl && !upgradeTxRef) {
-      setUpgradeError("Please upload your receipt screenshot or enter your transaction reference.");
+    if (!pitchPaymentPhone) {
+      setUpgradeError("This pitch hasn't set up its payment number yet. Contact the pitch owner, or reserve and pay at the pitch.");
+      return;
+    }
+    if (!isUpgradeValid) {
+      setUpgradeError(bookingService.ERROR_MESSAGES.PAYMENT_PROOF_REQUIRED || "Please enter a valid mobile money transaction reference (6 to 25 characters, as on your MoMo message) or upload a payment screenshot.");
       return;
     }
 
     try {
       setUpgrading(true);
       setUpgradeError("");
-      const depositPct = (turf as any)?.depositPercentage || 30;
+      const depositPct = (turf as any)?.depositPercentage;
       const totalAmount = (booking as any).totalPrice || booking.price || 0;
-      const calcDeposit = Math.max(20000, Math.round((totalAmount * (depositPct / 100)) / 1000) * 1000);
-      const calcBalance = Math.max(0, totalAmount - calcDeposit);
+      const depositCalc = computeDeposit(totalAmount, depositPct);
+      const calcDeposit = depositCalc.depositAmount;
+      const calcBalance = depositCalc.balanceDue;
 
       const updated = await bookingService.upgradeTentativeBooking(booking.id, upgradeTier, {
         paymentMethod: upgradeMethod,
         paymentProofUrl: upgradeProofUrl || undefined,
-        transactionRef: upgradeTxRef || undefined,
+        transactionRef: upgradeTxRef ? upgradeTxRef.trim() : undefined,
         depositAmount: upgradeTier === 'DEPOSIT' ? calcDeposit : 0,
         balanceDue: upgradeTier === 'DEPOSIT' ? calcBalance : 0,
       });
@@ -212,7 +207,17 @@ export const BookingConfirmation: React.FC = () => {
       setShowUpgradeModal(false);
     } catch (err: any) {
       console.error("Failed to upgrade tentative booking:", err);
-      setUpgradeError(err.message || "Failed to upgrade reservation.");
+      let rawMsg = typeof err?.message === "string" ? err.message : "";
+      let message = rawMsg || "Failed to upgrade reservation.";
+
+      if (rawMsg.includes("permission-denied") || rawMsg.includes("PERMISSION_DENIED")) {
+        message = "We couldn't confirm this booking. Please check your details and try again.";
+      } else if (bookingService.ERROR_MESSAGES && bookingService.ERROR_MESSAGES[rawMsg]) {
+        message = bookingService.ERROR_MESSAGES[rawMsg];
+      } else if (bookingService.ERROR_MESSAGES && typeof err?.code === "string" && bookingService.ERROR_MESSAGES[err.code]) {
+        message = bookingService.ERROR_MESSAGES[err.code];
+      }
+      setUpgradeError(message);
     } finally {
       setUpgrading(false);
     }
@@ -326,14 +331,18 @@ export const BookingConfirmation: React.FC = () => {
             <ArrowLeft size={20} strokeWidth={2.5} />
           </button>
           <span className="font-bold text-sm text-text-primary tracking-wide">Official Match Pass</span>
-          <button
-            id="confirmation-share-btn"
-            onClick={handleSharePass}
-            className="w-10 h-10 rounded-2xl bg-surface-raised hover:bg-border-subtle flex items-center justify-center text-text-primary transition-colors border border-border-subtle shadow-xs cursor-pointer active:scale-95"
-            title="Share Pass"
-          >
-            <Share2 size={18} />
-          </button>
+          {!isPreempted && !isHoldExpired ? (
+            <button
+              id="confirmation-share-btn"
+              onClick={handleSharePass}
+              className="w-10 h-10 rounded-2xl bg-surface-raised hover:bg-border-subtle flex items-center justify-center text-text-primary transition-colors border border-border-subtle shadow-xs cursor-pointer active:scale-95"
+              title="Share Pass"
+            >
+              <Share2 size={18} />
+            </button>
+          ) : (
+            <div className="w-10 h-10" />
+          )}
         </div>
 
         {/* Scrollable Container with Ample Bottom Clearance */}
@@ -341,11 +350,15 @@ export const BookingConfirmation: React.FC = () => {
           <div className="flex flex-col items-center justify-center text-center">
             
             {/* Animated Status Badge */}
-            {booking.status === BookingStatus.CANCELLED ? (
+            {isPreempted ? (
               <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-[#EF4444]/15 border-2 border-[#EF4444]/30 flex items-center justify-center mb-4 shadow-sm text-[#EF4444]">
                 <AlertTriangle size={38} strokeWidth={2.5} />
               </div>
-            ) : isPreempted ? (
+            ) : isHoldExpired ? (
+              <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-[#EF4444]/15 border-2 border-[#EF4444]/30 flex items-center justify-center mb-4 shadow-sm text-[#EF4444]">
+                <Clock size={38} strokeWidth={2.5} />
+              </div>
+            ) : booking.status === BookingStatus.CANCELLED ? (
               <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-[#EF4444]/15 border-2 border-[#EF4444]/30 flex items-center justify-center mb-4 shadow-sm text-[#EF4444]">
                 <AlertTriangle size={38} strokeWidth={2.5} />
               </div>
@@ -365,43 +378,99 @@ export const BookingConfirmation: React.FC = () => {
             
             {/* Dynamic Headline */}
             <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary mb-1.5 tracking-tight font-display">
-              {booking.status === BookingStatus.CANCELLED
-                ? "Reservation Released"
-                : isPreempted
-                  ? "Slot Reallocated"
-                  : isTentative
-                    ? "Tentative Hold Placed"
-                    : isDepositPaid
-                      ? "Match Locked In (Deposit Paid)!"
-                      : isDepositAwaitingVerification
-                        ? "Deposit Submitted (Awaiting Verification)"
-                        : remainingSeconds !== null
-                          ? "Payment Pending"
-                          : "Match Locked In!"}
+              {isPreempted
+                ? "Slot Taken by Another Player"
+                : isHoldExpired
+                  ? "Reservation Expired"
+                  : booking.status === BookingStatus.CANCELLED
+                    ? "Reservation Released"
+                    : isTentative
+                      ? "Reservation (pay at the pitch) Placed"
+                      : isDepositPaid
+                        ? "Match Locked In (Deposit Paid)!"
+                        : isDepositAwaitingVerification
+                          ? "Deposit Submitted (Awaiting Verification)"
+                          : remainingSeconds !== null
+                            ? "Payment Pending"
+                            : "Match Locked In!"}
             </h1>
             <p className="text-text-secondary text-xs sm:text-sm mb-6 max-w-xs font-medium">
-              {booking.status === BookingStatus.CANCELLED
-                ? (booking.cancellationReason || "This booking reservation has expired or been cancelled.")
-                : isPreempted
-                  ? "Another squad completed an instant deposit/full payment and secured this time slot. Your tentative reservation was released."
-                  : isTentative
-                    ? `Your slot at ${turf.name} is provisionally held. If another team pays a deposit or pays in full, it will be reallocated to them!`
-                    : isDepositPaid
-                      ? `Your deposit is registered. Your slot at ${turf.name} is 100% secured.`
-                      : isDepositAwaitingVerification
-                        ? `Your deposit proof has been submitted. The pitch owner will verify your payment shortly.`
-                        : remainingSeconds !== null
-                          ? `Your slot at ${turf.name} is held for 15 minutes while awaiting payment confirmation.`
-                          : `Your slot at ${turf.name} has been secured.`}
+              {isPreempted
+                ? "Another player completed a payment and secured this time slot."
+                : isHoldExpired
+                  ? "This reservation has reached its kick-off time without a deposit."
+                  : booking.status === BookingStatus.CANCELLED
+                    ? (booking.cancellationReason || "This booking reservation has expired or been cancelled.")
+                    : isTentative
+                      ? `Your slot at ${turf.name} is provisionally held. If another team pays a deposit or pays in full, it will be reallocated to them!`
+                      : isDepositPaid
+                        ? `Your deposit is registered. Your slot at ${turf.name} is 100% secured.`
+                        : isDepositAwaitingVerification
+                          ? `Your deposit proof has been submitted. The pitch owner will verify your payment shortly.`
+                          : remainingSeconds !== null
+                            ? `Your slot at ${turf.name} is held for 15 minutes while awaiting payment confirmation.`
+                            : `Your slot at ${turf.name} has been secured.`}
             </p>
 
+            {/* PREEMPTED Clear Banner */}
+            {isPreempted && (
+              <div className="w-full mb-5 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-2xl p-4 text-left space-y-3">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle size={20} className="text-[#EF4444] shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-bold text-text-primary">
+                      Your unpaid reservation was taken by a player who paid a deposit
+                    </h4>
+                    {booking.cancellationReason && (
+                      <p className="text-[11px] text-text-secondary leading-relaxed mt-1">
+                        {booking.cancellationReason}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  id="preempted-find-another-slot-btn"
+                  onClick={() => navigate(`/turf/${turf.id || booking.pitchId || (booking as any).turfId}`)}
+                  className="w-full py-2.5 px-4 rounded-xl bg-primary-lime text-accent-text font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md hover:bg-primary-lime-hover"
+                >
+                  <Calendar size={15} />
+                  <span>Find another slot</span>
+                </button>
+              </div>
+            )}
+
+            {/* EXPIRED HOLD Clear Banner */}
+            {isHoldExpired && !isPreempted && (
+              <div className="w-full mb-5 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-2xl p-4 text-left space-y-3">
+                <div className="flex items-start gap-3">
+                  <Clock size={20} className="text-[#EF4444] shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-bold text-text-primary">
+                      This reservation has expired
+                    </h4>
+                    <p className="text-[11px] text-text-secondary leading-relaxed mt-1">
+                      Unpaid reservations are held only until kick-off unless secured with a deposit.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  id="expired-find-another-slot-btn"
+                  onClick={() => navigate(`/turf/${turf.id || booking.pitchId || (booking as any).turfId}`)}
+                  className="w-full py-2.5 px-4 rounded-xl bg-primary-lime text-accent-text font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md hover:bg-primary-lime-hover"
+                >
+                  <Calendar size={15} />
+                  <span>Find another slot</span>
+                </button>
+              </div>
+            )}
+
             {/* Tentative Warning & Upgrade Callout */}
-            {isTentative && (
+            {isTentative && !isHoldExpired && !isPreempted && (
               <div className="w-full mb-5 bg-amber-500/10 border border-amber-500/40 rounded-2xl p-4 text-left space-y-3">
                 <div className="flex items-start gap-3">
                   <Zap size={20} className="text-amber-400 shrink-0 mt-0.5 animate-pulse" />
                   <div>
-                    <h4 className="text-xs font-bold text-text-primary">Tentative Hold — Anyone Can Claim This Slot!</h4>
+                    <h4 className="text-xs font-bold text-text-primary">Reservation (pay at the pitch) — Anyone Can Claim This Slot!</h4>
                     <p className="text-[11px] text-text-secondary leading-relaxed mt-0.5">
                       This reservation has zero upfront payment. If another squad chooses this time and pays the deposit or full fee, it will be immediately reallocated to them.
                     </p>
@@ -413,28 +482,6 @@ export const BookingConfirmation: React.FC = () => {
                 >
                   <ShieldCheck size={16} />
                   <span>Lock In Slot Now (Pay Deposit / Full)</span>
-                </button>
-              </div>
-            )}
-
-            {/* Preempted Explanation Callout */}
-            {isPreempted && (
-              <div className="w-full mb-5 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-2xl p-4 text-left space-y-3">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle size={20} className="text-[#EF4444] shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-xs font-bold text-text-primary">Time Slot Claimed by Another Team</h4>
-                    <p className="text-[11px] text-text-secondary leading-relaxed mt-0.5">
-                      Another team booked this position and paid an instant deposit. Don't worry — there are plenty of other available slots!
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => navigate('/home')}
-                  className="w-full py-2.5 px-4 rounded-xl bg-primary-lime text-accent-text font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
-                >
-                  <Calendar size={15} />
-                  <span>Find Another Time Slot</span>
                 </button>
               </div>
             )}
@@ -457,204 +504,259 @@ export const BookingConfirmation: React.FC = () => {
               </div>
             )}
             
-            {/* Official Pitch Pass Card */}
-            <div 
-              id="official-pitch-pass-card"
-              className="w-full bg-surface-card rounded-3xl p-5 sm:p-6 border border-border-subtle text-left relative overflow-hidden mb-6 shadow-xl"
-            >
-              {/* Card Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-border-subtle mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-primary-lime/15 text-primary-lime flex items-center justify-center font-bold">
-                    <ShieldCheck size={18} className="text-primary-lime" />
+            {/* Official Pitch Pass Card (Never shown for PREEMPTED or EXPIRED holds) */}
+            {!isPreempted && !isHoldExpired ? (
+              <div 
+                id="official-pitch-pass-card"
+                className="w-full bg-surface-card rounded-3xl p-5 sm:p-6 border border-border-subtle text-left relative overflow-hidden mb-6 shadow-xl"
+              >
+                {/* Card Header */}
+                <div className="flex items-center justify-between pb-4 border-b border-border-subtle mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-primary-lime/15 text-primary-lime flex items-center justify-center font-bold">
+                      <ShieldCheck size={18} className="text-primary-lime" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-xs sm:text-sm text-text-primary leading-tight">Official Pitch Pass</h3>
+                      <p className="text-[10px] text-text-tertiary font-mono">Pitchly Match Ticket</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-extrabold text-xs sm:text-sm text-text-primary leading-tight">Official Pitch Pass</h3>
-                    <p className="text-[10px] text-text-tertiary font-mono">Pitchly Match Ticket</p>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border tracking-wider ${
+                      isTentative
+                        ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                        : (isConfirmed && (booking as any)?.bookingTier === 'TENTATIVE')
+                          ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                          : isDepositPaid
+                            ? "bg-primary-lime/15 text-primary-lime border-primary-lime/30"
+                            : isDepositAwaitingVerification
+                              ? "bg-[#FACC15]/15 text-[#FACC15] border-[#FACC15]/30"
+                              : isConfirmed
+                                ? "bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/30"
+                                : "bg-[#F59E0B]/15 text-[#F59E0B] border-[#F59E0B]/30"
+                    }`}>
+                      {isTentative
+                        ? "RESERVATION (PAY AT THE PITCH)"
+                        : (isConfirmed && (booking as any)?.bookingTier === 'TENTATIVE')
+                          ? `CONFIRMED · PAY UGX ${((booking as any).balanceDue || booking.totalPrice || booking.price || 0).toLocaleString()} AT THE PITCH`
+                          : isDepositPaid
+                            ? "DEPOSIT PAID"
+                            : isDepositAwaitingVerification
+                              ? "AWAITING VERIFICATION"
+                              : (booking.status || "CONFIRMED")}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <span className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border tracking-wider ${
-                    isPreempted
-                      ? "bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/30"
-                      : isTentative
-                        ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                        : isDepositPaid
-                          ? "bg-primary-lime/15 text-primary-lime border-primary-lime/30"
-                          : isDepositAwaitingVerification
-                            ? "bg-[#FACC15]/15 text-[#FACC15] border-[#FACC15]/30"
-                            : isConfirmed
-                              ? "bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/30"
-                              : "bg-[#F59E0B]/15 text-[#F59E0B] border-[#F59E0B]/30"
-                  }`}>
-                    {isPreempted ? "REALLOCATED" : isTentative ? "TENTATIVE HOLD" : isDepositPaid ? "DEPOSIT PAID" : isDepositAwaitingVerification ? "AWAITING VERIFICATION" : (booking.status || "CONFIRMED")}
+                {/* Venue & Booking Reference Row */}
+                <div className="bg-surface-raised rounded-2xl p-3.5 border border-border-subtle mb-4">
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] uppercase font-bold tracking-wider text-text-tertiary">Venue</p>
+                      <h4 className="font-extrabold text-sm sm:text-base text-text-primary truncate">{turf.name}</h4>
+                    </div>
+                    <button
+                      onClick={handleCopyRef}
+                      className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-card hover:bg-border-subtle border border-border-subtle text-text-secondary hover:text-text-primary text-[10px] font-mono font-bold transition-all cursor-pointer active:scale-95"
+                      title="Copy Reference Code"
+                    >
+                      <span>REF: #{bookingRef}</span>
+                      <Copy size={11} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-xs text-text-secondary font-medium">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <MapPin size={12} className="text-primary-lime shrink-0" />
+                      <span className="truncate">{turf.location || turf.formattedAddress || "Kampala, Uganda"}</span>
+                    </div>
+                    {turf.pitchFormats && turf.pitchFormats.length > 0 && (
+                      <span className="shrink-0 text-[11px] font-bold text-text-tertiary">
+                        • {turf.pitchFormats[0]}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Match Schedule Details Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="bg-surface-raised/60 rounded-2xl p-3 border border-border-subtle">
+                    <div className="flex items-center gap-1.5 text-text-tertiary mb-1">
+                      <Calendar size={13} className="text-primary-lime" />
+                      <span className="text-[10px] uppercase font-bold tracking-wider">Match Date</span>
+                    </div>
+                    <p className="text-text-primary font-bold text-xs sm:text-sm">
+                      {formattedDate}
+                    </p>
+                  </div>
+
+                  <div className="bg-surface-raised/60 rounded-2xl p-3 border border-border-subtle">
+                    <div className="flex items-center gap-1.5 text-text-tertiary mb-1">
+                      <Clock size={13} className="text-primary-lime" />
+                      <span className="text-[10px] uppercase font-bold tracking-wider">Time Slot</span>
+                    </div>
+                    <p className="text-text-primary font-bold text-xs sm:text-sm">
+                      {slotText} – {formattedEndTime}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Total Paid & Payment Method Breakdown */}
+                {isTentative ? (
+                  <div className="flex items-center justify-between p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 mb-5">
+                    <div>
+                      <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">Amount Paid</p>
+                      <p className="text-amber-400 font-black text-lg sm:text-xl font-display">
+                        UGX 0 <span className="text-xs font-semibold text-text-tertiary">(Unpaid)</span>
+                      </p>
+                      <p className="text-[10px] text-amber-300/80 font-medium mt-0.5">Matchday Fee: UGX {formattedPrice}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-full border border-amber-500/30">
+                        <Clock size={12} />
+                        <span>Preemptible Hold</span>
+                      </span>
+                    </div>
+                  </div>
+                ) : isDepositPaid ? (
+                  <div className="p-3.5 rounded-2xl bg-primary-lime/10 border border-primary-lime/25 mb-5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">Deposit Paid</p>
+                        <p className="text-primary-lime font-black text-lg sm:text-xl font-display">
+                          UGX {(booking.depositAmount || Math.round(((booking.totalPrice || booking.price || 0) * 0.3) / 1000) * 1000).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary-lime bg-primary-lime/15 px-2.5 py-1 rounded-full border border-primary-lime/30">
+                          <Check size={12} strokeWidth={3} />
+                          <span>Deposit Verified</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-primary-lime/20 flex justify-between items-center text-xs">
+                      <span className="text-text-secondary">Balance Due at Venue:</span>
+                      <span className="text-text-primary font-bold">
+                        UGX {(booking.balanceDue || Math.max(0, (booking.totalPrice || booking.price || 0) - (booking.depositAmount || 0))).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                ) : isDepositAwaitingVerification ? (
+                  <div className="p-3.5 rounded-2xl bg-[#FACC15]/10 border border-[#FACC15]/25 mb-5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">Deposit Submitted</p>
+                        <p className="text-[#FACC15] font-black text-lg sm:text-xl font-display">
+                          UGX {(booking.depositAmount || Math.round(((booking.totalPrice || booking.price || 0) * 0.3) / 1000) * 1000).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FACC15] bg-[#FACC15]/15 px-2.5 py-1 rounded-full border border-[#FACC15]/30">
+                          <Clock size={12} />
+                          <span>Awaiting Verification</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-[#FACC15]/20 flex justify-between items-center text-xs">
+                      <span className="text-text-secondary">Balance Due at Venue:</span>
+                      <span className="text-text-primary font-bold">
+                        UGX {(booking.balanceDue || Math.max(0, (booking.totalPrice || booking.price || 0) - (booking.depositAmount || 0))).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                ) : (isConfirmed && (booking as any)?.bookingTier === 'TENTATIVE') ? (
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 mb-5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] uppercase font-bold tracking-wider text-amber-300/80">Pay at Pitch</p>
+                        <p className="text-amber-300 font-black text-lg sm:text-xl font-display">
+                          UGX {((booking as any).balanceDue || booking.totalPrice || booking.price || 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-full border border-amber-500/30">
+                          <Check size={12} strokeWidth={3} />
+                          <span>Owner Confirmed</span>
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-text-secondary pt-1 border-t border-amber-500/20">
+                      Confirmed reservation. Pay balance in cash or mobile money upon arrival.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-3.5 rounded-2xl bg-primary-lime/10 border border-primary-lime/25 mb-5">
+                    <div>
+                      <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">{isConfirmed ? "Amount Paid" : "Amount Due"}</p>
+                      <p className="text-primary-lime font-black text-lg sm:text-xl font-display">
+                        UGX {formattedPrice}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border ${isConfirmed ? "text-primary-lime bg-primary-lime/15 border-primary-lime/30" : "text-[#FACC15] bg-[#FACC15]/15 border-[#FACC15]/30"}`}>
+                        {isConfirmed ? <Check size={12} strokeWidth={3} /> : <Clock size={12} />}
+                        <span>{isConfirmed ? "Payment Verified" : "Verification Pending"}</span>
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Gate Entry Check-in Strip */}
+                <div className="pt-3 border-t border-dashed border-border-subtle flex items-center justify-between text-left">
+                  <div className="space-y-0.5">
+                    {!isConfirmed && !isDepositPaid && (
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FACC15]/15 border border-[#FACC15]/30 text-[#FACC15] text-[10px] font-black uppercase tracking-wider mb-1">
+                        <Clock size={10} />
+                        <span>Awaiting owner verification</span>
+                      </div>
+                    )}
+                    <p className="text-[11px] font-bold text-text-primary flex items-center gap-1">
+                      <QrCode size={13} className={isConfirmed || isDepositPaid ? "text-primary-lime" : "text-[#FACC15]"} />
+                      <span>{isConfirmed || isDepositPaid ? "Matchday Gate Check-In" : "Check-In Pass (Unverified)"}</span>
+                    </p>
+                    <p className="text-[10px] text-text-tertiary font-medium">
+                      {isConfirmed || isDepositPaid 
+                        ? "Show this pass to the pitch marshal upon arrival" 
+                        : "Pass activates once payment is verified by facility owner"}
+                    </p>
+                  </div>
+                  <div className="font-mono text-[10px] font-black text-text-secondary tracking-widest bg-surface-raised px-2.5 py-1.5 rounded-lg border border-border-subtle">
+                    #{bookingRef}
+                  </div>
+                </div>
+                
+                {/* Subtle background watermark */}
+                <div className="absolute -right-8 -bottom-8 opacity-[0.03] text-text-primary pointer-events-none">
+                  <CheckCircle2 size={160} />
+                </div>
+              </div>
+            ) : (
+              /* Non-Pass Summary Card without QR pass or pass branding */
+              <div className="w-full bg-surface-card rounded-3xl p-5 border border-border-subtle text-left mb-6 shadow-sm space-y-3">
+                <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+                  <span className="text-xs font-bold text-text-secondary">Reservation Details</span>
+                  <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border tracking-wider bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/30">
+                    {isPreempted ? "TAKEN BY ANOTHER PLAYER" : "RESERVATION EXPIRED"}
                   </span>
                 </div>
-              </div>
-
-              {/* Venue & Booking Reference Row */}
-              <div className="bg-surface-raised rounded-2xl p-3.5 border border-border-subtle mb-4">
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] uppercase font-bold tracking-wider text-text-tertiary">Venue</p>
-                    <h4 className="font-extrabold text-sm sm:text-base text-text-primary truncate">{turf.name}</h4>
-                  </div>
-                  <button
-                    onClick={handleCopyRef}
-                    className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-card hover:bg-border-subtle border border-border-subtle text-text-secondary hover:text-text-primary text-[10px] font-mono font-bold transition-all cursor-pointer active:scale-95"
-                    title="Copy Reference Code"
-                  >
-                    <span>REF: #{bookingRef}</span>
-                    <Copy size={11} />
-                  </button>
+                <div>
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-text-tertiary">Venue</p>
+                  <h4 className="font-extrabold text-sm sm:text-base text-text-primary">{turf.name}</h4>
+                  <p className="text-xs text-text-secondary mt-0.5">{turf.location || turf.formattedAddress || "Kampala, Uganda"}</p>
                 </div>
-
-                <div className="flex items-center gap-3 text-xs text-text-secondary font-medium">
-                  <div className="flex items-center gap-1 min-w-0">
-                    <MapPin size={12} className="text-primary-lime shrink-0" />
-                    <span className="truncate">{turf.location || turf.formattedAddress || "Kampala, Uganda"}</span>
-                  </div>
-                  {turf.pitchFormats && turf.pitchFormats.length > 0 && (
-                    <span className="shrink-0 text-[11px] font-bold text-text-tertiary">
-                      • {turf.pitchFormats[0]}
-                    </span>
-                  )}
-                </div>
-              </div>
-              
-              {/* Match Schedule Details Grid */}
-              <div className="grid grid-cols-2 gap-3 mb-5">
-                <div className="bg-surface-raised/60 rounded-2xl p-3 border border-border-subtle">
-                  <div className="flex items-center gap-1.5 text-text-tertiary mb-1">
-                    <Calendar size={13} className="text-primary-lime" />
-                    <span className="text-[10px] uppercase font-bold tracking-wider">Match Date</span>
-                  </div>
-                  <p className="text-text-primary font-bold text-xs sm:text-sm">
-                    {formattedDate}
-                  </p>
-                </div>
-
-                <div className="bg-surface-raised/60 rounded-2xl p-3 border border-border-subtle">
-                  <div className="flex items-center gap-1.5 text-text-tertiary mb-1">
-                    <Clock size={13} className="text-primary-lime" />
-                    <span className="text-[10px] uppercase font-bold tracking-wider">Time Slot</span>
-                  </div>
-                  <p className="text-text-primary font-bold text-xs sm:text-sm">
-                    {slotText} – {formattedEndTime}
-                  </p>
-                </div>
-              </div>
-
-              {/* Total Paid & Payment Method Breakdown */}
-              {isTentative ? (
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 mb-5">
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border-subtle text-xs">
                   <div>
-                    <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">Amount Paid</p>
-                    <p className="text-amber-400 font-black text-lg sm:text-xl font-display">
-                      UGX 0 <span className="text-xs font-semibold text-text-tertiary">(Unpaid)</span>
-                    </p>
-                    <p className="text-[10px] text-amber-300/80 font-medium mt-0.5">Matchday Fee: UGX {formattedPrice}</p>
+                    <span className="text-text-tertiary block text-[10px] uppercase font-bold">Match Date</span>
+                    <span className="font-bold text-text-primary">{formattedDate}</span>
                   </div>
-                  <div className="text-right">
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-full border border-amber-500/30">
-                      <Clock size={12} />
-                      <span>Preemptible Hold</span>
-                    </span>
-                  </div>
-                </div>
-              ) : isDepositPaid ? (
-                <div className="p-3.5 rounded-2xl bg-primary-lime/10 border border-primary-lime/25 mb-5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">Deposit Paid</p>
-                      <p className="text-primary-lime font-black text-lg sm:text-xl font-display">
-                        UGX {(booking.depositAmount || Math.round(((booking.totalPrice || booking.price || 0) * 0.3) / 1000) * 1000).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary-lime bg-primary-lime/15 px-2.5 py-1 rounded-full border border-primary-lime/30">
-                        <Check size={12} strokeWidth={3} />
-                        <span>Deposit Verified</span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="pt-2 border-t border-primary-lime/20 flex justify-between items-center text-xs">
-                    <span className="text-text-secondary">Balance Due at Venue:</span>
-                    <span className="text-text-primary font-bold">
-                      UGX {(booking.balanceDue || Math.max(0, (booking.totalPrice || booking.price || 0) - (booking.depositAmount || 0))).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              ) : isDepositAwaitingVerification ? (
-                <div className="p-3.5 rounded-2xl bg-[#FACC15]/10 border border-[#FACC15]/25 mb-5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">Deposit Submitted</p>
-                      <p className="text-[#FACC15] font-black text-lg sm:text-xl font-display">
-                        UGX {(booking.depositAmount || Math.round(((booking.totalPrice || booking.price || 0) * 0.3) / 1000) * 1000).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#FACC15] bg-[#FACC15]/15 px-2.5 py-1 rounded-full border border-[#FACC15]/30">
-                        <Clock size={12} />
-                        <span>Awaiting Verification</span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="pt-2 border-t border-[#FACC15]/20 flex justify-between items-center text-xs">
-                    <span className="text-text-secondary">Balance Due at Venue:</span>
-                    <span className="text-text-primary font-bold">
-                      UGX {(booking.balanceDue || Math.max(0, (booking.totalPrice || booking.price || 0) - (booking.depositAmount || 0))).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-primary-lime/10 border border-primary-lime/25 mb-5">
                   <div>
-                    <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">{isConfirmed ? "Amount Paid" : "Amount Due"}</p>
-                    <p className="text-primary-lime font-black text-lg sm:text-xl font-display">
-                      UGX {formattedPrice}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border ${isConfirmed ? "text-primary-lime bg-primary-lime/15 border-primary-lime/30" : "text-[#FACC15] bg-[#FACC15]/15 border-[#FACC15]/30"}`}>
-                      {isConfirmed ? <Check size={12} strokeWidth={3} /> : <Clock size={12} />}
-                      <span>{isConfirmed ? "Payment Verified" : "Verification Pending"}</span>
-                    </span>
+                    <span className="text-text-tertiary block text-[10px] uppercase font-bold">Time Slot</span>
+                    <span className="font-bold text-text-primary">{slotText} – {formattedEndTime}</span>
                   </div>
                 </div>
-              )}
-
-              {/* Gate Entry Check-in Strip */}
-              <div className="pt-3 border-t border-dashed border-border-subtle flex items-center justify-between text-left">
-                <div className="space-y-0.5">
-                  {!isConfirmed && !isDepositPaid && (
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FACC15]/15 border border-[#FACC15]/30 text-[#FACC15] text-[10px] font-black uppercase tracking-wider mb-1">
-                      <Clock size={10} />
-                      <span>Awaiting owner verification</span>
-                    </div>
-                  )}
-                  <p className="text-[11px] font-bold text-text-primary flex items-center gap-1">
-                    <QrCode size={13} className={isConfirmed || isDepositPaid ? "text-primary-lime" : "text-[#FACC15]"} />
-                    <span>{isConfirmed || isDepositPaid ? "Matchday Gate Check-In" : "Check-In Pass (Unverified)"}</span>
-                  </p>
-                  <p className="text-[10px] text-text-tertiary font-medium">
-                    {isConfirmed || isDepositPaid 
-                      ? "Show this pass to the pitch marshal upon arrival" 
-                      : "Pass activates once payment is verified by facility owner"}
-                  </p>
-                </div>
-                <div className="font-mono text-[10px] font-black text-text-secondary tracking-widest bg-surface-raised px-2.5 py-1.5 rounded-lg border border-border-subtle">
-                  #{bookingRef}
-                </div>
               </div>
-              
-              {/* Subtle background watermark */}
-              <div className="absolute -right-8 -bottom-8 opacity-[0.03] text-text-primary pointer-events-none">
-                <CheckCircle2 size={160} />
-              </div>
-            </div>
+            )}
 
             {/* Notification Toast for Actions */}
             {copied && (
@@ -664,8 +766,8 @@ export const BookingConfirmation: React.FC = () => {
               </div>
             )}
 
-            {/* If tentative, primary action can be Lock In Slot */}
-            {isTentative && (
+            {/* If active tentative, primary action can be Lock In Slot */}
+            {isTentative && !isHoldExpired && !isPreempted && (
               <button
                 onClick={() => setShowUpgradeModal(true)}
                 className="w-full h-13 sm:h-14 bg-amber-500 hover:bg-amber-400 text-black rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] font-black text-sm tracking-wide shadow-md shadow-amber-500/20 cursor-pointer mb-3"
@@ -680,7 +782,7 @@ export const BookingConfirmation: React.FC = () => {
               id="view-my-bookings-btn"
               onClick={() => navigate('/bookings', { replace: true })}
               className={`w-full h-13 sm:h-14 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] font-black text-sm tracking-wide cursor-pointer mb-3 ${
-                isTentative
+                isTentative && !isHoldExpired && !isPreempted
                   ? "bg-surface-card hover:bg-surface-raised border border-border-subtle text-text-primary shadow-xs"
                   : "bg-primary-lime hover:bg-[#96E600] text-accent-text shadow-md shadow-primary-lime/20"
               }`}
@@ -690,15 +792,17 @@ export const BookingConfirmation: React.FC = () => {
             </button>
 
             {/* Secondary Action Grid */}
-            <div className="grid grid-cols-2 gap-2.5 w-full">
-              <button
-                id="share-pass-btn"
-                onClick={handleSharePass}
-                className="h-11 sm:h-12 bg-surface-card hover:bg-surface-raised border border-border-subtle text-text-primary rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-98 font-bold text-xs cursor-pointer shadow-xs"
-              >
-                <Share2 size={15} className="text-primary-lime" />
-                <span>Share Pass</span>
-              </button>
+            <div className={`grid ${!isPreempted && !isHoldExpired ? "grid-cols-2" : "grid-cols-1"} gap-2.5 w-full`}>
+              {!isPreempted && !isHoldExpired && (
+                <button
+                  id="share-pass-btn"
+                  onClick={handleSharePass}
+                  className="h-11 sm:h-12 bg-surface-card hover:bg-surface-raised border border-border-subtle text-text-primary rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-98 font-bold text-xs cursor-pointer shadow-xs"
+                >
+                  <Share2 size={15} className="text-primary-lime" />
+                  <span>Share Pass</span>
+                </button>
+              )}
 
               <button
                 id="back-to-home-btn"
@@ -737,129 +841,158 @@ export const BookingConfirmation: React.FC = () => {
               )}
 
               {/* Choose Upgrade Tier */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-text-primary block">Select Lock Option</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setUpgradeTier('DEPOSIT')}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                      upgradeTier === 'DEPOSIT'
-                        ? 'bg-primary-lime/10 border-primary-lime text-text-primary'
-                        : 'bg-surface-raised border-border-subtle text-text-secondary'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold">Deposit (30%)</span>
-                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-primary-lime/20 text-primary-lime">
-                        Secure
-                      </span>
+              {(() => {
+                const modalTotal = (booking.totalPrice || booking.price || 0);
+                const modalDepositCalc = computeDeposit(modalTotal, (turf as any)?.depositPercentage);
+                const modalDepositAmount = modalDepositCalc.depositAmount;
+                const modalDepositPct = (turf as any)?.depositPercentage || 50;
+
+                return (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-text-primary block">Select Lock Option</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setUpgradeTier('DEPOSIT')}
+                          className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                            upgradeTier === 'DEPOSIT'
+                              ? 'bg-primary-lime/10 border-primary-lime text-text-primary'
+                              : 'bg-surface-raised border-border-subtle text-text-secondary'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-bold">Deposit ({modalDepositPct}%)</span>
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-primary-lime/20 text-primary-lime">
+                              Secure
+                            </span>
+                          </div>
+                          <span className="text-xs font-black text-primary-lime block">
+                            UGX {modalDepositAmount.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-text-tertiary">Pay balance at turf</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setUpgradeTier('FULL')}
+                          className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                            upgradeTier === 'FULL'
+                              ? 'bg-primary-lime/10 border-primary-lime text-text-primary'
+                              : 'bg-surface-raised border-border-subtle text-text-secondary'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-bold">Full Payment</span>
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-surface-card text-text-tertiary">
+                              100%
+                            </span>
+                          </div>
+                          <span className="text-xs font-black text-primary-lime block">
+                            UGX {modalTotal.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-text-tertiary">Zero balance left</span>
+                        </button>
+                      </div>
                     </div>
-                    <span className="text-xs font-black text-primary-lime block">
-                      UGX {Math.max(20000, Math.round((((booking.totalPrice || booking.price || 0) * 0.3)) / 1000) * 1000).toLocaleString()}
-                    </span>
-                    <span className="text-[10px] text-text-tertiary">Pay balance at turf</span>
-                  </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setUpgradeTier('FULL')}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                      upgradeTier === 'FULL'
-                        ? 'bg-primary-lime/10 border-primary-lime text-text-primary'
-                        : 'bg-surface-raised border-border-subtle text-text-secondary'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold">Full Payment</span>
-                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-surface-card text-text-tertiary">
-                        100%
-                      </span>
-                    </div>
-                    <span className="text-xs font-black text-primary-lime block">
-                      UGX {((booking.totalPrice || booking.price || 0)).toLocaleString()}
-                    </span>
-                    <span className="text-[10px] text-text-tertiary">Zero balance left</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Payment Method */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-text-primary block">Payment Method</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setUpgradeMethod(PaymentMethod.MTN)}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer ${
-                      upgradeMethod === PaymentMethod.MTN ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-raised border-border-subtle text-text-secondary'
-                    }`}
-                  >
-                    <div className="w-5 h-5 rounded-full bg-[#FFCC00] text-black font-black text-[9px] flex items-center justify-center">MTN</div>
-                    <span>MTN MoMo</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUpgradeMethod(PaymentMethod.AIRTEL)}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer ${
-                      upgradeMethod === PaymentMethod.AIRTEL ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-raised border-border-subtle text-text-secondary'
-                    }`}
-                  >
-                    <div className="w-5 h-5 rounded-full bg-[#FF0000] text-white font-black text-[9px] flex items-center justify-center">AIR</div>
-                    <span>Airtel Money</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Payment Instructions */}
-              <div className="p-3 bg-surface-raised rounded-xl text-xs space-y-1 text-text-secondary border border-border-subtle">
-                <p>1. Dial <strong className="text-text-primary">{upgradeMethod === PaymentMethod.MTN ? '*165#' : '*185#'}</strong></p>
-                <p>
-                  2. Send UGX <strong className="text-primary-lime font-bold">
-                    {(upgradeTier === 'DEPOSIT' ? Math.max(20000, Math.round((((booking.totalPrice || booking.price || 0) * 0.3)) / 1000) * 1000) : (booking.totalPrice || booking.price || 0)).toLocaleString()}
-                  </strong> to <strong className="text-text-primary">{(turf as any)?.paymentPhone || turf?.contactPhone || "0772 123 456"}</strong>
-                </p>
-                <p>3. Enter transaction reference or attach screenshot below</p>
-              </div>
-
-              {/* Transaction Ref */}
-              <div>
-                <label className="text-xs font-bold text-text-primary block mb-1">Transaction Reference</label>
-                <input
-                  type="text"
-                  value={upgradeTxRef}
-                  onChange={(e) => setUpgradeTxRef(e.target.value)}
-                  placeholder="e.g. 192849102 or TXN-..."
-                  className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border-subtle text-text-primary text-xs font-mono focus:outline-hidden focus:border-primary-lime"
-                />
-              </div>
-
-              {/* Receipt Upload */}
-              <div>
-                <label className="text-xs font-bold text-text-primary block mb-1">Upload Receipt Screenshot</label>
-                <label className="block cursor-pointer">
-                  <input type="file" className="hidden" accept="image/*" onChange={handleUpgradeProofUpload} disabled={upgradeUploadingProof} />
-                  <div className="w-full h-20 rounded-xl border border-dashed border-border-prominent hover:border-primary-lime flex items-center justify-center gap-2 text-xs text-text-secondary bg-surface-raised">
-                    {upgradeUploadingProof ? (
-                      <Loader2 size={18} className="animate-spin text-primary-lime" />
-                    ) : upgradeProofUrl ? (
-                      <span className="text-primary-lime font-bold truncate max-w-[80%]">{upgradeProofFileName || "Receipt Uploaded"}</span>
+                    {/* Payment Method and Instructions */}
+                    {!pitchPaymentPhone ? (
+                      <div className="p-4 bg-surface-raised rounded-xl text-center space-y-2 border border-border-subtle">
+                        <p className="text-text-secondary text-xs leading-relaxed">
+                          This pitch hasn't set up its payment number yet. Contact the pitch owner, or reserve and pay at the pitch.
+                        </p>
+                      </div>
                     ) : (
                       <>
-                        <UploadCloud size={18} />
-                        <span>Select image file</span>
+                        {/* Payment Method */}
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-text-primary block">Payment Method</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setUpgradeMethod(PaymentMethod.MTN)}
+                              className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer ${
+                                upgradeMethod === PaymentMethod.MTN ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-raised border-border-subtle text-text-secondary'
+                              }`}
+                            >
+                              <div className="w-5 h-5 rounded-full bg-[#FFCC00] text-black font-black text-[9px] flex items-center justify-center">MTN</div>
+                              <span>MTN MoMo</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setUpgradeMethod(PaymentMethod.AIRTEL)}
+                              className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer ${
+                                upgradeMethod === PaymentMethod.AIRTEL ? 'bg-primary-lime/10 border-primary-lime text-primary-lime' : 'bg-surface-raised border-border-subtle text-text-secondary'
+                              }`}
+                            >
+                              <div className="w-5 h-5 rounded-full bg-[#FF0000] text-white font-black text-[9px] flex items-center justify-center">AIR</div>
+                              <span>Airtel Money</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Payment Instructions */}
+                        <div className="p-3 bg-surface-raised rounded-xl text-xs space-y-1 text-text-secondary border border-border-subtle">
+                          <p>1. Dial <strong className="text-text-primary">{upgradeMethod === PaymentMethod.MTN ? '*165#' : '*185#'}</strong></p>
+                          <p>
+                            2. Send UGX <strong className="text-primary-lime font-bold">
+                              {(upgradeTier === 'DEPOSIT' ? modalDepositAmount : modalTotal).toLocaleString()}
+                            </strong> to <strong className="text-text-primary">{pitchPaymentPhone}</strong>
+                          </p>
+                          <p>3. Enter transaction reference or attach screenshot below</p>
+                        </div>
                       </>
                     )}
+                  </>
+                );
+              })()}
+
+              {pitchPaymentPhone && (
+                <>
+                  {/* Transaction Ref */}
+                  <div>
+                    <label className="text-xs font-bold text-text-primary block mb-1">Transaction Reference</label>
+                    <input
+                      type="text"
+                      value={upgradeTxRef}
+                      onChange={(e) => setUpgradeTxRef(e.target.value)}
+                      placeholder="e.g. 192849102 or TXN-..."
+                      className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border-subtle text-text-primary text-xs font-mono focus:outline-hidden focus:border-primary-lime"
+                    />
+                    <p className="text-[11px] text-text-secondary mt-1">
+                      6 to 25 characters, as on your MoMo message
+                    </p>
                   </div>
-                </label>
-              </div>
+
+                  {/* Receipt Upload */}
+                  <div>
+                    <label className="text-xs font-bold text-text-primary block mb-1">Upload Receipt Screenshot</label>
+                    <label className="block cursor-pointer">
+                      <input type="file" className="hidden" accept="image/*" onChange={handleUpgradeProofUpload} disabled={upgradeUploadingProof} />
+                      <div className="w-full h-20 rounded-xl border border-dashed border-border-prominent hover:border-primary-lime flex items-center justify-center gap-2 text-xs text-text-secondary bg-surface-raised">
+                        {upgradeUploadingProof ? (
+                          <Loader2 size={18} className="animate-spin text-primary-lime" />
+                        ) : upgradeProofUrl ? (
+                          <span className="text-primary-lime font-bold truncate max-w-[80%]">{upgradeProofFileName || "Receipt Uploaded"}</span>
+                        ) : (
+                          <>
+                            <UploadCloud size={18} />
+                            <span>Select image file</span>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                </>
+              )}
 
               {/* Confirm Upgrade Button */}
               <div className="pt-2">
                 <button
                   type="button"
                   onClick={handleUpgradeTentative}
-                  disabled={upgrading || (!upgradeProofUrl && !upgradeTxRef)}
+                  disabled={upgrading || !isUpgradeValid}
                   className="w-full h-12 rounded-xl bg-primary-lime hover:bg-[#96E600] disabled:opacity-50 text-accent-text font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md"
                 >
                   {upgrading ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}

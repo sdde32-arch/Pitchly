@@ -17,17 +17,13 @@ import {
   Shield,
   Eye,
   EyeOff,
-  Database,
   Copy,
   Check,
   ExternalLink,
   Zap,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
-import { Card } from "../components/ui/Card";
-import { Button } from "../components/ui/Button";
 import { useNavigate, useLocation } from "react-router-dom";
-import { seedTurfs } from "../utils/seedTurfs";
 import { useUser } from "../context/UserContext";
 
 type AuthMode = "SIGN_IN" | "SIGN_UP" | "FORGOT_PASSWORD";
@@ -41,7 +37,6 @@ export const Auth: React.FC = () => {
   const from = stateParams.from?.pathname || "/home";
   const prefilledEmail = stateParams.email || "";
   const searchParams = new URLSearchParams(location.search);
-  const showSeedButton = searchParams.get("seed") === "true";
   const [mode, setMode] = useState<AuthMode>("SIGN_IN");
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,11 +46,6 @@ export const Auth: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isUnauthorizedDomain, setIsUnauthorizedDomain] = useState(false);
   const [copiedDomain, setCopiedDomain] = useState(false);
-  const [seedMessage, setSeedMessage] = useState<{
-    text: string;
-    type: "success" | "error";
-  } | null>(null);
-  const [isSeeding, setIsSeeding] = useState(false);
   /* Form State */ const [email, setEmail] = useState(prefilledEmail);
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -83,24 +73,6 @@ export const Auth: React.FC = () => {
       }
     }
   }, [user, authLoading, isAdmin, userIsOwner, navigate, from]);
-  const handleSeed = async () => {
-    setIsSeeding(true);
-    setSeedMessage(null);
-    try {
-      const result = await seedTurfs();
-      setSeedMessage({
-        text: result.message,
-        type: result.success ? "success" : "error",
-      });
-    } catch (err: any) {
-      setSeedMessage({
-        text: err.message || "Failed to seed turfs",
-        type: "error",
-      });
-    } finally {
-      setIsSeeding(false);
-    }
-  };
   /* Validation helpers */ const validateEmail = (email: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isFormValid = () => {
@@ -696,30 +668,6 @@ export const Auth: React.FC = () => {
               </button>
             </div>
           </form>
-          
-          {showSeedButton && (
-            <div className="mt-8 pt-8 border-t border-border-subtle">
-              {seedMessage && (
-                <div
-                  className={`mb-4 p-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest ${seedMessage.type === "success" ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20"}`}
-                >
-                  {seedMessage.text}
-                </div>
-              )}
-              <button
-                onClick={handleSeed}
-                disabled={isSeeding}
-                className="w-full flex items-center justify-center gap-2 text-[11px] uppercase tracking-widest font-black bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 py-3 rounded-full transition-colors"
-              >
-                {isSeeding ? (
-                  <Loader2 className="animate-spin" size={14} />
-                ) : (
-                  <Database size={14} />
-                )}
-                {isSeeding ? "Seeding Turfs..." : "Seed Test Turfs"}
-              </button>
-            </div>
-          )}
         </div>
         
         <p className="mt-4 text-center text-[10px] font-bold text-[#71717A] uppercase tracking-[0.2em] flex items-center justify-center gap-2">

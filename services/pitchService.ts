@@ -172,11 +172,20 @@ export const pitchService = {
           };
         }
       }
+      // When the document does not exist, return null
+      return null;
     } catch (error) {
       console.warn("Failed to fetch pitch from Firestore:", error);
+      // When the Firestore call THROWS (offline or network error), return offlineCacheService.getCachedPitchById(id) if a cached real pitch exists
+      const cached = offlineCacheService.getCachedPitchById(id) || offlineCacheService.getCachedPitchById(cleanId);
+      if (cached && !isLegacyTestPitch(cached)) {
+        return {
+          ...cached,
+          ...(localOverride || {}),
+        };
+      }
+      return null;
     }
-
-    return null;
   },
 
   async listPublic(): Promise<Pitch[]> {

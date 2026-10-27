@@ -65,6 +65,7 @@ export interface Pitch {
   footwearPolicy?: string;
   cancellationPolicy?: string;
   landmark?: string;
+  allowUnpaidReservations?: boolean;
 }
 
 /**
@@ -340,8 +341,12 @@ export interface Notification {
   userId: string;
   title: string;
   body: string;
-  type: 'BOOKING_REMINDER' | 'MATCH_INVITE' | 'PAYMENT_RECEIVED' | 'SYSTEM';
+  message?: string;
+  type: 'BOOKING_REMINDER' | 'MATCH_INVITE' | 'PAYMENT_RECEIVED' | 'SYSTEM' | 'BOOKING_PREEMPTED';
   isRead: boolean;
+  read?: boolean;
+  bookingId?: string;
+  pitchId?: string;
   link?: string;
   createdAt: string;
   updatedAt: string;

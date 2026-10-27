@@ -7,7 +7,6 @@ import { reviewService } from "../services/reviewService";
 import { bookingService } from "../services/bookingService";
 import { Review, Booking } from "../types/firebase";
 import { BookingStatus } from "../types";
-import { MOCK_REVIEWS_BY_PITCH } from "../constants";
 import { 
   Star, 
   MessageSquare, 
@@ -39,6 +38,7 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
   
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   
   // Review submission state
   const [rating, setRating] = useState(5);
@@ -71,32 +71,14 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
 
   const fetchReviews = async () => {
     setLoading(true);
+    setFetchError(false);
     try {
       const data = await reviewService.listByPitch(pitchId);
-      if (data && data.length > 0) {
-        setReviews(data);
-      } else {
-        // Fallback to rich mock reviews for this pitch if Firestore is empty
-        const fallback = (
-          MOCK_REVIEWS_BY_PITCH[pitchId] || 
-          MOCK_REVIEWS_BY_PITCH[normalizedId] || 
-          (pitchId.toLowerCase().includes("tal") ? MOCK_REVIEWS_BY_PITCH["tal-olympic-arena"] : null) ||
-          MOCK_REVIEWS_BY_PITCH["tal-olympic-arena"] ||
-          MOCK_REVIEWS_BY_PITCH["1"] || 
-          []
-        ) as Review[];
-        setReviews(fallback);
-      }
+      setReviews(data || []);
     } catch (err) {
       console.error("Error loading reviews:", err);
-      const fallback = (
-        MOCK_REVIEWS_BY_PITCH[pitchId] || 
-        MOCK_REVIEWS_BY_PITCH[normalizedId] || 
-        MOCK_REVIEWS_BY_PITCH["tal-olympic-arena"] ||
-        MOCK_REVIEWS_BY_PITCH["1"] || 
-        []
-      ) as Review[];
-      setReviews(fallback);
+      setFetchError(true);
+      setReviews([]);
     } finally {
       setLoading(false);
     }
@@ -554,6 +536,14 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
           <div className="flex flex-col items-center justify-center py-10 gap-2 bg-surface-card rounded-xl border border-border-subtle">
             <Loader2 size={22} className="animate-spin text-primary-lime" />
             <span className="text-xs text-text-secondary">Loading player reviews...</span>
+          </div>
+        ) : fetchError ? (
+          <div className="py-10 text-center text-text-secondary bg-surface-card border border-border-subtle rounded-2xl space-y-2">
+            <MessageSquare size={32} className="text-zinc-600 mx-auto" />
+            <p className="font-bold text-xs text-text-primary">Couldn't load reviews</p>
+            <p className="text-[11px] text-text-secondary">
+              Please check your connection and try again.
+            </p>
           </div>
         ) : reviews.length === 0 ? (
           <div className="py-10 text-center text-text-secondary bg-surface-card border border-border-subtle rounded-2xl space-y-2">

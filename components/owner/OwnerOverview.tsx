@@ -101,7 +101,6 @@ export const OwnerOverview: React.FC = () => {
   const [pitches, setPitches] = useState<Pitch[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [seedingDemo, setSeedingDemo] = useState(false);
   const navigate = useNavigate();
 
   // Live Slot Toggle Grid State
@@ -111,66 +110,6 @@ export const OwnerOverview: React.FC = () => {
   const [slotsAvailability, setSlotsAvailability] = useState<SlotAvailability[]>([]);
   const [loadingSlots, setLoadingSlots] = useState<boolean>(false);
   const [togglingSlot, setTogglingSlot] = useState<string | null>(null);
-
-  const handleSeedDemoPitch = async () => {
-    const uId = userProfile?.id || user?.uid;
-    if (!uId) return;
-    setSeedingDemo(true);
-    try {
-      const demoPitch: Pitch = {
-        id: `pitch_demo_${uId.slice(0, 8)}`,
-        ownerId: uId,
-        name: "Kigozi Sports Arena - Pitch 1",
-        location: "Lugogo Bypass, Kampala",
-        formattedAddress: "Plot 12 Lugogo Bypass, Near UMA Showgrounds, Kampala",
-        pricePerHour: 120000,
-        openingHour: "07:00",
-        closingHour: "23:00",
-        pitchFormats: ["7-a-side", "Synthetic AstroTurf"],
-        amenities: ["Floodlights", "Changing Rooms", "Secure Parking", "Showers", "Cafeteria", "Free WiFi"],
-        images: [
-          "https://images.unsplash.com/photo-1529900241451-b8f416550794?auto=format&fit=crop&q=80",
-          "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80"
-        ],
-        status: "ACTIVE" as any,
-        surfaceType: "FIFA Synthetic Turf",
-        latitude: 0.3275,
-        longitude: 32.6041,
-        isVerified: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      await pitchService.create(demoPitch);
-      setPitches([demoPitch]);
-      setSelectedPitchId(demoPitch.id);
-    } catch (err) {
-      console.warn("Could not save demo pitch to Firestore, activating in-memory preview:", err);
-      const localDemo: Pitch = {
-        id: `pitch_demo_local`,
-        ownerId: uId,
-        name: "Kigozi Sports Arena - Pitch 1",
-        location: "Lugogo Bypass, Kampala",
-        formattedAddress: "Plot 12 Lugogo Bypass, Near UMA Showgrounds, Kampala",
-        pricePerHour: 120000,
-        openingHour: "07:00",
-        closingHour: "23:00",
-        pitchFormats: ["7-a-side", "Synthetic AstroTurf"],
-        amenities: ["Floodlights", "Changing Rooms", "Secure Parking", "Showers"],
-        images: ["https://images.unsplash.com/photo-1529900241451-b8f416550794?auto=format&fit=crop&q=80"],
-        status: "ACTIVE" as any,
-        surfaceType: "FIFA Synthetic Turf",
-        latitude: 0.3275,
-        longitude: 32.6041,
-        isVerified: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      setPitches([localDemo]);
-      setSelectedPitchId(localDemo.id);
-    } finally {
-      setSeedingDemo(false);
-    }
-  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -338,24 +277,6 @@ export const OwnerOverview: React.FC = () => {
                 <span>List Your Pitch Ground</span>
               </button>
 
-              <button
-                id="btn-onboarding-seed-demo"
-                onClick={handleSeedDemoPitch}
-                disabled={seedingDemo}
-                className="w-full px-5 py-3 bg-surface-raised hover:bg-surface-raised/80 text-text-primary border border-border-subtle hover:border-primary-lime/40 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-              >
-                {seedingDemo ? (
-                  <>
-                    <Loader2 size={15} className="animate-spin text-primary-lime" />
-                    <span>Loading Demo Data...</span>
-                  </>
-                ) : (
-                  <>
-                    <Zap size={15} className="text-primary-lime" />
-                    <span>⚡ Load Sample Facility Data</span>
-                  </>
-                )}
-              </button>
 
               <button
                 id="btn-onboarding-walkthrough"

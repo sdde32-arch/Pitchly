@@ -119,6 +119,22 @@ service cloud.firestore {
       );
     }
 
+    function hasPaymentProof(d) {
+      return (d.get('transactionRef', '') is string && d.get('transactionRef', '').size() >= 6) ||
+             (d.get('paymentProofUrl', '') is string && d.get('paymentProofUrl', '').size() > 10);
+    }
+
+    function isValidPreemptingPayer(resourceData, requestResourceData) {
+      let payer = getAfter(/databases/$(database)/documents/bookings/$(requestResourceData.preemptedByBookingId)).data;
+      return payer.get('userId', '') == request.auth.uid &&
+             payer.get('status', '') == 'PAYMENT_SUBMITTED' &&
+             hasPaymentProof(payer) &&
+             payer.get('bookingTier', '') in ['DEPOSIT', 'FULL'] &&
+             payer.get('pitchId', '') == resourceData.get('pitchId', '') &&
+             payer.get('date', '') == resourceData.get('date', '') &&
+             payer.get('slots', []).hasAny(resourceData.get('slots', []));
+    }
+
     // ─────────────────────────────────────────────────────────────
     // USERS COLLECTION
     // Strictly restricts self-promotion to ADMIN/super_admin/OWNER escalation
@@ -288,16 +304,27 @@ service cloud.firestore {
         (
           isAdmin() ||
           (
-            !(request.resource.data.get('paymentMethod', '') in ['CASH', 'cash']) &&
-            request.resource.data.status in [
-              'PENDING_PAYMENT',
-              'PAYMENT_SUBMITTED',
-              'temporarily_held',
-              'PENDING'
-            ] &&
             exists(/databases/$(database)/documents/pitches/$(request.resource.data.get('pitchId', request.resource.data.get('turfId', '')))) &&
             get(/databases/$(database)/documents/pitches/$(request.resource.data.get('pitchId', request.resource.data.get('turfId', '')))).data.ownerId == request.resource.data.ownerId &&
-            get(/databases/$(database)/documents/pitches/$(request.resource.data.get('pitchId', request.resource.data.get('turfId', '')))).data.get('status', '') in ['ACTIVE', 'active', 'approved', 'APPROVED']
+            get(/databases/$(database)/documents/pitches/$(request.resource.data.get('pitchId', request.resource.data.get('turfId', '')))).data.get('status', '') in ['ACTIVE', 'active', 'approved', 'APPROVED'] &&
+            (
+              // (a) UNPAID HOLD
+              (
+                request.resource.data.status == 'TENTATIVE' &&
+                request.resource.data.get('bookingTier', '') == 'TENTATIVE' &&
+                request.resource.data.get('paymentMethod', '') in ['CASH', 'cash'] &&
+                request.resource.data.get('depositAmount', 0) == 0 &&
+                request.resource.data.get('paymentStatus', '') == 'UNPAID' &&
+                get(/databases/$(database)/documents/pitches/$(request.resource.data.get('pitchId', request.resource.data.get('turfId', '')))).data.get('allowUnpaidReservations', true) == true
+              ) ||
+              // (b) PAID
+              (
+                request.resource.data.status in ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED'] &&
+                request.resource.data.get('bookingTier', '') in ['DEPOSIT', 'FULL'] &&
+                !(request.resource.data.get('paymentMethod', '') in ['CASH', 'cash']) &&
+                (request.resource.data.status != 'PAYMENT_SUBMITTED' || hasPaymentProof(request.resource.data))
+              )
+            )
           )
         );
 
@@ -306,14 +333,15 @@ service cloud.firestore {
         isValidBookingStatus(request.resource.data.status) &&
         isValidPaymentMethod(request.resource.data.get('paymentMethod', null)) &&
         (
-          isAdmin() ||
           // Preemption of tentative bookings by paying players: strictly restricted to preemption fields only
           (
             resource.data.status == 'TENTATIVE' &&
             request.resource.data.status == 'PREEMPTED' &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly([
               'status', 'preemptedAt', 'preemptedByBookingId', 'cancellationReason', 'updatedAt'
-            ])
+            ]) &&
+            request.resource.data.get('preemptedByBookingId', '') != '' &&
+            isValidPreemptingPayer(resource.data, request.resource.data)
           ) ||
           // Player Updates: Can submit receipt, upgrade tier, or cancel their unconfirmed booking.
           // Absolutely CANNOT tamper with price, ownerId, pitchId, or self-confirm!
@@ -360,6 +388,7 @@ service cloud.firestore {
               )
             ) &&
             !(request.resource.data.status in ['CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'DEPOSIT_PAID']) &&
+            (request.resource.data.status != 'PAYMENT_SUBMITTED' || hasPaymentProof(request.resource.data)) &&
             (
               (request.resource.data.status == 'CANCELLED' && (resource.data.status in ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'temporarily_held', 'PENDING', 'TENTATIVE'])) ||
               (request.resource.data.status in ['PAYMENT_SUBMITTED', 'PENDING_PAYMENT'] && (resource.data.status in ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'temporarily_held', 'PENDING', 'TENTATIVE'])) ||
@@ -375,7 +404,8 @@ service cloud.firestore {
               request.resource.data.status in ['CONFIRMED', 'REJECTED', 'CANCELLED', 'CHECKED_IN', 'COMPLETED', 'DEPOSIT_PAID', 'DISPUTED'] ||
               request.resource.data.status == resource.data.status
             )
-          )
+          ) ||
+          isAdmin()
         );
 
       // Delete: Restricted to participants or admin, and only for unconfirmed/cancelled/rejected statuses

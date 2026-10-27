@@ -29,73 +29,23 @@ export const OwnerInbox: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fallback mock conversations if user is offline or has no messages yet
-  const defaultMockConvs: Conversation[] = [
-    {
-      id: "conv_mock_1",
-      participants: [user?.uid || "current_owner", "player_salim_barde"],
-      type: "DIRECT",
-      name: "Salim Barde",
-      lastMessage: "Hi, is the pitch available for night lighting? We want to play at 19:00.",
-      lastMessageTime: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-      updatedAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-      turfName: "Area Arena",
-      playerName: "Salim Barde",
-      playerPhone: "+256 701 448 992",
-      playerAvatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80"
-    } as any,
-    {
-      id: "conv_mock_2",
-      participants: [user?.uid || "current_owner", "player_david_okello"],
-      type: "DIRECT",
-      name: "David Okello",
-      lastMessage: "Thanks for confirming our booking! Do you have training bibs on site?",
-      lastMessageTime: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-      updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-      turfName: "The Regent's Park",
-      playerName: "David Okello",
-      playerPhone: "+256 772 334 112",
-      playerAvatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&q=80"
-    } as any,
-    {
-      id: "conv_mock_3",
-      participants: [user?.uid || "current_owner", "player_sarah_namukasa"],
-      type: "DIRECT",
-      name: "Sarah Namukasa",
-      lastMessage: "Can we extend our slot by 30 minutes if nobody is booked after us?",
-      lastMessageTime: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
-      updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-      turfName: "Kinetic Sports Arena",
-      playerName: "Sarah Namukasa",
-      playerPhone: "+256 789 123 456",
-      playerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80"
-    } as any
-  ];
-
   // Subscribe to real-time conversations
   useEffect(() => {
     if (!user?.uid) {
-      setConversations(defaultMockConvs);
+      setConversations([]);
       setLoading(false);
       return;
     }
 
     try {
       const unsubscribe = chatService.subscribeToUserConversations(user.uid, (convs) => {
-        if (convs && convs.length > 0) {
-          setConversations(convs);
-        } else {
-          setConversations(defaultMockConvs);
-        }
+        setConversations(convs || []);
         setLoading(false);
       });
       return () => unsubscribe();
     } catch (err) {
       console.warn("Failed to subscribe to conversations, using local fallback", err);
-      setConversations(defaultMockConvs);
+      setConversations([]);
       setLoading(false);
     }
   }, [user?.uid]);
@@ -109,53 +59,21 @@ export const OwnerInbox: React.FC = () => {
 
   // Subscribe to messages of selected conversation
   useEffect(() => {
-    if (!selectedConvId) return;
-    setLoadingMessages(true);
-
-    // If it's a mock conversation, provide realistic mock messages
-    if (selectedConvId.startsWith("conv_mock_")) {
-      const active = conversations.find(c => c.id === selectedConvId) as any;
-      const mockMsgs: Message[] = [
-        {
-          id: "m_1",
-          conversationId: selectedConvId,
-          senderId: active?.playerName === "Salim Barde" ? "player_salim_barde" : "player_david",
-          senderName: active?.playerName || "Player",
-          senderAvatar: active?.playerAvatar,
-          text: `Hello! Inquiring regarding pitch availability at ${active?.turfName || "your sports facility"}.`,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString()
-        } as any,
-        {
-          id: "m_2",
-          conversationId: selectedConvId,
-          senderId: user?.uid || "current_owner",
-          senderName: userProfile?.name || "Facility Host",
-          text: `Hello ${active?.playerName || "there"}! Yes, we have our floodlit 7-a-side pitch open. How can we help?`,
-          createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString()
-        } as any,
-        {
-          id: "m_3",
-          conversationId: selectedConvId,
-          senderId: active?.playerName === "Salim Barde" ? "player_salim_barde" : "player_david",
-          senderName: active?.playerName || "Player",
-          senderAvatar: active?.playerAvatar,
-          text: active?.lastMessage || "Is the pitch available for night lighting?",
-          createdAt: active?.lastMessageTime || new Date(Date.now() - 1000 * 60 * 18).toISOString()
-        } as any
-      ];
-      setMessages(mockMsgs);
-      setLoadingMessages(false);
+    if (!selectedConvId) {
+      setMessages([]);
       return;
     }
+    setLoadingMessages(true);
 
     try {
       const unsubscribe = chatService.subscribeToMessages(selectedConvId, (msgs) => {
-        setMessages(msgs);
+        setMessages(msgs || []);
         setLoadingMessages(false);
       });
       return () => unsubscribe();
     } catch (err) {
       console.warn("Failed to subscribe to messages", err);
+      setMessages([]);
       setLoadingMessages(false);
     }
   }, [selectedConvId]);
@@ -204,9 +122,7 @@ export const OwnerInbox: React.FC = () => {
     }));
 
     try {
-      if (!selectedConvId.startsWith("conv_mock_")) {
-        await chatService.sendMessage(selectedConvId, senderId, textToSend, senderName, senderAvatar);
-      }
+      await chatService.sendMessage(selectedConvId, senderId, textToSend, senderName, senderAvatar);
     } catch (err) {
       console.error("Failed to send message:", err);
     }
@@ -264,7 +180,7 @@ export const OwnerInbox: React.FC = () => {
             </div>
           ) : filteredConversations.length === 0 ? (
             <div className="p-8 text-center text-text-tertiary text-xs">
-              No conversations found matching your search.
+              {conversations.length === 0 ? "No messages yet" : "No conversations found matching your search."}
             </div>
           ) : (
             filteredConversations.map((conv) => {
@@ -491,9 +407,11 @@ export const OwnerInbox: React.FC = () => {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-text-tertiary">
             <MessageSquare size={36} className="mb-2 text-border-prominent" />
-            <p className="text-sm font-bold text-text-secondary">Select an inquiry to view messages</p>
+            <p className="text-sm font-bold text-text-secondary">
+              {conversations.length === 0 ? "No messages yet" : "Select an inquiry to view messages"}
+            </p>
             <p className="text-xs text-text-tertiary max-w-xs mt-1">
-              Choose a conversation from the left to read and reply to players.
+              {conversations.length === 0 ? "When players message you about bookings or pitches, they will appear here." : "Choose a conversation from the left to read and reply to players."}
             </p>
           </div>
         )}

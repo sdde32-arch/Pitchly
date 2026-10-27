@@ -236,12 +236,54 @@ export const BookingManager: React.FC = () => {
     }
   };
 
+  const getWhatsAppUrl = (phone?: string) => {
+    if (!phone) return null;
+    const digits = phone.replace(/\D/g, '');
+    if (!digits) return null;
+    const intlDigits = digits.startsWith('0') ? '256' + digits.slice(1) : digits;
+    return `https://wa.me/${intlDigits}`;
+  };
+
+  const handleConfirmReservation = async (booking: Booking) => {
+    setProcessingId(booking.id);
+    try {
+      await bookingService.confirmUnpaidReservation(booking as any);
+      const bAny = booking as any;
+      const totalAmount = Number(bAny.totalAmount || bAny.totalPrice || booking.price || 0);
+      const balanceDue = bAny.balanceDue ?? totalAmount;
+      setBookings((prev) =>
+        prev.map((b) => (b.id === booking.id ? {
+          ...b,
+          status: BookingStatus.CONFIRMED,
+          paymentStatus: 'UNPAID',
+          balanceDue: balanceDue,
+          approvedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        } : b))
+      );
+      setToast({
+        type: "success",
+        title: "Reservation Confirmed! ⚽",
+        message: `Reservation for ${booking.userName || "Player"} on ${booking.date} (${booking.time}) is confirmed.`
+      });
+    } catch (err: any) {
+      console.error("Failed to confirm unpaid reservation:", err);
+      setToast({
+        type: "error",
+        title: "Confirmation Failed",
+        message: err.message === 'RESERVATION_EXPIRED' ? 'This reservation has expired.' : (err.message || 'Could not confirm reservation.')
+      });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const filtered = bookings.filter((b) => {
     const matchMonth = !thisMonthOnly || isThisMonth(b.date);
     if (!matchMonth) return false;
 
     if (filter === "PAYMENT_REVIEWS") return b.status === BookingStatus.PAYMENT_SUBMITTED;
-    if (filter === "TENTATIVE") return b.status === BookingStatus.TENTATIVE || (b as any).bookingTier === 'TENTATIVE';
+    if (filter === "TENTATIVE") return b.status === BookingStatus.TENTATIVE;
     const matchStatus =
       filter === "ALL" ||
       b.status === filter ||
@@ -497,6 +539,9 @@ export const BookingManager: React.FC = () => {
                 const isPending = booking.status === "PENDING" || booking.status === BookingStatus.PENDING_PAYMENT;
                 const isCancelled = booking.status === "CANCELLED" || booking.status === "REJECTED";
                 const isPaymentReview = booking.status === BookingStatus.PAYMENT_SUBMITTED;
+                const isTentative = booking.status === BookingStatus.TENTATIVE;
+                const isHoldExpired = isTentative && bookingService.isHoldExpired(booking);
+                const isOpenTentative = isTentative && !isHoldExpired;
                 const isJustConfirmed = justConfirmedId === booking.id;
                 const bookingRef = (booking.id || "").slice(-6).toUpperCase();
                 const playerDisplayName = booking.userName || (booking as any).playerName || "Player";
@@ -564,19 +609,26 @@ export const BookingManager: React.FC = () => {
                       </div>
 
                       {(() => {
-                        const isTentative = booking.status === BookingStatus.TENTATIVE || (booking as any).bookingTier === 'TENTATIVE';
+                        const isTentative = booking.status === BookingStatus.TENTATIVE;
+                        const isHoldExpired = isTentative && bookingService.isHoldExpired(booking);
                         const isPreempted = booking.status === BookingStatus.PREEMPTED;
                         const isDepositPaid = booking.status === BookingStatus.DEPOSIT_PAID;
                         const isDepositAwaitingVerification = (booking.status === BookingStatus.PAYMENT_SUBMITTED || booking.status === BookingStatus.PENDING_PAYMENT) && (booking as any).bookingTier === 'DEPOSIT';
                         const isExpiredPending = isPending && bookingService.isPendingBookingExpired(booking);
                         const pendingRemMs = isPending ? bookingService.getRemainingPaymentTimeMs(booking) : 0;
+                        const isConfirmedTentative = isConfirmed && (booking as any).bookingTier === 'TENTATIVE';
+                        const balanceDueAmount = (booking as any).balanceDue ?? (((booking as any).totalAmount || (booking as any).totalPrice || booking.price || 0));
                         return (
                           <span
                             className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0 border ${
                               isPreempted
                                 ? "bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/30"
+                                : isHoldExpired
+                                ? "bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/30"
                                 : isTentative
                                 ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                                : isConfirmedTentative
+                                ? "bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/30"
                                 : isDepositPaid
                                 ? "bg-primary-lime/15 text-primary-lime border-primary-lime/30"
                                 : isDepositAwaitingVerification
@@ -594,8 +646,12 @@ export const BookingManager: React.FC = () => {
                           >
                             {isPreempted
                               ? "Reallocated"
+                              : isHoldExpired
+                              ? "Expired"
                               : isTentative
-                              ? "Tentative (Preemptible)"
+                              ? "Unpaid reservation · pay at the pitch"
+                              : isConfirmedTentative
+                              ? `Confirmed · pay UGX ${balanceDueAmount.toLocaleString()} at the pitch`
                               : isDepositPaid
                               ? "Deposit Paid"
                               : isDepositAwaitingVerification
@@ -634,15 +690,15 @@ export const BookingManager: React.FC = () => {
 
                         <div className="text-right shrink-0">
                           <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
-                            Total Fee
+                            {booking.status === BookingStatus.TENTATIVE || (isConfirmed && (booking as any).bookingTier === 'TENTATIVE') ? "Due at Pitch" : "Total Fee"}
                           </span>
                           <div className="flex items-baseline justify-end gap-1 mt-0.5">
                             <span className="text-sm sm:text-base font-black text-primary-lime font-display">
-                              UGX {(booking.price || (booking as any).totalPrice || 0).toLocaleString()}
+                              UGX {(((booking as any).balanceDue ?? ((booking as any).totalAmount || (booking as any).totalPrice || booking.price || 0))).toLocaleString()}
                             </span>
                           </div>
                           <span className="text-[10px] text-text-tertiary font-medium block">
-                            UGX {((booking.price || 0) / (booking.duration || 1)).toLocaleString()} / hr ({booking.duration || 1} hr)
+                            {booking.status === BookingStatus.TENTATIVE ? "Pay cash on arrival" : `UGX ${((booking.price || 0) / (booking.duration || 1)).toLocaleString()} / hr (${booking.duration || 1} hr)`}
                           </span>
                         </div>
                       </div>
@@ -717,13 +773,27 @@ export const BookingManager: React.FC = () => {
                         {/* Call Player Link */}
                         {playerPhoneNum ? (
                           <a
-                            href={`tel:${playerPhoneNum}`}
+                            href={`tel:${playerPhoneNum.replace(/\s+/g, '')}`}
                             className="px-2.5 py-1.5 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-lg text-xs font-bold text-text-primary flex items-center gap-1 transition-all active:scale-95"
                             title={`Call ${playerPhoneNum}`}
                           >
                             <Phone size={13} className="text-primary-lime" />
                             <span className="hidden sm:inline">{playerPhoneNum}</span>
                             <span className="sm:hidden">Call</span>
+                          </a>
+                        ) : null}
+
+                        {/* WhatsApp Link */}
+                        {getWhatsAppUrl(playerPhoneNum) ? (
+                          <a
+                            href={getWhatsAppUrl(playerPhoneNum)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 rounded-lg text-xs font-bold text-[#25D366] flex items-center gap-1 transition-all active:scale-95"
+                            title={`WhatsApp ${playerPhoneNum}`}
+                          >
+                            <Smartphone size={13} />
+                            <span>WhatsApp</span>
                           </a>
                         ) : null}
 
@@ -897,6 +967,46 @@ export const BookingManager: React.FC = () => {
                             >
                               Decline
                             </button>
+                          </div>
+                        )}
+
+                        {/* Open Unpaid Reservation Action Controls */}
+                        {isOpenTentative && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleConfirmReservation(booking)}
+                              disabled={processingId === booking.id}
+                              className="h-9 px-3.5 sm:px-4 bg-primary-lime hover:bg-[#96E600] text-accent-text font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md shadow-primary-lime/25 cursor-pointer active:scale-95 disabled:opacity-50"
+                            >
+                              {processingId === booking.id ? (
+                                <>
+                                  <Loader2 size={14} className="animate-spin" />
+                                  <span>Confirming...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Check size={15} strokeWidth={3} />
+                                  <span>Confirm reservation</span>
+                                </>
+                              )}
+                            </button>
+
+                            <button
+                              onClick={() => setDeclineModalBooking(booking)}
+                              disabled={processingId === booking.id}
+                              className="h-9 px-3 bg-surface-raised hover:bg-[#EF4444]/10 border border-border-subtle hover:border-[#EF4444]/30 text-[#EF4444] rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                            >
+                              <X size={14} />
+                              <span>Decline</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Expired Unpaid Reservation State (No buttons) */}
+                        {isTentative && isHoldExpired && (
+                          <div className="flex items-center gap-1.5 px-3 h-9 bg-surface-raised border border-border-subtle text-text-tertiary text-xs font-bold rounded-xl">
+                            <Clock size={14} />
+                            <span>Expired</span>
                           </div>
                         )}
                       </div>
@@ -1227,9 +1337,35 @@ export const BookingManager: React.FC = () => {
                 disabled={processingId === declineModalBooking.id}
                 onClick={async () => {
                   if (!declineModalBooking) return;
-                  await handleAction(declineModalBooking, "CANCELLED");
-                  setDeclineModalBooking(null);
-                  setCustomDeclineReason("");
+                  const isUnpaidHold = declineModalBooking.status === BookingStatus.TENTATIVE;
+                  const reasonToUse = customDeclineReason.trim() || selectedDeclineReason || "Declined by owner";
+                  setProcessingId(declineModalBooking.id);
+                  try {
+                    if (isUnpaidHold) {
+                      await bookingService.declineUnpaidReservation(declineModalBooking as any, reasonToUse);
+                      setBookings((prev) =>
+                        prev.map((b) => (b.id === declineModalBooking.id ? { ...b, status: BookingStatus.REJECTED, rejectionReason: reasonToUse, updatedAt: new Date().toISOString() } : b))
+                      );
+                      setToast({
+                        type: "info",
+                        title: "Reservation Declined",
+                        message: "Reservation has been declined and the slot freed up."
+                      });
+                    } else {
+                      await handleAction(declineModalBooking, "CANCELLED", reasonToUse);
+                    }
+                  } catch (err: any) {
+                    console.error("Failed to decline booking:", err);
+                    setToast({
+                      type: "error",
+                      title: "Decline Failed",
+                      message: err.message || "Failed to decline booking."
+                    });
+                  } finally {
+                    setProcessingId(null);
+                    setDeclineModalBooking(null);
+                    setCustomDeclineReason("");
+                  }
                 }}
                 className="px-4 py-2 bg-[#EF4444] hover:bg-[#DC2626] text-white rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-md shadow-[#EF4444]/20"
               >
@@ -1262,15 +1398,36 @@ export const BookingManager: React.FC = () => {
                   <span className="text-[10px] font-mono font-bold bg-primary-lime/15 text-primary-lime border border-primary-lime/30 px-2 py-0.5 rounded">
                     #{(viewDetailsBooking.id || "").slice(-6).toUpperCase()}
                   </span>
-                  <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
-                    viewDetailsBooking.status === "CONFIRMED" || viewDetailsBooking.status === "CHECKED_IN"
-                      ? "bg-[#22C55E]/15 text-[#22C55E]"
-                      : viewDetailsBooking.status === "PENDING"
-                      ? "bg-primary-lime/15 text-primary-lime"
-                      : "bg-[#EF4444]/15 text-[#EF4444]"
-                  }`}>
-                    {viewDetailsBooking.status}
-                  </span>
+                  {(() => {
+                    const isModalTentative = viewDetailsBooking.status === BookingStatus.TENTATIVE;
+                    const isModalHoldExpired = isModalTentative && bookingService.isHoldExpired(viewDetailsBooking);
+                    const isModalConfirmedTentative = (viewDetailsBooking.status === "CONFIRMED" || viewDetailsBooking.status === "CHECKED_IN") && (viewDetailsBooking as any).bookingTier === 'TENTATIVE';
+                    const modalBalanceDue = (viewDetailsBooking as any).balanceDue ?? ((viewDetailsBooking as any).totalAmount || (viewDetailsBooking as any).totalPrice || viewDetailsBooking.price || 0);
+
+                    return (
+                      <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
+                        isModalHoldExpired
+                          ? "bg-[#EF4444]/15 text-[#EF4444] border border-[#EF4444]/30"
+                          : isModalTentative
+                          ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                          : isModalConfirmedTentative
+                          ? "bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30"
+                          : viewDetailsBooking.status === "CONFIRMED" || viewDetailsBooking.status === "CHECKED_IN"
+                          ? "bg-[#22C55E]/15 text-[#22C55E]"
+                          : viewDetailsBooking.status === "PENDING"
+                          ? "bg-primary-lime/15 text-primary-lime"
+                          : "bg-[#EF4444]/15 text-[#EF4444]"
+                      }`}>
+                        {isModalHoldExpired
+                          ? "Expired"
+                          : isModalTentative
+                          ? "Unpaid reservation · pay at the pitch"
+                          : isModalConfirmedTentative
+                          ? `Confirmed · pay UGX ${modalBalanceDue.toLocaleString()} at the pitch`
+                          : viewDetailsBooking.status}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <h3 className="text-base sm:text-lg font-black text-text-primary mt-1">
                   {viewDetailsBooking.turfName || viewDetailsBooking.pitchName || "Match Facility Pass"}
@@ -1319,11 +1476,23 @@ export const BookingManager: React.FC = () => {
 
                   {(viewDetailsBooking.playerPhone || (viewDetailsBooking as any).userPhone) && (
                     <a
-                      href={`tel:${viewDetailsBooking.playerPhone || (viewDetailsBooking as any).userPhone}`}
+                      href={`tel:${(viewDetailsBooking.playerPhone || (viewDetailsBooking as any).userPhone || '').replace(/\s+/g, '')}`}
                       className="px-3 py-1.5 bg-surface-card text-text-primary border border-border-subtle rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-border-subtle"
                     >
                       <Phone size={13} className="text-primary-lime" />
                       <span>Call</span>
+                    </a>
+                  )}
+
+                  {getWhatsAppUrl(viewDetailsBooking.playerPhone || (viewDetailsBooking as any).userPhone) && (
+                    <a
+                      href={getWhatsAppUrl(viewDetailsBooking.playerPhone || (viewDetailsBooking as any).userPhone)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/30 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-[#25D366]/20"
+                    >
+                      <Smartphone size={13} />
+                      <span>WhatsApp</span>
                     </a>
                   )}
                 </div>
@@ -1358,13 +1527,13 @@ export const BookingManager: React.FC = () => {
 
               <div className="bg-surface-raised rounded-xl p-3 border border-border-subtle">
                 <span className="text-[10px] font-bold text-text-tertiary uppercase block">
-                  Total Rate & Payout
+                  {viewDetailsBooking.status === BookingStatus.TENTATIVE ? "Amount Due at Pitch" : "Total Rate & Payout"}
                 </span>
                 <p className="text-sm font-extrabold text-primary-lime mt-1">
-                  UGX {(viewDetailsBooking.price || 0).toLocaleString()}
+                  UGX {(((viewDetailsBooking as any).balanceDue ?? ((viewDetailsBooking as any).totalAmount || (viewDetailsBooking as any).totalPrice || viewDetailsBooking.price || 0))).toLocaleString()}
                 </p>
                 <p className="text-[11px] text-text-tertiary mt-0.5">
-                  Standard Peak Slot
+                  {viewDetailsBooking.status === BookingStatus.TENTATIVE ? "Pay cash on arrival" : "Standard Peak Slot"}
                 </p>
               </div>
 
@@ -1402,6 +1571,36 @@ export const BookingManager: React.FC = () => {
               </button>
 
               <div className="flex items-center gap-2">
+                {viewDetailsBooking.status === BookingStatus.TENTATIVE && !bookingService.isHoldExpired(viewDetailsBooking) && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={processingId === viewDetailsBooking.id}
+                      onClick={async () => {
+                        const b = viewDetailsBooking;
+                        setViewDetailsBooking(null);
+                        await handleConfirmReservation(b);
+                      }}
+                      className="px-4 py-2 bg-primary-lime hover:bg-[#96E600] text-accent-text rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 shadow-md shadow-primary-lime/20 flex items-center gap-1.5"
+                    >
+                      <Check size={14} strokeWidth={2.5} />
+                      <span>Confirm reservation</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const b = viewDetailsBooking;
+                        setViewDetailsBooking(null);
+                        setDeclineModalBooking(b);
+                      }}
+                      className="px-3.5 py-2 bg-[#EF4444]/15 hover:bg-[#EF4444]/25 text-[#EF4444] rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Decline
+                    </button>
+                  </>
+                )}
+
                 {viewDetailsBooking.status === "PENDING" && (
                   <>
                     <button

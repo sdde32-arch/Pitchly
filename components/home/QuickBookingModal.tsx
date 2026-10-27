@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Pitch } from "../../types/firebase";
+import { computeDeposit } from "../../utils/pricing";
 
 interface QuickBookingModalProps {
   isOpen: boolean;
@@ -44,10 +45,13 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
 
   if (!isOpen || !pitch) return null;
 
-  const depositPercentage = (pitch as any)?.depositPercentage || 30;
+  const depositPercentage = (pitch as any)?.depositPercentage;
   const pricePerHour = pitch.pricePerHour || 75000;
   const totalPrice = pricePerHour * duration;
-  const depositAmount = Math.max(20000, Math.round((totalPrice * (depositPercentage / 100)) / 1000) * 1000);
+  const depositCalc = computeDeposit(totalPrice, depositPercentage);
+  const depositAmount = depositCalc.depositAmount;
+  const isFull = depositCalc.isFull;
+  const allowUnpaidReservations = (pitch as any)?.allowUnpaidReservations !== false;
 
   // Available slots preview around selected time
   const availableSlots = [
@@ -213,15 +217,19 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
               }`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-black text-text-primary">{depositPercentage}% Deposit</span>
+                <span className="text-xs font-black text-text-primary">
+                  {isFull ? "Full Deposit" : `${depositPercentage || 50}% Deposit`}
+                </span>
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary-lime/20 text-primary-lime">
-                  Lock
+                  Secure
                 </span>
               </div>
               <p className="text-xs font-bold text-primary-lime">
                 UGX {depositAmount.toLocaleString()}
               </p>
-              <span className="text-[10px] text-text-tertiary">Pay balance at turf</span>
+              <span className="text-[10px] text-text-tertiary">
+                {isFull ? "Secures instant slot" : "Pay balance at pitch"}
+              </span>
             </button>
 
             <button
@@ -235,7 +243,7 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
               }`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-black text-text-primary">Full Pay</span>
+                <span className="text-xs font-black text-text-primary">Pay in full now</span>
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-surface-card text-text-tertiary">
                   100%
                 </span>
@@ -245,6 +253,32 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
               </p>
               <span className="text-[10px] text-text-tertiary">Zero balance left</span>
             </button>
+
+            {allowUnpaidReservations && (
+              <button
+                type="button"
+                id="payment-opt-tentative"
+                onClick={() => setPaymentOption("tentative")}
+                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer sm:col-span-2 ${
+                  paymentOption === "tentative"
+                    ? "bg-amber-500/10 border-amber-500 text-text-primary shadow-xs"
+                    : "bg-surface-raised/70 border-border-subtle text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-black text-text-primary">Reserve, pay at the pitch</span>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">
+                    Hold
+                  </span>
+                </div>
+                <p className="text-xs font-bold text-amber-400">
+                  UGX 0 due now
+                </p>
+                <span className="text-[10px] text-text-tertiary block mt-0.5">
+                  Not guaranteed · Another player can take this slot with a deposit
+                </span>
+              </button>
+            )}
           </div>
         </div>
 

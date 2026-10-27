@@ -46,7 +46,7 @@ import {
   Moon,
   Compass,
 } from "lucide-react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBooking } from "../context/BookingContext";
 import { useUser } from "../context/UserContext";
@@ -317,7 +317,7 @@ export const TurfDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, userProfile, isOwner } = useUser();
-  const { turfs, loading: contextLoading } = useBooking();
+  const { turfs, bookings, loading: contextLoading } = useBooking();
   const [realPitch, setRealPitch] = useState<Pitch | null>(null);
   const [loadingPitch, setLoadingPitch] = useState(true);
   const [userOwnedPitchIds, setUserOwnedPitchIds] = useState<string[]>([]);
@@ -342,6 +342,29 @@ export const TurfDetail: React.FC = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [slotAvailabilityList, setSlotAvailabilityList] = useState<SlotAvailability[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+
+  // Own-hold guard: Detect if the selected slot matches one of the signed-in player's own open reservations
+  const ownOpenReservationForSelectedSlot = useMemo(() => {
+    if (!user || !bookings || !selectedTime) return null;
+    const slotAvail = slotAvailabilityList.find((s) => s.time === selectedTime);
+    if (slotAvail?.bookingId) {
+      const matchingOwnBooking = bookings.find((b) => {
+        if (b.id !== slotAvail.bookingId) return false;
+        const isOwn = b.playerId === user.uid || b.userId === user.uid;
+        if (!isOwn) return false;
+        const status = b.status as any;
+        if (status === BookingStatus.CANCELLED || status === 'CANCELLED') return false;
+        if (status === BookingStatus.PREEMPTED || status === 'PREEMPTED') return false;
+        if (status === BookingStatus.REJECTED || status === 'REJECTED') return false;
+        if (bookingService.isHoldExpired(b)) return false;
+        return true;
+      });
+      if (matchingOwnBooking) {
+        return matchingOwnBooking;
+      }
+    }
+    return null;
+  }, [user, bookings, selectedTime, slotAvailabilityList]);
 
   // Message Pitch Owner/Manager state
   const [showMessageModal, setShowMessageModal] = useState(false);
@@ -706,7 +729,7 @@ export const TurfDetail: React.FC = () => {
     return () => unsubscribe();
   }, [turf?.id, id, selectedDate]);
 
-  const getSlotStatus = (time: string): "available" | "booked" | "past" => {
+  const getSlotStatus = (time: string): "available" | "booked" | "past" | "tentative" => {
     const now = new Date();
     const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     if (selectedDate === todayYMD) {
@@ -722,6 +745,10 @@ export const TurfDetail: React.FC = () => {
     if (slot.status === "held") {
       const expiresAt = slot.expiresAt ? new Date(slot.expiresAt).getTime() : 0;
       if (expiresAt > Date.now()) return "booked";
+    }
+    if (slot.status === "tentative") {
+      const expiresAt = slot.expiresAt ? new Date(slot.expiresAt).getTime() : 0;
+      if (expiresAt > Date.now() || expiresAt === 0) return "tentative";
     }
     return "available";
   };
@@ -876,9 +903,16 @@ export const TurfDetail: React.FC = () => {
 
   const handleProceedToBooking = () => {
     if (!turf) return;
+    if (ownOpenReservationForSelectedSlot) {
+      showToast("This is your reservation. Secure it from My Bookings.", "info");
+      return;
+    }
     const searchParams = new URLSearchParams();
     if (selectedDate) searchParams.set("date", selectedDate);
     if (selectedTime) searchParams.set("time", selectedTime);
+    if (selectedTime && getSlotStatus(selectedTime) === "tentative") {
+      searchParams.set("tier", "deposit");
+    }
     const queryString = searchParams.toString();
     navigate(`/turf/${turf.id}/book${queryString ? `?${queryString}` : ""}`);
   };
@@ -1375,6 +1409,26 @@ export const TurfDetail: React.FC = () => {
                         );
                       }
 
+                      if (status === "tentative") {
+                        return (
+                          <button
+                            key={timeStr}
+                            type="button"
+                            onClick={() => setSelectedTime(isSelected ? null : timeStr)}
+                            className={`p-2 rounded-lg border text-center transition-all cursor-pointer active:scale-95 ${
+                              isSelected
+                                ? "bg-amber-500 text-black border-amber-500 font-black shadow-xs ring-2 ring-amber-400/40"
+                                : "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/40 text-amber-200"
+                            }`}
+                          >
+                            <span className="block text-xs font-bold">{timeStr}</span>
+                            <span className={`block text-[8px] font-bold ${isSelected ? "text-black" : "text-amber-400"} truncate`}>
+                              Held, not guaranteed
+                            </span>
+                          </button>
+                        );
+                      }
+
                       return (
                         <button
                           key={timeStr}
@@ -1404,31 +1458,62 @@ export const TurfDetail: React.FC = () => {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.98 }}
                       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                      className="p-3 rounded-xl bg-primary-lime/10 border border-primary-lime/30 flex items-center justify-between gap-3 flex-wrap"
+                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 flex-wrap ${
+                        ownOpenReservationForSelectedSlot
+                          ? "bg-amber-500/10 border-amber-500/40"
+                          : getSlotStatus(selectedTime) === "tentative"
+                            ? "bg-amber-500/10 border-amber-500/40"
+                            : "bg-primary-lime/10 border-primary-lime/30"
+                      }`}
                     >
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-primary-lime text-accent-text flex items-center justify-center font-bold shadow-xs">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold shadow-xs ${
+                          ownOpenReservationForSelectedSlot || getSlotStatus(selectedTime) === "tentative"
+                            ? "bg-amber-500 text-black"
+                            : "bg-primary-lime text-accent-text"
+                        }`}>
                           <Check size={16} strokeWidth={3} />
                         </div>
                         <div>
                           <span className="block text-xs font-bold text-text-primary">
                             {selectedDate} at {selectedTime} Selected
                           </span>
-                          <span className="block text-[11px] text-text-secondary">
-                            Rate: UGX {(turf.pricePerHour || 0).toLocaleString()} (Standard 1 hr match)
-                          </span>
+                          {ownOpenReservationForSelectedSlot ? (
+                            <span className="block text-[11px] text-amber-300 font-bold leading-relaxed">
+                              This is your reservation.{" "}
+                              <Link to="/bookings" className="underline text-amber-200 hover:text-white">
+                                Secure it from My Bookings.
+                              </Link>
+                            </span>
+                          ) : (
+                            <span className={`block text-[11px] ${getSlotStatus(selectedTime) === "tentative" ? "text-amber-300 font-bold" : "text-text-secondary"}`}>
+                              {getSlotStatus(selectedTime) === "tentative"
+                                ? "This slot is held. Pay a deposit to take it."
+                                : `Rate: UGX ${(turf.pricePerHour || 0).toLocaleString()} (Standard 1 hr match)`}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.96 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                        onClick={handleProceedToBooking}
-                        className="px-4 py-2 bg-primary-lime hover:bg-primary-lime-hover text-accent-text font-black text-xs uppercase tracking-wider rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer transition-all group"
-                      >
-                        <span>Continue Booking</span>
-                        <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
-                      </motion.button>
+                      {ownOpenReservationForSelectedSlot ? (
+                        <Link
+                          to="/bookings"
+                          className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase tracking-wider rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer transition-all"
+                        >
+                          <span>My Bookings</span>
+                          <ArrowRight size={14} />
+                        </Link>
+                      ) : (
+                        <motion.button
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.96 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                          onClick={handleProceedToBooking}
+                          className="px-4 py-2 bg-primary-lime hover:bg-primary-lime-hover text-accent-text font-black text-xs uppercase tracking-wider rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer transition-all group"
+                        >
+                          <span>Continue Booking</span>
+                          <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+                        </motion.button>
+                      )}
                     </motion.div>
                   ) : (
                     <div className="text-[11px] text-text-tertiary flex items-center gap-1.5 pt-1">

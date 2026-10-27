@@ -3,7 +3,7 @@ import { Layout } from "../components/Layout";
 import { useBooking } from "../context/BookingContext";
 import { useUser } from "../context/UserContext";
 import { chatService } from "../services/chatService";
-import { ArrowLeft, ChevronLeft, MapPin, AlertTriangle, ShieldAlert, User, Calendar, Trophy, Trash2, Loader2, CheckCircle2, X, MessageSquare, Phone, QrCode, Clock } from "lucide-react";
+import { ArrowLeft, ChevronLeft, MapPin, AlertTriangle, ShieldAlert, ShieldCheck, User, Calendar, Trophy, Trash2, Loader2, CheckCircle2, X, MessageSquare, Phone, QrCode, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ReportModal } from "../components/ReportModal";
 import { ReportTargetType, BookingStatus } from "../types";
@@ -31,127 +31,24 @@ export const Bookings: React.FC = () => {
     message: string;
   } | null>(null);
 
-  // Fallback mock bookings if there are none in the context
-  const getMockBookings = () => {
-    const today = new Date();
-    const futureDate1 = new Date(today.getTime() + 86400000 * 2).toISOString().split("T")[0];
-    const futureDate2 = new Date(today.getTime() + 86400000 * 4).toISOString().split("T")[0];
-    const pastDate = new Date(today.getTime() - 86400000 * 3).toISOString().split("T")[0];
-    const cancelledDate = new Date(today.getTime() - 86400000 * 7).toISOString().split("T")[0];
-
-    return [
-      {
-        id: "booking_mock_1",
-        turfId: "panamera-kololo",
-        pitchId: "panamera-kololo",
-        turfName: "Panamera Sports Lounge & Turf",
-        pitchName: "Panamera Sports Lounge & Turf",
-        playerId: "player_mock_1",
-        userName: "David Okello",
-        ownerId: "owner_panamera_kololo",
-        date: futureDate1,
-        time: "18:00 - 19:00",
-        slots: ["18:00"],
-        duration: 1,
-        status: BookingStatus.CONFIRMED,
-        price: 70000,
-        totalPrice: 70000,
-        paymentStatus: "PAID" as const,
-        paymentMethod: "MTN",
-        location: "Plot 24 Saddler Way, Kololo, Kampala",
-        image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=800&q=80",
-        pitchFormat: "7-a-side AstroTurf",
-        managerName: "Denis Mukasa",
-        contactPhone: "+256 701 556 778",
-        bookingRef: "FTL-88219"
-      },
-      {
-        id: "booking_mock_2",
-        turfId: "kinetic-bugolobi",
-        pitchId: "kinetic-bugolobi",
-        turfName: "Kinetic Sports Arena",
-        pitchName: "Kinetic Sports Arena",
-        playerId: "player_mock_1",
-        userName: "David Okello",
-        ownerId: "owner_kinetic_bugolobi",
-        date: futureDate2,
-        time: "20:00 - 21:00",
-        slots: ["20:00"],
-        duration: 1,
-        status: BookingStatus.PENDING,
-        price: 80000,
-        totalPrice: 80000,
-        paymentStatus: "SUBMITTED" as const,
-        paymentMethod: "AIRTEL",
-        location: "Bandali Rise, Bugolobi, Kampala",
-        image: "https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=800&q=80",
-        pitchFormat: "5-a-side Floodlit Turf",
-        managerName: "Sarah Namubiru",
-        contactPhone: "+256 782 449 112",
-        bookingRef: "FTL-94032"
-      },
-      {
-        id: "booking_mock_3",
-        turfId: "lugogo-astroturf",
-        pitchId: "lugogo-astroturf",
-        turfName: "Lugogo AstroTurf Grounds",
-        pitchName: "Lugogo AstroTurf Grounds",
-        playerId: "player_mock_1",
-        userName: "David Okello",
-        ownerId: "owner_lugogo_grounds",
-        date: pastDate,
-        time: "16:00 - 18:00",
-        slots: ["16:00", "17:00"],
-        duration: 2,
-        status: BookingStatus.COMPLETED,
-        price: 180000,
-        totalPrice: 180000,
-        paymentStatus: "PAID" as const,
-        paymentMethod: "MTN",
-        location: "Lugogo Bypass, Kampala",
-        image: "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=800&q=80",
-        pitchFormat: "11-a-side Full Field",
-        managerName: "Coach Brian Kigozi",
-        contactPhone: "+256 752 991 304",
-        bookingRef: "FTL-71190"
-      },
-      {
-        id: "booking_mock_4",
-        turfId: "kensington-kololo",
-        pitchId: "kensington-kololo",
-        turfName: "Kensington Sports Ground",
-        pitchName: "Kensington Sports Ground",
-        playerId: "player_mock_1",
-        userName: "David Okello",
-        ownerId: "owner_kensington",
-        date: cancelledDate,
-        time: "15:00 - 16:00",
-        slots: ["15:00"],
-        duration: 1,
-        status: BookingStatus.CANCELLED,
-        price: 120000,
-        totalPrice: 120000,
-        paymentStatus: "UNPAID" as const,
-        location: "Kololo, Kampala",
-        image: "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&q=80",
-        pitchFormat: "7-a-side Natural Grass",
-        managerName: "Arthur Kasozi",
-        contactPhone: "+256 772 113 450",
-        bookingRef: "FTL-55201"
-      }
-    ];
-  };
-
-  const allBookings = bookings.length > 0 ? bookings : getMockBookings();
+  const allBookings = bookings;
 
   const filteredBookings = allBookings.filter((b) => {
     const rawStatus = (b.status || "").toString().toUpperCase();
+    const isHoldExpired = bookingService.isHoldExpired(b);
+    const isTentative = rawStatus === "TENTATIVE";
+
     if (activeTab === "upcoming") {
+      // Open unpaid reservation (TENTATIVE and not isHoldExpired) appears under Upcoming
+      if (isTentative) {
+        return !isHoldExpired;
+      }
       return (
         rawStatus === "CONFIRMED" ||
         rawStatus === "PENDING" ||
         rawStatus === "PENDING_PAYMENT" ||
-        rawStatus === "PAYMENT_SUBMITTED"
+        rawStatus === "PAYMENT_SUBMITTED" ||
+        rawStatus === "DEPOSIT_PAID"
       );
     } else if (activeTab === "completed") {
       return (
@@ -161,7 +58,13 @@ export const Bookings: React.FC = () => {
         rawStatus === "DISPUTED"
       );
     } else {
-      return rawStatus === "CANCELLED" || rawStatus === "REJECTED";
+      // Cancelled tab: PREEMPTED, CANCELLED, REJECTED, or expired TENTATIVE holds
+      return (
+        rawStatus === "CANCELLED" ||
+        rawStatus === "REJECTED" ||
+        rawStatus === "PREEMPTED" ||
+        (isTentative && isHoldExpired)
+      );
     }
   });
 
@@ -292,12 +195,22 @@ export const Bookings: React.FC = () => {
               Array.from({ length: 3 }).map((_, idx) => (
                 <BookingCardSkeleton key={idx} />
               ))
+            ) : allBookings.length === 0 ? (
+              <EmptyState
+                icon={Calendar}
+                title="No bookings yet"
+                description="You don't have any bookings scheduled at the moment. Find a pitch near you to get playing."
+                actionText="Find a pitch"
+                onAction={() => navigate("/home")}
+                accentColor="lime"
+                className="my-4"
+              />
             ) : filteredBookings.length === 0 ? (
               <EmptyState
                 icon={Calendar}
                 title={`No ${activeTab} bookings`}
-                description={`You don't have any ${activeTab} bookings scheduled at the moment. Find a pitch near you to get playing.`}
-                actionText="Find a Turf"
+                description={`You don't have any ${activeTab} bookings scheduled at the moment.`}
+                actionText="Find a pitch"
                 onAction={() => navigate("/home")}
                 accentColor="lime"
                 className="my-4"
@@ -305,6 +218,9 @@ export const Bookings: React.FC = () => {
             ) : (
               filteredBookings.map((b) => {
                 const bAny = b as any;
+                const isHoldExpired = bookingService.isHoldExpired(bAny);
+                const isTentative = b.status === BookingStatus.TENTATIVE;
+                const isOpenTentative = isTentative && !isHoldExpired && b.status !== BookingStatus.PREEMPTED && b.status !== BookingStatus.CANCELLED;
                 const isPendingPayment = b.status === BookingStatus.PENDING || b.status === BookingStatus.PENDING_PAYMENT || (b.paymentStatus === 'UNPAID' && b.status !== BookingStatus.CONFIRMED);
                 const isPendingExpired = isPendingPayment && bookingService.isPendingBookingExpired(bAny);
                 const remainingMs = isPendingPayment ? bookingService.getRemainingPaymentTimeMs(bAny) : 0;
@@ -335,12 +251,22 @@ export const Bookings: React.FC = () => {
                         </span>
                       ) : b.status === BookingStatus.PREEMPTED ? (
                         <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30">
-                          REALLOCATED
+                          Taken by another player
                         </span>
-                      ) : (b.status === BookingStatus.TENTATIVE || (b as any).bookingTier === 'TENTATIVE') ? (
+                      ) : (isTentative && isHoldExpired) ? (
+                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-text-disabled/10 text-text-tertiary border-text-disabled/30 flex items-center gap-1">
+                          <Clock size={10} />
+                          Reservation expired
+                        </span>
+                      ) : isOpenTentative ? (
                         <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-amber-500/10 text-amber-300 border-amber-500/30 flex items-center gap-1">
                           <Clock size={10} />
-                          TENTATIVE HOLD
+                          Reservation, pay at the pitch · not guaranteed
+                        </span>
+                      ) : (b.status === BookingStatus.CONFIRMED && bAny.bookingTier === 'TENTATIVE') ? (
+                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30 flex items-center gap-1">
+                          <CheckCircle2 size={10} />
+                          Confirmed · pay UGX {(bAny.balanceDue ?? ((bAny.totalPrice || bAny.price || 0))).toLocaleString()} at the pitch
                         </span>
                       ) : b.status === BookingStatus.DEPOSIT_PAID ? (
                         <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-primary-lime/10 text-primary-lime border-primary-lime/30">
@@ -402,7 +328,7 @@ export const Bookings: React.FC = () => {
                       </div>
 
                       {/* Tentative Preemption Warning Note */}
-                      {(b.status === BookingStatus.TENTATIVE || (b as any).bookingTier === 'TENTATIVE') && (
+                      {b.status === BookingStatus.TENTATIVE && !isHoldExpired && (
                         <div className="flex items-center gap-1.5 text-[11px] text-amber-300 bg-amber-500/10 px-2.5 py-1.5 rounded-md border border-amber-500/20 mt-2">
                           <Clock size={12} className="shrink-0 text-amber-400" />
                           <span className="truncate">Preemptible hold: unconfirmed without deposit. Lock in now!</span>
@@ -470,14 +396,14 @@ export const Bookings: React.FC = () => {
 
                     {activeTab === "upcoming" && (
                       <>
-                        {/* Lock in tentative reservation button */}
-                        {(b.status === BookingStatus.TENTATIVE || (b as any).bookingTier === 'TENTATIVE') && (
+                        {/* Lock in / secure tentative reservation button */}
+                        {isOpenTentative && (
                           <button
-                            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
-                            onClick={() => navigate(`/booking-confirmation/${b.id}`)}
+                            className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                            onClick={() => navigate(`/booking-confirmation/${b.id}?openUpgrade=true`)}
                           >
-                            <ShieldAlert size={13} />
-                            <span>Lock In Slot</span>
+                            <ShieldCheck size={13} />
+                            <span>Secure with a deposit</span>
                           </button>
                         )}
 
@@ -499,11 +425,15 @@ export const Bookings: React.FC = () => {
                           <span>Cancel</span>
                         </button>
                         <button
-                          className="px-4 py-1.5 rounded-xl bg-primary-lime hover:bg-[#96E600] text-accent-text text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                          className={`px-4 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 ${
+                            isOpenTentative
+                              ? "bg-surface-raised hover:bg-surface-card border border-border-subtle text-text-primary"
+                              : "bg-primary-lime hover:bg-[#96E600] text-accent-text"
+                          }`}
                           onClick={() => navigate(`/booking-confirmation/${b.id}`)}
                         >
                           <QrCode size={13} />
-                          <span>View Pass</span>
+                          <span>{isOpenTentative ? "View Details" : "View Pass"}</span>
                         </button>
                       </>
                     )}
