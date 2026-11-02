@@ -72,12 +72,12 @@ export const turfToPitch = (t: Turf): Pitch => ({
   status: t.status || PitchStatus.ACTIVE,
   createdAt: t.submittedAt || new Date().toISOString(),
   updatedAt: new Date().toISOString(),
-  contactPhone: t.contactPhone || '+256 700 000 000',
+  contactPhone: t.contactPhone || '',
   contactEmail: t.contactEmail || 'info@pitchly.ug',
   description: t.description || '',
   surfaceType: t.surfaceType || 'Synthetic Grass (AstroTurf)',
   ...({
-    rating: t.rating || 4.8,
+    rating: t.rating || 0,
     distance: t.distance || '2.5 km',
   } as any),
 } as Pitch);
@@ -107,12 +107,39 @@ export function sanitizeFirestorePayload<T extends Record<string, any>>(obj: T):
   return clean as T;
 }
 
+/**
+ * Validates that pitch documents do not contain inline base64/data URLs
+ * and do not exceed the Firestore safe document limit (800,000 bytes).
+ */
+export function validatePitchPayload(payload: Record<string, any>): void {
+  const serialized = JSON.stringify(payload);
+  if (serialized.length > 800000) {
+    throw new Error(`Pitch payload exceeds maximum allowed size (${serialized.length} bytes, limit is 800,000 bytes). Photos must be uploaded to Cloud Storage.`);
+  }
+
+  const checkFieldForDataUrls = (val: any, path: string) => {
+    if (typeof val === 'string' && val.startsWith('data:')) {
+      throw new Error(`Data URL detected in field '${path}'. Image data cannot be stored in Firestore; upload to Cloud Storage.`);
+    }
+    if (Array.isArray(val)) {
+      val.forEach((item, index) => checkFieldForDataUrls(item, `${path}[${index}]`));
+    } else if (val && typeof val === 'object') {
+      for (const [key, nestedVal] of Object.entries(val)) {
+        checkFieldForDataUrls(nestedVal, `${path}.${key}`);
+      }
+    }
+  };
+
+  checkFieldForDataUrls(payload, 'pitch');
+}
+
 export const pitchService = {
   collectionPath: 'pitches',
 
   async create(pitch: Pitch): Promise<Pitch> {
     console.log(`Creating pitch in ${this.collectionPath}`, pitch);
     const sanitized = sanitizeFirestorePayload(pitch);
+    validatePitchPayload(sanitized);
     try {
       await withTimeout(
         setDoc(doc(db, this.collectionPath, pitch.id), sanitized),
@@ -131,29 +158,6 @@ export const pitchService = {
 
     const cleanId = id.replace(/^pitch-/, "");
     
-    // Check for locally saved custom pitch photos / overrides
-    let localOverride: Partial<Pitch> | null = null;
-    try {
-      const keys = [
-        `pitchly_custom_pitch_${id}`,
-        `pitchly_custom_pitch_${cleanId}`,
-        `pitchly_custom_photos_${id}`,
-        `pitchly_custom_photos_${cleanId}`
-      ];
-      for (const k of keys) {
-        const raw = localStorage.getItem(k);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            localOverride = { images: parsed, additionalImages: parsed.slice(1) };
-          } else if (parsed && typeof parsed === 'object') {
-            localOverride = parsed;
-          }
-          break;
-        }
-      }
-    } catch {}
-
     // Fetch strictly from Firestore
     try {
       const docRef = doc(db, this.collectionPath, id);
@@ -168,7 +172,6 @@ export const pitchService = {
             ...pitch,
             images: rawImgs,
             additionalImages: (pitch as any).additionalImages || (rawImgs.length > 1 ? rawImgs.slice(1) : []),
-            ...(localOverride || {}),
           };
         }
       }
@@ -181,7 +184,6 @@ export const pitchService = {
       if (cached && !isLegacyTestPitch(cached)) {
         return {
           ...cached,
-          ...(localOverride || {}),
         };
       }
       return null;
@@ -235,6 +237,7 @@ export const pitchService = {
   async update(id: string, data: Partial<Pitch>): Promise<void> {
     console.log(`Updating pitch ${id} in ${this.collectionPath}`, data);
     const sanitized = sanitizeFirestorePayload(data as Record<string, any>);
+    validatePitchPayload(sanitized);
     try {
       await withTimeout(
         updateDoc(doc(db, this.collectionPath, id), sanitized),

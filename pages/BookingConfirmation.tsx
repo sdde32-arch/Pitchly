@@ -30,6 +30,7 @@ import {
   UploadCloud,
   X
 } from "lucide-react";
+import { PhotoPlaceholder } from "../components/ui/PhotoPlaceholder";
 
 export const BookingConfirmation: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,6 +41,7 @@ export const BookingConfirmation: React.FC = () => {
   
   const [booking, setBooking] = useState<any | null>(null);
   const [turf, setTurf] = useState<Turf | null>(null);
+  const [turfImageError, setTurfImageError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
@@ -52,6 +54,7 @@ export const BookingConfirmation: React.FC = () => {
   const [upgradeProofUrl, setUpgradeProofUrl] = useState<string | null>(null);
   const [upgradeProofFileName, setUpgradeProofFileName] = useState("");
   const [upgradeUploadingProof, setUpgradeUploadingProof] = useState(false);
+  const [upgradeProofUploadProgress, setUpgradeProofUploadProgress] = useState(0);
   const [upgradeTxRef, setUpgradeTxRef] = useState("");
   const [upgrading, setUpgrading] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
@@ -84,7 +87,7 @@ export const BookingConfirmation: React.FC = () => {
               location: foundBooking.location || "Kampala, Uganda",
               fullAddress: foundBooking.location || "Kampala, Uganda",
               pricePerHour: foundBooking.price || 70000,
-              image: foundBooking.image || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80",
+              image: foundBooking.image || "",
               pitchFormats: [foundBooking.pitchFormat || "7-a-side AstroTurf"],
               contactPhone: foundBooking.contactPhone || ""
             };
@@ -159,18 +162,25 @@ export const BookingConfirmation: React.FC = () => {
     if (!file) return;
     try {
       setUpgradeUploadingProof(true);
+      setUpgradeProofUploadProgress(0);
       setUpgradeError("");
-      const url = await storageService.uploadPaymentProof(`upgrade-${booking?.id}-${Date.now()}`, file);
+      const url = await storageService.uploadPaymentProof(
+        `upgrade-${booking?.id}-${Date.now()}`,
+        file,
+        (percent) => setUpgradeProofUploadProgress(percent)
+      );
       setUpgradeProofUrl(url);
       setUpgradeProofFileName(file.name);
     } catch (err: any) {
-      setUpgradeError(err.message || "Failed to upload receipt screenshot.");
+      setUpgradeError(err.message || "Failed to upload receipt screenshot. You can still enter your Transaction Reference above.");
     } finally {
       setUpgradeUploadingProof(false);
+      setUpgradeProofUploadProgress(0);
+      e.target.value = "";
     }
   };
 
-  const pitchPaymentPhone = (turf as any)?.paymentPhone || turf?.contactPhone || (booking as any)?.paymentPhone || (booking as any)?.contactPhone || "";
+  const pitchPaymentPhone = (turf as any)?.paymentPhone || (booking as any)?.paymentPhone || "";
   const isUpgradeTxRefValid = isValidTransactionRef(upgradeTxRef);
   const isUpgradeProofUrlValid = Boolean(upgradeProofUrl && upgradeProofUrl.trim().length > 10);
   const isUpgradeValid = (isUpgradeTxRefValid || isUpgradeProofUrlValid) && Boolean(pitchPaymentPhone);
@@ -551,32 +561,47 @@ export const BookingConfirmation: React.FC = () => {
 
                 {/* Venue & Booking Reference Row */}
                 <div className="bg-surface-raised rounded-2xl p-3.5 border border-border-subtle mb-4">
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] uppercase font-bold tracking-wider text-text-tertiary">Venue</p>
-                      <h4 className="font-extrabold text-sm sm:text-base text-text-primary truncate">{turf.name}</h4>
+                  <div className="flex gap-3 mb-2">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-surface-card border border-border-subtle shrink-0">
+                      {turf.image && !turfImageError ? (
+                        <img
+                          src={turf.image}
+                          alt={turf.name}
+                          className="w-full h-full object-cover"
+                          onError={() => setTurfImageError(true)}
+                        />
+                      ) : (
+                        <PhotoPlaceholder className="w-full h-full min-h-0 p-1" iconSize={16} label="" />
+                      )}
                     </div>
-                    <button
-                      onClick={handleCopyRef}
-                      className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-card hover:bg-border-subtle border border-border-subtle text-text-secondary hover:text-text-primary text-[10px] font-mono font-bold transition-all cursor-pointer active:scale-95"
-                      title="Copy Reference Code"
-                    >
-                      <span>REF: #{bookingRef}</span>
-                      <Copy size={11} />
-                    </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] uppercase font-bold tracking-wider text-text-tertiary">Venue</p>
+                          <h4 className="font-extrabold text-sm sm:text-base text-text-primary truncate">{turf.name}</h4>
+                        </div>
+                        <button
+                          onClick={handleCopyRef}
+                          className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-surface-card hover:bg-border-subtle border border-border-subtle text-text-secondary hover:text-text-primary text-[10px] font-mono font-bold transition-all cursor-pointer active:scale-95"
+                          title="Copy Reference Code"
+                        >
+                          <span>REF: #{bookingRef}</span>
+                          <Copy size={11} />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-1 text-xs text-text-secondary font-medium mt-1">
+                        <MapPin size={12} className="text-primary-lime shrink-0" />
+                        <span className="truncate">{turf.location || turf.formattedAddress || "Kampala, Uganda"}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs text-text-secondary font-medium">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <MapPin size={12} className="text-primary-lime shrink-0" />
-                      <span className="truncate">{turf.location || turf.formattedAddress || "Kampala, Uganda"}</span>
+                  {turf.pitchFormats && turf.pitchFormats.length > 0 && (
+                    <div className="pt-2 border-t border-border-subtle/50 text-[11px] font-bold text-text-tertiary">
+                      Format: {turf.pitchFormats[0]}
                     </div>
-                    {turf.pitchFormats && turf.pitchFormats.length > 0 && (
-                      <span className="shrink-0 text-[11px] font-bold text-text-tertiary">
-                        • {turf.pitchFormats[0]}
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
                 
                 {/* Match Schedule Details Grid */}
@@ -958,7 +983,7 @@ export const BookingConfirmation: React.FC = () => {
                       value={upgradeTxRef}
                       onChange={(e) => setUpgradeTxRef(e.target.value)}
                       placeholder="e.g. 192849102 or TXN-..."
-                      className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border-subtle text-text-primary text-xs font-mono focus:outline-hidden focus:border-primary-lime"
+                      className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border-subtle text-text-primary text-base min-h-11 font-mono focus:outline-hidden focus:border-primary-lime"
                     />
                     <p className="text-[11px] text-text-secondary mt-1">
                       6 to 25 characters, as on your MoMo message
@@ -970,9 +995,20 @@ export const BookingConfirmation: React.FC = () => {
                     <label className="text-xs font-bold text-text-primary block mb-1">Upload Receipt Screenshot</label>
                     <label className="block cursor-pointer">
                       <input type="file" className="hidden" accept="image/*" onChange={handleUpgradeProofUpload} disabled={upgradeUploadingProof} />
-                      <div className="w-full h-20 rounded-xl border border-dashed border-border-prominent hover:border-primary-lime flex items-center justify-center gap-2 text-xs text-text-secondary bg-surface-raised">
+                      <div className="w-full h-20 rounded-xl border border-dashed border-border-prominent hover:border-primary-lime flex items-center justify-center gap-2 text-xs text-text-secondary bg-surface-raised px-4">
                         {upgradeUploadingProof ? (
-                          <Loader2 size={18} className="animate-spin text-primary-lime" />
+                          <div className="flex flex-col items-center gap-1 w-full max-w-xs">
+                            <div className="flex items-center gap-2">
+                              <Loader2 size={16} className="animate-spin text-primary-lime" />
+                              <span className="text-primary-lime font-bold">Uploading receipt... {upgradeProofUploadProgress}%</span>
+                            </div>
+                            <div className="w-full bg-surface-card h-1.5 rounded-full overflow-hidden border border-border-subtle mt-0.5">
+                              <div
+                                className="bg-primary-lime h-full transition-all duration-200"
+                                style={{ width: `${upgradeProofUploadProgress}%` }}
+                              />
+                            </div>
+                          </div>
                         ) : upgradeProofUrl ? (
                           <span className="text-primary-lime font-bold truncate max-w-[80%]">{upgradeProofFileName || "Receipt Uploaded"}</span>
                         ) : (

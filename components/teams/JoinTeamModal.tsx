@@ -42,6 +42,7 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
   const [joinedSuccess, setJoinedSuccess] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
+  const [failedAvatarIds, setFailedAvatarIds] = useState<Set<string>>(new Set());
 
   // Sync inviteCode prop
   useEffect(() => {
@@ -316,8 +317,13 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
                       className="w-7 h-7 rounded-full bg-border-subtle border-2 border-surface-raised flex items-center justify-center text-[10px] font-bold text-text-primary"
                       title={m.name}
                     >
-                      {m.avatar ? (
-                        <img src={m.avatar} alt={m.name} className="w-full h-full rounded-full object-cover" />
+                      {m.avatar && !failedAvatarIds.has(m.id || String(idx)) ? (
+                        <img
+                          src={m.avatar}
+                          alt={m.name}
+                          className="w-full h-full rounded-full object-cover"
+                          onError={() => setFailedAvatarIds(prev => new Set(prev).add(m.id || String(idx)))}
+                        />
                       ) : (
                         (m.name || "?")[0]
                       )}

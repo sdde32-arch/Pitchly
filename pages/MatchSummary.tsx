@@ -11,8 +11,11 @@ import {
   setDoc, 
   collection, 
   getDocs, 
-  onSnapshot 
+  onSnapshot,
+  query,
+  where
 } from "firebase/firestore";
+import { teamService } from "../services/teamService";
 import { 
   ArrowLeft, ChevronLeft, 
   Trophy, 
@@ -42,8 +45,6 @@ interface VoteData {
   createdAt: string;
 }
 
-const DEFAULT_PLAYERS = ["Kato Paul", "John Doe", "Harvey S.", "David Okello", "James Wilson"];
-
 export const MatchSummary: React.FC = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
@@ -55,7 +56,7 @@ export const MatchSummary: React.FC = () => {
   const [summaryData, setSummaryData] = useState<MatchSummaryData>({
     homeScore: 0,
     awayScore: 0,
-    candidates: DEFAULT_PLAYERS,
+    candidates: [],
   });
 
   const [votes, setVotes] = useState<VoteData[]>([]);
@@ -94,21 +95,77 @@ export const MatchSummary: React.FC = () => {
 
     // 1. Sync Score & Candidates
     const summaryRef = doc(db, "bookings", bookingId, "summary", "data");
-    const unsubscribeSummary = onSnapshot(summaryRef, (snap) => {
+    const unsubscribeSummary = onSnapshot(summaryRef, async (snap) => {
       if (snap.exists()) {
         const data = snap.data() as MatchSummaryData;
         setSummaryData({
           homeScore: data.homeScore ?? 0,
           awayScore: data.awayScore ?? 0,
-          candidates: data.candidates ?? DEFAULT_PLAYERS,
+          candidates: Array.isArray(data.candidates) ? data.candidates : [],
         });
       } else {
-        // Initialize default data if none exists
-        setDoc(summaryRef, {
+        // Build candidate list from real data only: booking booker, participants, invitations, or team members
+        const realCandidates: string[] = [];
+
+        // 1. Check current booking object
+        if (booking?.userName && !realCandidates.includes(booking.userName)) {
+          realCandidates.push(booking.userName);
+        }
+        if (Array.isArray(booking?.participants)) {
+          booking.participants.forEach((p: any) => {
+            const name = typeof p === "string" ? p : p?.name;
+            if (name && !realCandidates.includes(name)) realCandidates.push(name);
+          });
+        }
+
+        // 2. Check match invitations linked to this booking
+        try {
+          const invQ = query(
+            collection(db, "matchInvitations"),
+            where("bookingId", "==", bookingId)
+          );
+          const invSnap = await getDocs(invQ);
+          if (!invSnap.empty) {
+            invSnap.forEach((docSnap) => {
+              const invData = docSnap.data();
+              if (invData.creatorName && !realCandidates.includes(invData.creatorName)) {
+                realCandidates.push(invData.creatorName);
+              }
+              if (Array.isArray(invData.invitedPlayers)) {
+                invData.invitedPlayers.forEach((p: any) => {
+                  if (p?.name && !realCandidates.includes(p.name)) {
+                    realCandidates.push(p.name);
+                  }
+                });
+              }
+            });
+          }
+        } catch (e) {
+          console.warn("Could not query match invitations for summary candidates:", e);
+        }
+
+        // 3. Check team members if teamId is associated with booking
+        if (booking?.teamId) {
+          try {
+            const team = await teamService.getById(booking.teamId);
+            if (team && Array.isArray(team.members)) {
+              team.members.forEach((m: any) => {
+                if (m?.name && !realCandidates.includes(m.name)) {
+                  realCandidates.push(m.name);
+                }
+              });
+            }
+          } catch (e) {
+            console.warn("Could not load team members for summary candidates:", e);
+          }
+        }
+
+        setSummaryData({
           homeScore: 0,
           awayScore: 0,
-          candidates: DEFAULT_PLAYERS,
-        }).catch(err => console.error("Error creating default summary", err));
+          candidates: realCandidates,
+        });
+        // Note: We write nothing to Firestore here.
       }
       setLoading(false);
     }, (error) => {
@@ -187,6 +244,17 @@ export const MatchSummary: React.FC = () => {
     if (!bookingId || !user) return;
     setVoteSubmitting(true);
     try {
+      const summaryRef = doc(db, "bookings", bookingId, "summary", "data");
+      const summarySnap = await getDoc(summaryRef);
+      if (!summarySnap.exists()) {
+        await setDoc(summaryRef, {
+          homeScore: 0,
+          awayScore: 0,
+          candidates: summaryData.candidates,
+          createdAt: new Date().toISOString(),
+        }, { merge: true });
+      }
+
       const voteRef = doc(db, "bookings", bookingId, "motmVotes", user.uid);
       await setDoc(voteRef, {
         userId: user.uid,
@@ -302,6 +370,8 @@ export const MatchSummary: React.FC = () => {
           </button>
           <h1 className="text-[17px] font-bold text-text-primary">Match Arena</h1>
           <button 
+            type="button"
+            aria-label="Share match summary"
             onClick={handleShare}
             className="w-11 h-11 rounded-full bg-surface-card border border-border-subtle flex items-center justify-center text-text-primary hover:bg-surface-raised transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime"
           >
@@ -494,62 +564,72 @@ export const MatchSummary: React.FC = () => {
 
             {/* Voting Options */}
             <div className="space-y-3">
-              {summaryData.candidates.map((player) => {
-                const votesForPlayer = voteCounts[player] || 0;
-                const percentage = totalVotesCast > 0 ? Math.round((votesForPlayer / totalVotesCast) * 100) : 0;
-                const isUserSelection = userVote === player;
-                const isLeader = currentLeader && currentLeader.name === player;
+              {summaryData.candidates.length === 0 ? (
+                <div className="text-center py-7 px-4 rounded-xl bg-surface-raised/40 border border-dashed border-border-subtle">
+                  <Users size={24} className="mx-auto mb-2 text-text-tertiary" />
+                  <p className="text-xs font-bold text-text-primary">No match candidates yet</p>
+                  <p className="text-[11px] text-text-secondary mt-1 max-w-xs mx-auto">
+                    Add the players who took part in this match below to enable MVP voting.
+                  </p>
+                </div>
+              ) : (
+                summaryData.candidates.map((player) => {
+                  const votesForPlayer = voteCounts[player] || 0;
+                  const percentage = totalVotesCast > 0 ? Math.round((votesForPlayer / totalVotesCast) * 100) : 0;
+                  const isUserSelection = userVote === player;
+                  const isLeader = currentLeader && currentLeader.name === player;
 
-                return (
-                  <div key={player} className={`relative overflow-hidden rounded-[16px] border transition-all ${isUserSelection ? "border-primary-lime bg-amber-50/50 dark:bg-amber-900/10" : "border-border-subtle"} p-4`}>
-                    {/* Progress Bar Background */}
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${percentage}%` }}
-                      transition={{ duration: 0.8, ease: "easeOut" }}
-                      className={`absolute top-0 left-0 bottom-0 ${isUserSelection ? "bg-amber-100/50 dark:bg-primary-lime/10" : isLeader ? "bg-amber-50/50 dark:bg-primary-lime/5" : "bg-surface-raised/50"} pointer-events-none z-0`}
-                    />
+                  return (
+                    <div key={player} className={`relative overflow-hidden rounded-[16px] border transition-all ${isUserSelection ? "border-primary-lime bg-amber-50/50 dark:bg-amber-900/10" : "border-border-subtle"} p-4`}>
+                      {/* Progress Bar Background */}
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percentage}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className={`absolute top-0 left-0 bottom-0 ${isUserSelection ? "bg-amber-100/50 dark:bg-primary-lime/10" : isLeader ? "bg-amber-50/50 dark:bg-primary-lime/5" : "bg-surface-raised/50"} pointer-events-none z-0`}
+                      />
 
-                    {/* Content */}
-                    <div className="relative z-10 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold border ${isUserSelection ? "bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-primary-lime/30 text-primary-lime" : "bg-surface-raised border-border-subtle text-text-secondary"}`}>
-                          {player.charAt(0)}
+                      {/* Content */}
+                      <div className="relative z-10 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold border ${isUserSelection ? "bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-primary-lime/30 text-primary-lime" : "bg-surface-raised border-border-subtle text-text-secondary"}`}>
+                            {player.charAt(0)}
+                          </div>
+                          <div>
+                            <span className="font-bold text-[14px] text-text-primary flex items-center gap-2">
+                              {player}
+                              {isUserSelection && (
+                                <span className="bg-primary-lime text-accent-text text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full">
+                                  Your Vote
+                                </span>
+                              )}
+                              {isLeader && (
+                                <span className="text-primary-lime text-xs">👑</span>
+                              )}
+                            </span>
+                            <span className="text-[11px] text-text-secondary font-medium block mt-0.5">
+                              {votesForPlayer} {votesForPlayer === 1 ? "vote" : "votes"} ({percentage}%)
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-bold text-[14px] text-text-primary flex items-center gap-2">
-                            {player}
-                            {isUserSelection && (
-                              <span className="bg-primary-lime text-accent-text text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full">
-                                Your Vote
-                              </span>
-                            )}
-                            {isLeader && (
-                              <span className="text-primary-lime text-xs">👑</span>
-                            )}
-                          </span>
-                          <span className="text-[11px] text-text-secondary font-medium block mt-0.5">
-                            {votesForPlayer} {votesForPlayer === 1 ? "vote" : "votes"} ({percentage}%)
-                          </span>
-                        </div>
+
+                        {/* Vote Action */}
+                        <button
+                          onClick={() => handleVote(player)}
+                          disabled={voteSubmitting || isUserSelection}
+                          className={`px-4 py-2 text-[12px] font-bold rounded-full transition-all active:scale-95 shadow-sm ${
+                            isUserSelection 
+                              ? "bg-primary-lime text-accent-text border-none shadow-primary-lime/20" 
+                              : "bg-surface-card text-text-primary border border-border-subtle hover:bg-surface-raised"
+                          }`}
+                        >
+                          {isUserSelection ? <Check size={14} className="mx-auto" /> : "Vote"}
+                        </button>
                       </div>
-
-                      {/* Vote Action */}
-                      <button
-                        onClick={() => handleVote(player)}
-                        disabled={voteSubmitting || isUserSelection}
-                        className={`px-4 py-2 text-[12px] font-bold rounded-full transition-all active:scale-95 shadow-sm ${
-                          isUserSelection 
-                            ? "bg-primary-lime text-accent-text border-none shadow-primary-lime/20" 
-                            : "bg-surface-card text-text-primary border border-border-subtle hover:bg-surface-raised"
-                        }`}
-                      >
-                        {isUserSelection ? <Check size={14} className="mx-auto" /> : "Vote"}
-                      </button>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
 
             {/* Custom Write-In Candidate Form */}
@@ -565,6 +645,7 @@ export const MatchSummary: React.FC = () => {
               />
               <button
                 type="submit"
+                aria-label="Add player"
                 disabled={!newPlayerName.trim()}
                 className="w-12 h-12 bg-primary-lime text-accent-text rounded-[14px] hover:bg-[#95e600] transition-all disabled:opacity-50 flex items-center justify-center shrink-0 shadow-sm active:scale-95"
               >

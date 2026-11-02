@@ -21,16 +21,27 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+import { compressImage } from "../../utils/compressImage";
+
 export const OwnerProfile: React.FC = () => {
-  const { userProfile, updateProfile, isOwner } = useUser();
+  const { user, userProfile, updateProfile, isOwner } = useUser();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarError, setAvatarError] = useState(false);
   const [formData, setFormData] = useState({
     name: userProfile?.name || "",
     email: userProfile?.email || "",
     phone: userProfile?.phone || "",
   });
+
+  const initials = (userProfile?.name || user?.displayName || "Pitch Owner")
+    .split(" ")
+    .map((n: string) => n[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "PO";
 
   useEffect(() => {
     if (userProfile) {
@@ -65,14 +76,31 @@ export const OwnerProfile: React.FC = () => {
     setIsEditing(false);
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateProfile({ avatar: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      try {
+        // Resize avatar with compressImage before saving.
+        // This is the only place where a small data URL may be stored; users collection avatar field.
+        const compressedBlob = await compressImage(file, {
+          maxDimension: 256,
+          maxBytes: 40000,
+          quality: 0.75,
+          minQuality: 0.5,
+        });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            setAvatarError(false);
+            updateProfile({ avatar: reader.result });
+          }
+        };
+        reader.readAsDataURL(compressedBlob);
+      } catch (err: any) {
+        console.error("Avatar compression error:", err);
+      } finally {
+        e.target.value = "";
+      }
     }
   };
 
@@ -97,12 +125,19 @@ export const OwnerProfile: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-12 sm:-mt-14 mb-4">
               <div className="flex items-end gap-3 sm:gap-4">
                 <div className="relative group">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-4 border-surface-card bg-surface-raised shadow-md">
-                    <img
-                      src={userProfile?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-4 border-surface-card bg-surface-raised shadow-md flex items-center justify-center">
+                    {!userProfile?.avatar || avatarError ? (
+                      <div className="w-full h-full bg-surface-raised flex items-center justify-center text-primary-lime font-black text-2xl uppercase tracking-wider select-none">
+                        {initials}
+                      </div>
+                    ) : (
+                      <img
+                        src={userProfile.avatar}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                        onError={() => setAvatarError(true)}
+                      />
+                    )}
                   </div>
                   <button
                     onClick={() => fileInputRef.current?.click()}

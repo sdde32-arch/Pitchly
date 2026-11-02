@@ -113,6 +113,7 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
           <button
             id="quick-booking-close-btn"
             type="button"
+            aria-label="Close"
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-surface-raised hover:bg-border-subtle flex items-center justify-center text-text-tertiary hover:text-text-primary transition-colors cursor-pointer shrink-0"
           >

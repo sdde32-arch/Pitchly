@@ -20,7 +20,6 @@ import {
   Copy,
   Check,
   ExternalLink,
-  Zap,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -248,73 +247,6 @@ export const Auth: React.FC = () => {
     }
   };
 
-  const handleQuickDemoLogin = async (targetRole: "PLAYER" | "OWNER") => {
-    setLoading(true);
-    setIsSubmitting(true);
-    setError(null);
-    setIsUnauthorizedDomain(false);
-
-    const demoEmail = targetRole === "OWNER" ? "demo.owner@pitchly.ug" : "demo.player@pitchly.ug";
-    const demoPassword = "PitchlyDemo2026!";
-    const demoName = targetRole === "OWNER" ? "Kigozi Turf Manager" : "Brian Mukasa";
-
-    try {
-      localStorage.setItem("pitchly_pending_role", targetRole);
-      localStorage.setItem("pitchly_pending_name", demoName);
-      localStorage.setItem("pitchly_pending_phone", "+256 700 123456");
-
-      let userCred;
-      try {
-        userCred = await signInWithEmailAndPassword(auth, demoEmail, demoPassword);
-      } catch (signInErr: any) {
-        if (
-          signInErr.code === "auth/user-not-found" ||
-          signInErr.code === "auth/invalid-credential" ||
-          signInErr.code === "auth/invalid-login-credentials"
-        ) {
-          userCred = await createUserWithEmailAndPassword(auth, demoEmail, demoPassword);
-        } else {
-          throw signInErr;
-        }
-      }
-
-      if (userCred?.user) {
-        const docRef = doc(db, "users", userCred.user.uid);
-        const userDoc = await getDoc(docRef);
-        if (!userDoc.exists()) {
-          await setDoc(
-            docRef,
-            {
-              id: userCred.user.uid,
-              name: demoName,
-              email: demoEmail,
-              phone: "+256 700 123456",
-              avatar:
-                targetRole === "OWNER"
-                  ? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200"
-                  : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200",
-              avatarId: targetRole === "OWNER" ? "avatar_01" : "avatar_05",
-              bio:
-                targetRole === "OWNER"
-                  ? "Owner & Director at Kampala Arena Turf."
-                  : "Striker & Pitchly Player in Kampala.",
-              role: targetRole,
-              roles: targetRole === "OWNER" ? ["OWNER", "PLAYER"] : ["PLAYER"],
-              hasCompletedOnboarding: true,
-              createdAt: new Date().toISOString(),
-            },
-            { merge: true }
-          );
-        }
-      }
-    } catch (err: any) {
-      console.error("Demo login error:", err);
-      setError(err.message || "Demo login encountered an issue. Please try manual email signup.");
-    } finally {
-      setLoading(false);
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <div
@@ -492,14 +424,6 @@ export const Auth: React.FC = () => {
                   <span>Open Firebase Settings</span>
                   <ExternalLink size={12} />
                 </a>
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemoLogin(isOwner ? "OWNER" : "PLAYER")}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-primary-lime text-accent-text text-[11px] font-bold hover:bg-[#96E600] transition-colors shadow-xs cursor-pointer"
-                >
-                  <Zap size={12} />
-                  <span>Instant Demo ({isOwner ? "Owner" : "Player"})</span>
-                </button>
               </div>
             </div>
           )}
@@ -540,7 +464,7 @@ export const Auth: React.FC = () => {
                     placeholder="Full Name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-2.5 pl-10 pr-4 text-[13px] font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
+                    className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-2.5 pl-10 pr-4 text-base min-h-11 font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
                   />
                 </div>
                 <div className="relative group">
@@ -553,7 +477,7 @@ export const Auth: React.FC = () => {
                     placeholder="Phone Number (Optional)"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-2.5 pl-10 pr-4 text-[13px] font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
+                    className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-2.5 pl-10 pr-4 text-base min-h-11 font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
                   />
                 </div>
               </>
@@ -569,7 +493,7 @@ export const Auth: React.FC = () => {
                 placeholder="Email Address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-2.5 pl-10 pr-4 text-[13px] font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
+                className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-2.5 pl-10 pr-4 text-base min-h-11 font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
               />
             </div>
             {mode !== "FORGOT_PASSWORD" && (
@@ -584,7 +508,7 @@ export const Auth: React.FC = () => {
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-2.5 pl-10 pr-10 text-[13px] font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
+                  className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-full py-2.5 pl-10 pr-10 text-base min-h-11 font-medium text-text-primary outline-none transition-all placeholder:text-slate-400 focus:bg-surface-card"
                 />
                 <button
                   type="button"
@@ -646,27 +570,6 @@ export const Auth: React.FC = () => {
               </button>
             )}
 
-            <div className="pt-4 mt-2 border-t border-border-subtle flex flex-wrap items-center justify-center gap-2">
-              <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1">
-                <Zap size={11} className="text-primary-lime" /> Quick Demo:
-              </span>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("PLAYER")}
-                disabled={loading || isSubmitting}
-                className="text-[11px] font-bold text-text-primary hover:text-primary-lime cursor-pointer bg-surface-raised hover:bg-surface-card border border-border-subtle px-2.5 py-1 rounded-full transition-colors active:scale-95 disabled:opacity-50"
-              >
-                Demo Player
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin("OWNER")}
-                disabled={loading || isSubmitting}
-                className="text-[11px] font-bold text-text-primary hover:text-primary-lime cursor-pointer bg-surface-raised hover:bg-surface-card border border-border-subtle px-2.5 py-1 rounded-full transition-colors active:scale-95 disabled:opacity-50"
-              >
-                Demo Turf Owner
-              </button>
-            </div>
           </form>
         </div>
         

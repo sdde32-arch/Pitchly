@@ -197,6 +197,8 @@ export const RoleOnboarding: React.FC<RoleOnboardingProps> = ({
       <div className="w-full max-w-md px-4 pb-10 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <button
+            type="button"
+            aria-label="Back"
             onClick={handleBack}
             disabled={currentSlideIndex === 0}
             className={`w-[52px] h-[52px] flex items-center justify-center rounded-full transition-all bg-surface-card border border-border-subtle ${currentSlideIndex === 0 ? "opacity-0 pointer-events-none" : "text-white hover:bg-surface-raised"}`}

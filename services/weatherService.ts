@@ -186,90 +186,6 @@ function mapWmoCode(
   };
 }
 
-/**
- * Deterministic Kampala weather generator for offline / fallback scenarios
- */
-function generateDeterministicKampalaWeather(
-  dateStr: string,
-  timeStr: string
-): SlotWeatherForecast {
-  const hour = parseHourNumber(timeStr);
-  const isNight = hour >= 19 || hour < 6;
-
-  // Use date hash for stable pseudo-random variations across days
-  let dateSeed = 0;
-  for (let i = 0; i < dateStr.length; i++) {
-    dateSeed = (dateSeed * 31 + dateStr.charCodeAt(i)) % 1000;
-  }
-
-  // Diurnal temperature curve in Kampala (typically 18°C min at dawn, 27°C max at 14:00)
-  let baseTemp = 23;
-  if (hour >= 6 && hour < 9) {
-    baseTemp = 19 + (hour - 6) * 1.5;
-  } else if (hour >= 9 && hour < 14) {
-    baseTemp = 23.5 + (hour - 9) * 0.9;
-  } else if (hour >= 14 && hour < 17) {
-    baseTemp = 28 - (hour - 14) * 0.8;
-  } else if (hour >= 17 && hour < 20) {
-    baseTemp = 25.5 - (hour - 17) * 1.2;
-  } else {
-    baseTemp = 22 - ((hour >= 20 ? hour - 20 : hour + 4) * 0.5);
-  }
-
-  // Add subtle date variance (-1.5 to +1.5°C)
-  const tempVariance = ((dateSeed % 30) - 15) / 10;
-  const temperature = Math.round((baseTemp + tempVariance) * 10) / 10;
-  const feelsLike = Math.round(temperature + (baseTemp > 25 ? 1.5 : -0.5));
-
-  // Precipitation probability based on Kampala tropical afternoon showers (peaks around 15:00 - 17:00)
-  let basePrecip = 10;
-  if (hour >= 14 && hour <= 17) {
-    basePrecip = 25 + (dateSeed % 25);
-  } else if (hour >= 18 && hour <= 21) {
-    basePrecip = 15 + (dateSeed % 15);
-  } else {
-    basePrecip = 5 + (dateSeed % 12);
-  }
-
-  // Humidity inverse to temperature (60% afternoon, up to 85% morning/night)
-  const humidity = Math.min(92, Math.max(52, Math.round(88 - (temperature - 18) * 3)));
-  const windSpeed = Math.round(6 + (hour >= 12 && hour <= 18 ? 8 : 4) + (dateSeed % 5));
-
-  let code = 0;
-  if (basePrecip > 60) {
-    code = 61; // rain
-  } else if (basePrecip > 35) {
-    code = 2; // partly cloudy
-  } else if (basePrecip > 20) {
-    code = 1; // mainly clear
-  } else {
-    code = 0; // clear
-  }
-
-  const { condition, iconType, suitability } = mapWmoCode(
-    code,
-    isNight,
-    temperature,
-    basePrecip
-  );
-
-  return {
-    time: timeStr,
-    date: dateStr,
-    temperature,
-    feelsLike,
-    condition,
-    conditionCode: code,
-    iconType,
-    precipitationProbability: basePrecip,
-    humidity,
-    windSpeed,
-    uvIndex: isNight ? 0 : hour >= 11 && hour <= 15 ? 7 : 4,
-    pitchSuitability: suitability,
-    isNight,
-  };
-}
-
 export const weatherService = {
   /**
    * Get forecast for a specific date and time slot
@@ -279,7 +195,7 @@ export const weatherService = {
     timeStr: string,
     lat: number = KAMPALA_DEFAULT_LAT,
     lng: number = KAMPALA_DEFAULT_LNG
-  ): Promise<SlotWeatherForecast> {
+  ): Promise<SlotWeatherForecast | null> {
     const hour = parseHourNumber(timeStr);
     const hourFormatted = `${String(hour).padStart(2, '0')}:00`;
     const targetIsoPrefix = `${dateStr}T${hourFormatted}`;
@@ -363,11 +279,10 @@ export const weatherService = {
         }
       }
     } catch (err) {
-      // Graceful fallback to deterministic Kampala weather
-      console.info('Using high-fidelity Kampala climate model for weather forecast:', err);
+      console.warn('Weather forecast fetch error:', err);
     }
 
-    return generateDeterministicKampalaWeather(dateStr, timeStr);
+    return null;
   },
 
   /**
@@ -383,9 +298,9 @@ export const weatherService = {
     maxPrecipProb: number;
     condition: string;
     summaryTip: string;
-  }> {
-    // Afternoon slot represents daytime condition
+  } | null> {
     const afternoonForecast = await this.getSlotWeather(dateStr, '16:00', lat, lng);
+    if (!afternoonForecast) return null;
     return {
       date: dateStr,
       avgTemp: afternoonForecast.temperature,

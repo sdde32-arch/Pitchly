@@ -195,14 +195,14 @@ export const BusinessSettings: React.FC = () => {
             <label className="text-xs font-bold text-text-secondary uppercase tracking-wider block">
               Business / Arena Name
             </label>
-            <div className="flex items-center bg-surface-raised rounded-xl px-3.5 border border-border-subtle focus-within:border-[#38BDF8] min-h-[46px]">
+            <div className="flex items-center bg-surface-raised rounded-xl px-3.5 border border-border-subtle focus-within:border-[#38BDF8] focus-within:ring-2 focus-within:ring-primary-lime min-h-[46px]">
               <Building size={16} className="text-text-tertiary mr-2.5 shrink-0" />
               <input
                 type="text"
                 value={formData.businessName}
                 onChange={(e) => handleChange("businessName", e.target.value)}
                 placeholder="e.g. Kampala Central Sports Complex"
-                className="bg-transparent w-full text-xs sm:text-sm font-bold outline-none text-text-primary placeholder:text-text-tertiary"
+                className="bg-transparent w-full text-base font-bold outline-none text-text-primary placeholder:text-text-tertiary"
               />
             </div>
           </div>
@@ -211,14 +211,14 @@ export const BusinessSettings: React.FC = () => {
             <label className="text-xs font-bold text-text-secondary uppercase tracking-wider block">
               Contact Email
             </label>
-            <div className="flex items-center bg-surface-raised rounded-xl px-3.5 border border-border-subtle focus-within:border-[#38BDF8] min-h-[46px]">
+            <div className="flex items-center bg-surface-raised rounded-xl px-3.5 border border-border-subtle focus-within:border-[#38BDF8] focus-within:ring-2 focus-within:ring-primary-lime min-h-[46px]">
               <Mail size={16} className="text-text-tertiary mr-2.5 shrink-0" />
               <input
                 type="email"
                 value={formData.contactEmail}
                 onChange={(e) => handleChange("contactEmail", e.target.value)}
                 placeholder="owner@sportscomplex.ug"
-                className="bg-transparent w-full text-xs sm:text-sm font-bold outline-none text-text-primary placeholder:text-text-tertiary"
+                className="bg-transparent w-full text-base font-bold outline-none text-text-primary placeholder:text-text-tertiary"
               />
             </div>
           </div>
@@ -227,14 +227,14 @@ export const BusinessSettings: React.FC = () => {
             <label className="text-xs font-bold text-text-secondary uppercase tracking-wider block">
               Contact Phone (Player Inquiries)
             </label>
-            <div className="flex items-center bg-surface-raised rounded-xl px-3.5 border border-border-subtle focus-within:border-[#38BDF8] min-h-[46px]">
+            <div className="flex items-center bg-surface-raised rounded-xl px-3.5 border border-border-subtle focus-within:border-[#38BDF8] focus-within:ring-2 focus-within:ring-primary-lime min-h-[46px]">
               <Phone size={16} className="text-text-tertiary mr-2.5 shrink-0" />
               <input
                 type="tel"
                 value={formData.contactPhone}
                 onChange={(e) => handleChange("contactPhone", e.target.value)}
                 placeholder="e.g. 0772 123 456"
-                className="bg-transparent w-full text-xs sm:text-sm font-bold outline-none text-text-primary placeholder:text-text-tertiary"
+                className="bg-transparent w-full text-base font-bold outline-none text-text-primary placeholder:text-text-tertiary"
               />
             </div>
           </div>
@@ -260,23 +260,23 @@ export const BusinessSettings: React.FC = () => {
               Daily Facility Hours
             </label>
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex-1 flex items-center bg-surface-raised rounded-xl px-3 border border-border-subtle focus-within:border-primary-lime min-h-[46px]">
+              <div className="flex-1 flex items-center bg-surface-raised rounded-xl px-3 border border-border-subtle focus-within:border-primary-lime focus-within:ring-2 focus-within:ring-primary-lime min-h-[46px]">
                 <Clock size={15} className="text-text-tertiary mr-2 shrink-0" />
                 <input
                   type="time"
                   value={formData.operatingHours.open}
                   onChange={(e) => handleHoursChange("open", e.target.value)}
-                  className="bg-transparent w-full text-xs sm:text-sm font-bold outline-none text-text-primary"
+                  className="bg-transparent w-full text-base font-bold outline-none text-text-primary"
                 />
               </div>
               <span className="text-xs font-bold text-text-tertiary uppercase">to</span>
-              <div className="flex-1 flex items-center bg-surface-raised rounded-xl px-3 border border-border-subtle focus-within:border-primary-lime min-h-[46px]">
+              <div className="flex-1 flex items-center bg-surface-raised rounded-xl px-3 border border-border-subtle focus-within:border-primary-lime focus-within:ring-2 focus-within:ring-primary-lime min-h-[46px]">
                 <Clock size={15} className="text-text-tertiary mr-2 shrink-0" />
                 <input
                   type="time"
                   value={formData.operatingHours.close}
                   onChange={(e) => handleHoursChange("close", e.target.value)}
-                  className="bg-transparent w-full text-xs sm:text-sm font-bold outline-none text-text-primary"
+                  className="bg-transparent w-full text-base font-bold outline-none text-text-primary"
                 />
               </div>
             </div>
@@ -303,13 +303,13 @@ export const BusinessSettings: React.FC = () => {
               </button>
             </div>
 
-            <div className="flex items-center bg-surface-raised rounded-xl px-3.5 border border-border-subtle focus-within:border-primary-lime min-h-[46px]">
+            <div className="flex items-center bg-surface-raised rounded-xl px-3.5 border border-border-subtle focus-within:border-primary-lime focus-within:ring-2 focus-within:ring-primary-lime min-h-[46px]">
               <DollarSign size={16} className="text-text-tertiary mr-2.5 shrink-0" />
               <input
                 type="number"
                 value={pricePerHour}
                 onChange={(e) => setPricePerHour(parseInt(e.target.value) || 0)}
-                className="bg-transparent w-full text-xs sm:text-sm font-bold outline-none text-text-primary"
+                className="bg-transparent w-full text-base font-bold outline-none text-text-primary"
               />
             </div>
 
@@ -372,7 +372,7 @@ export const BusinessSettings: React.FC = () => {
                       },
                     }))
                   }
-                  className="w-full bg-surface-raised rounded-lg px-3.5 h-11 border border-border-subtle text-xs sm:text-sm font-bold text-text-primary outline-none focus:border-[#EAB308] focus:ring-1 focus:ring-[#EAB308]/20 placeholder:text-text-tertiary transition-all"
+                  className="w-full bg-surface-raised rounded-lg px-3.5 h-11 min-h-11 border border-border-subtle text-base font-bold text-text-primary outline-none focus:border-[#EAB308] focus:ring-1 focus:ring-[#EAB308]/20 placeholder:text-text-tertiary transition-all"
                 />
               </div>
               <div>
@@ -392,7 +392,7 @@ export const BusinessSettings: React.FC = () => {
                       },
                     }))
                   }
-                  className="w-full bg-surface-raised rounded-lg px-3.5 h-11 border border-border-subtle text-xs sm:text-sm font-bold text-text-primary outline-none focus:border-[#EAB308] focus:ring-1 focus:ring-[#EAB308]/20 placeholder:text-text-tertiary transition-all"
+                  className="w-full bg-surface-raised rounded-lg px-3.5 h-11 min-h-11 border border-border-subtle text-base font-bold text-text-primary outline-none focus:border-[#EAB308] focus:ring-1 focus:ring-[#EAB308]/20 placeholder:text-text-tertiary transition-all"
                 />
               </div>
             </div>
@@ -425,7 +425,7 @@ export const BusinessSettings: React.FC = () => {
                       },
                     }))
                   }
-                  className="w-full bg-surface-raised rounded-lg px-3.5 h-11 border border-border-subtle text-xs sm:text-sm font-bold text-text-primary outline-none focus:border-[#EF4444] focus:ring-1 focus:ring-[#EF4444]/20 placeholder:text-text-tertiary transition-all"
+                  className="w-full bg-surface-raised rounded-lg px-3.5 h-11 min-h-11 border border-border-subtle text-base font-bold text-text-primary outline-none focus:border-[#EF4444] focus:ring-1 focus:ring-[#EF4444]/20 placeholder:text-text-tertiary transition-all"
                 />
               </div>
               <div>
@@ -445,7 +445,7 @@ export const BusinessSettings: React.FC = () => {
                       },
                     }))
                   }
-                  className="w-full bg-surface-raised rounded-lg px-3.5 h-11 border border-border-subtle text-xs sm:text-sm font-bold text-text-primary outline-none focus:border-[#EF4444] focus:ring-1 focus:ring-[#EF4444]/20 placeholder:text-text-tertiary transition-all"
+                  className="w-full bg-surface-raised rounded-lg px-3.5 h-11 min-h-11 border border-border-subtle text-base font-bold text-text-primary outline-none focus:border-[#EF4444] focus:ring-1 focus:ring-[#EF4444]/20 placeholder:text-text-tertiary transition-all"
                 />
               </div>
             </div>

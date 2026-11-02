@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Pitch } from "../../types/firebase";
+import { PhotoPlaceholder } from "../ui/PhotoPlaceholder";
 
 interface FootballPitchCardProps {
   pitch: Partial<Pitch>;
@@ -28,15 +29,9 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
   distanceKm,
 }) => {
   const navigate = useNavigate();
+  const [imageError, setImageError] = React.useState(false);
 
-  // Pick realistic upcoming matchday slots for this turf
-  const slots = React.useMemo(() => {
-    return ["17:00", "18:00", "19:00", "20:00"];
-  }, [pitch.id]);
-
-  const primaryImage =
-    pitch.images?.[0] ||
-    "https://images.unsplash.com/photo-1529900245534-47fbf59f4820?auto=format&fit=crop&w=800&q=80";
+  const primaryImage = pitch.images?.[0] || "";
 
   const formatBadge = pitch.pitchFormats?.[0] || "7-A-Side";
   const surfaceType =
@@ -47,8 +42,10 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
       ? "Indoor 4G Turf"
       : "FIFA Synthetic Turf");
   
-  const rating = (pitch as any).rating || 4.8;
-  const reviewsCount = (pitch as any).reviewsCount || 24;
+  const reviewCount = Number((pitch as any).reviewsCount ?? (pitch as any).reviewCount ?? 0);
+  const rawRating = (pitch as any).rating;
+  const hasRealRating = reviewCount > 0 && typeof rawRating === 'number' && rawRating > 0;
+  const ratingVal = hasRealRating ? rawRating.toFixed(1) : null;
   const distance =
     typeof distanceKm === "number"
       ? distanceKm < 0.1
@@ -67,12 +64,17 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
       <div className="flex-1 flex flex-col">
         {/* Pitch Stadium Image Frame */}
         <div className="relative w-full h-36 sm:h-40 overflow-hidden bg-surface-raised select-none border-b border-border-subtle shrink-0">
-          <img
-            src={primaryImage}
-            alt={pitch.name || "Football Pitch"}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-            loading="lazy"
-          />
+          {!primaryImage || imageError ? (
+            <PhotoPlaceholder className="w-full h-full" />
+          ) : (
+            <img
+              src={primaryImage}
+              alt={pitch.name || "Football Pitch"}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+              loading="lazy"
+              onError={() => setImageError(true)}
+            />
+          )}
           {/* Stadium Dark Gradient Shadow for Readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
 
@@ -107,9 +109,15 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
           {/* Bottom Overlay Data (Rating) */}
           <div className="absolute bottom-3 right-3 pointer-events-none">
             <div className="flex items-center gap-1 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-bold text-white border border-white/15 shadow-xs font-mono tabular-nums">
-              <Star size={12} className="fill-[#FACC15] text-[#FACC15] shrink-0" />
-              <span>{rating}</span>
-              <span className="text-white/60 text-[10px] font-medium">({reviewsCount})</span>
+              {hasRealRating ? (
+                <>
+                  <Star size={12} className="fill-[#FACC15] text-[#FACC15] shrink-0" />
+                  <span>{ratingVal}</span>
+                  <span className="text-white/60 text-[10px] font-medium">({reviewCount})</span>
+                </>
+              ) : (
+                <span className="text-[10px] uppercase font-bold text-primary-lime">New</span>
+              )}
             </div>
           </div>
         </div>
@@ -128,26 +136,6 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
               <span className="truncate">{pitch.location || "Kampala, Uganda"}</span>
               <span className="text-text-tertiary">·</span>
               <span className="font-mono tabular-nums text-text-primary font-bold shrink-0">{distance}</span>
-            </div>
-          </div>
-
-          {/* Instant Slots Strip (Noisy text headers removed; clean slot grid) */}
-          <div className="pt-2 border-t border-border-subtle">
-            <div className="grid grid-cols-4 gap-1.5">
-              {slots.map((slot) => (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectSlot(pitch, slot);
-                  }}
-                  className="py-1.5 px-1 rounded-lg bg-surface-raised hover:bg-primary-lime hover:text-black text-text-primary border border-border-subtle text-xs font-mono tabular-nums font-bold text-center transition-all cursor-pointer active:scale-95 group/slot shadow-2xs"
-                  title={`Quick reserve slot for ${slot}`}
-                >
-                  <span className="group-hover/slot:text-black">{slot}</span>
-                </button>
-              ))}
             </div>
           </div>
         </div>

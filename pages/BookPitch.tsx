@@ -85,6 +85,7 @@ export const BookPitch: React.FC = () => {
   const [stepDirection, setStepDirection] = useState<number>(1);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.MTN);
   const [uploadingProof, setUploadingProof] = useState(false);
+  const [proofUploadProgress, setProofUploadProgress] = useState(0);
   const [proofUrl, setProofUrl] = useState<string | null>(null);
   const [proofFileName, setProofFileName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,7 +138,7 @@ export const BookPitch: React.FC = () => {
     pricePerHour: realPitch.pricePerHour,
     type: realPitch.pitchFormats?.[0] || "11-a-side",
     image: realPitch.images?.[0] || "",
-    rating: 4.8,
+    rating: typeof (realPitch as any).rating === 'number' ? (realPitch as any).rating : 0,
     distance: "2.4km away",
     status: realPitch.status as any,
     amenities: realPitch.amenities || [],
@@ -198,7 +199,7 @@ export const BookPitch: React.FC = () => {
   const isFull = depositCalc.isFull;
   const pitchAllowsUnpaid = (realPitch as any)?.allowUnpaidReservations ?? (turf as any)?.allowUnpaidReservations;
   const allowUnpaidReservations = pitchAllowsUnpaid !== false;
-  const pitchPaymentPhone = (turf as any)?.paymentPhone || turf?.contactPhone || (realPitch as any)?.paymentPhone || (realPitch as any)?.contactPhone || "";
+  const pitchPaymentPhone = (realPitch as any)?.paymentPhone || (turf as any)?.paymentPhone || "";
 
   const anySelectedSlotIsTentative = useMemo(() => {
     return selectedTimes.some(t => {
@@ -364,21 +365,28 @@ export const BookPitch: React.FC = () => {
       setErrorMsg("Please upload an image file (JPG, PNG).");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMsg("File size must be less than 5MB.");
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMsg("File size must be less than 10MB.");
       return;
     }
     try {
       setUploadingProof(true);
+      setProofUploadProgress(0);
       setErrorMsg("");
-      const url = await storageService.uploadPaymentProof('pre-booking-' + Date.now(), file);
+      const url = await storageService.uploadPaymentProof(
+        'pre-booking-' + Date.now(),
+        file,
+        (percent) => setProofUploadProgress(percent)
+      );
       setProofUrl(url);
       setProofFileName(file.name);
     } catch (err: any) {
       console.error("Upload error:", err);
-      setErrorMsg(err.message || "Failed to upload payment proof.");
+      setErrorMsg(err.message || "Failed to upload payment proof. You can still enter your Transaction Reference below.");
     } finally {
       setUploadingProof(false);
+      setProofUploadProgress(0);
+      e.target.value = "";
     }
   };
 
@@ -845,17 +853,16 @@ export const BookPitch: React.FC = () => {
                 </div>
 
                 {/* Expected Match Weather in Summary */}
-                <div className="mt-4 pt-3.5 border-t border-border-subtle">
-                  <MatchWeatherWidget
-                    selectedDate={selectedDate}
-                    selectedTime={selectedTimes[0]}
-                    endTime={`${String(parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1).padStart(2, '0')}:00`}
-                    pitchName={turf.name}
-                    latitude={turf.latitude}
-                    longitude={turf.longitude}
-                    compact={true}
-                  />
-                </div>
+                <MatchWeatherWidget
+                  selectedDate={selectedDate}
+                  selectedTime={selectedTimes[0]}
+                  endTime={`${String(parseInt(selectedTimes[selectedTimes.length - 1].split(':')[0]) + 1).padStart(2, '0')}:00`}
+                  pitchName={turf.name}
+                  latitude={turf.latitude}
+                  longitude={turf.longitude}
+                  compact={true}
+                  className="mt-4"
+                />
               </div>
 
               {/* Booking Position & Slot Security Selection */}
@@ -1130,7 +1137,7 @@ export const BookPitch: React.FC = () => {
                         if (phoneError) setPhoneError("");
                       }}
                       placeholder="e.g. 0772 123 456 or +256772123456"
-                      className={`w-full px-3.5 py-2.5 rounded-xl bg-surface-raised border text-text-primary placeholder:text-text-disabled text-sm font-medium focus:outline-hidden transition-all ${
+                      className={`w-full px-3.5 py-2.5 rounded-xl bg-surface-raised border text-text-primary placeholder:text-text-disabled text-base min-h-11 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-lime transition-all ${
                         phoneError ? 'border-red-500 focus:border-red-500' : 'border-border-subtle focus:border-amber-400'
                       }`}
                     />
@@ -1265,7 +1272,7 @@ export const BookPitch: React.FC = () => {
                           value={transactionRef}
                           onChange={(e) => setTransactionRef(e.target.value)}
                           placeholder="e.g. 248910284 or MTN-TXN-..."
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-surface-raised border border-border-subtle text-text-primary placeholder:text-text-disabled text-xs font-mono focus:outline-hidden focus:border-primary-lime transition-all"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-surface-raised border border-border-subtle text-text-primary placeholder:text-text-disabled text-base min-h-11 font-mono focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-lime focus:border-primary-lime transition-all"
                         />
                         <p className="text-[11px] text-text-secondary mt-1">
                           6 to 25 characters, as on your MoMo message
@@ -1282,9 +1289,15 @@ export const BookPitch: React.FC = () => {
                           <input type="file" className="hidden" accept="image/*" onChange={handleProofUpload} disabled={uploadingProof} />
                           <div className="w-full h-28 rounded-xl border-2 border-dashed border-border-prominent hover:border-primary-lime hover:bg-primary-lime/5 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer relative overflow-hidden group">
                             {uploadingProof ? (
-                              <div className="flex flex-col items-center gap-2 text-primary-lime">
+                              <div className="flex flex-col items-center gap-1.5 text-primary-lime w-full px-6">
                                 <Loader2 size={24} className="animate-spin" />
-                                <span className="text-xs font-bold uppercase tracking-wider">Uploading receipt...</span>
+                                <span className="text-xs font-bold uppercase tracking-wider">Uploading receipt... {proofUploadProgress}%</span>
+                                <div className="w-full max-w-xs bg-surface-raised h-1.5 rounded-full overflow-hidden border border-border-subtle mt-0.5">
+                                  <div
+                                    className="bg-primary-lime h-full transition-all duration-200"
+                                    style={{ width: `${proofUploadProgress}%` }}
+                                  />
+                                </div>
                               </div>
                             ) : proofUrl ? (
                               <div className="flex flex-col items-center gap-1.5 text-primary-lime bg-primary-lime/10 w-full h-full justify-center p-2">

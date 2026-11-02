@@ -742,18 +742,6 @@ export const TournamentHub: React.FC = () => {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  // Quick Seed template
-  const handleQuickSeed = async () => {
-    try {
-      setLoading(true);
-      await tournamentService.seedWehatTournament(tournamentId);
-    } catch (err) {
-      console.error("Seed error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Metrics
   const liveCount = useMemo(
     () => fixtures.filter((f) => f.status === "live").length,
@@ -1352,43 +1340,41 @@ export const TournamentHub: React.FC = () => {
               <div className="bg-surface-card rounded-xl border border-border-subtle p-8 text-center space-y-4 shadow-xs">
                 <Clock size={32} className="text-text-secondary mx-auto" />
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-text-primary">No fixtures found for current filter</p>
+                  <p className="text-sm font-bold text-text-primary">
+                    {fixtures.length === 0 ? "No fixtures have been published yet" : "No fixtures found for current filter"}
+                  </p>
                   <p className="text-xs text-text-secondary max-w-md mx-auto">
-                    Try clearing your search or switching to Previous Results to explore all completed Matchday 1 and 2 scores.
+                    {fixtures.length === 0
+                      ? "Check back soon once tournament organizers publish the match schedule."
+                      : "Try clearing your search or switching to Previous Results to explore completed scores."}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                  <button
-                    onClick={() => {
-                      setRoundFilter("all");
-                      setFixtureFilter("all");
-                      setFixtureGroupFilter("all");
-                      setFixtureSearch("");
-                    }}
-                    className="px-4 py-2 rounded-xl bg-primary-lime text-black font-black text-xs hover:bg-[#96E600] transition-colors cursor-pointer shadow-xs active:scale-95"
-                  >
-                    View All 24 Matches
-                  </button>
-                  <button
-                    onClick={() => {
-                      setRoundFilter("previous");
-                      setFixtureFilter("all");
-                      setFixtureGroupFilter("all");
-                      setFixtureSearch("");
-                    }}
-                    className="px-4 py-2 rounded-xl bg-surface-raised border border-border-subtle text-text-primary font-bold text-xs hover:bg-border-subtle transition-colors cursor-pointer active:scale-95"
-                  >
-                    View Previous Results (MD 1 & 2)
-                  </button>
-                  {fixtures.length === 0 && (
+                {fixtures.length > 0 && (
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
                     <button
-                      onClick={handleQuickSeed}
-                      className="px-4 py-2 rounded-xl bg-primary-lime text-black font-black text-xs hover:bg-[#96E600] transition-colors cursor-pointer"
+                      onClick={() => {
+                        setRoundFilter("all");
+                        setFixtureFilter("all");
+                        setFixtureGroupFilter("all");
+                        setFixtureSearch("");
+                      }}
+                      className="px-4 py-2 rounded-xl bg-primary-lime text-black font-black text-xs hover:bg-[#96E600] transition-colors cursor-pointer shadow-xs active:scale-95"
                     >
-                      Load Matchday Template
+                      View All Matches
                     </button>
-                  )}
-                </div>
+                    <button
+                      onClick={() => {
+                        setRoundFilter("previous");
+                        setFixtureFilter("all");
+                        setFixtureGroupFilter("all");
+                        setFixtureSearch("");
+                      }}
+                      className="px-4 py-2 rounded-xl bg-surface-raised border border-border-subtle text-text-primary font-bold text-xs hover:bg-border-subtle transition-colors cursor-pointer active:scale-95"
+                    >
+                      View Previous Results
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-5">

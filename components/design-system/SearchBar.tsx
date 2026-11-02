@@ -37,14 +37,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     <div className={`space-y-3 w-full ${className}`}>
       
       {/* Top Main Search Input Box */}
-      <div className={`relative w-full flex items-center rounded-full border px-4 py-3 shadow-sm transition-all focus-within:border-primary-lime ${containerBg}`}>
+      <div className={`relative w-full flex items-center rounded-full border px-4 py-3 shadow-sm transition-all focus-within:border-primary-lime focus-within:ring-2 focus-within:ring-primary-lime ${containerBg}`}>
         <Search size={18} className={`shrink-0 mr-3 ${iconColor}`} />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange?.(e.target.value)}
           placeholder={placeholder}
-          className={`w-full bg-transparent text-xs font-display font-medium outline-none ${textColor} ${placeholderColor}`}
+          className={`w-full bg-transparent text-base font-display font-medium outline-none ${textColor} ${placeholderColor}`}
         />
         {searchQuery && (
           <button

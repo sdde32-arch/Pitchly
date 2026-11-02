@@ -73,6 +73,8 @@ export const PitchReviews: React.FC = () => {
         image: (p.images && p.images[0]) || (p as any).image || "/placeholder-pitch.png",
         status: p.status as any,
         contactPhone: (p as any).contactPhone || (p as any).phone || "",
+        paymentPhone: (p as any).paymentPhone || "",
+        paymentAccountName: (p as any).paymentAccountName || "",
         submittedAt: p.createdAt,
         ownerName: (p as any).ownerName || "Owner (" + (p.ownerId?.substring(0, 6) || "ID") + ")",
         turfType: (p as any).turfType || "Artificial Turf",
@@ -327,8 +329,16 @@ export const PitchReviews: React.FC = () => {
                           <div className="font-bold text-text-primary text-xs truncate max-w-[180px]">
                             {pitch.name}
                           </div>
-                          <div className="text-[11px] text-text-secondary truncate max-w-[180px]">
-                            {pitch.ownerName}
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            <span className="text-[11px] text-text-secondary truncate max-w-[140px]">
+                              {pitch.ownerName}
+                            </span>
+                            {!pitch.paymentPhone && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                                <AlertCircle size={9} />
+                                No payment number set
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -516,6 +526,42 @@ export const PitchReviews: React.FC = () => {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Merchant Payment Details */}
+              <div className="bg-surface-raised rounded-2xl p-4 border border-border-subtle space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider">
+                    Payment &amp; Payout Number
+                  </h3>
+                  {!selectedPitch.paymentPhone ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                      <AlertCircle size={10} />
+                      No payment number set
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30">
+                      <CheckCircle2 size={10} />
+                      Configured
+                    </span>
+                  )}
+                </div>
+                {selectedPitch.paymentPhone ? (
+                  <div className="text-xs space-y-1">
+                    <div className="text-text-primary font-bold">
+                      {selectedPitch.paymentPhone}
+                    </div>
+                    {selectedPitch.paymentAccountName && (
+                      <div className="text-[11px] text-text-secondary">
+                        Registered: {selectedPitch.paymentAccountName}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-amber-400/90 leading-relaxed">
+                    This pitch does not have a merchant mobile money phone number configured. Players will not be able to complete instant deposit checkout.
+                  </p>
+                )}
               </div>
 
               {/* Amenities & Facility Features */}

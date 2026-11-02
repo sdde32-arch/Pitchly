@@ -139,7 +139,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         description: p.description,
         type: p.pitchFormats?.[0] || "7-a-side",
         pitchFormats: p.pitchFormats,
-        rating: (p as any).rating || 4.8,
+        rating: typeof (p as any).rating === 'number' ? (p as any).rating : 0,
       }));
       setTurfs(mappedTurfs);
       

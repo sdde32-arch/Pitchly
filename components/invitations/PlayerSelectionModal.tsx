@@ -102,6 +102,8 @@ export const PlayerSelectionModal: React.FC<PlayerSelectionModalProps> = ({
             </div>
           </div>
           <button
+            type="button"
+            aria-label="Close"
             onClick={onClose}
             className="w-9 h-9 rounded-xl bg-surface-card hover:bg-border-subtle border border-border-subtle flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
           >

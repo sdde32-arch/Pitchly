@@ -126,7 +126,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
               avatar:
                 data.avatar ||
                 firebaseUser.photoURL ||
-                "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200",
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name || firebaseUser.displayName || "Player")}&background=22C55E&color=fff&bold=true`,
               bio: data.bio || "Ready to play.",
               role: data.role || "PLAYER",
               roles: data.roles || ["PLAYER", "OWNER"],
@@ -150,7 +150,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
             const isOwnerRole = pendingRole === "OWNER" || pendingRole === "owner";
             const defaultAvatar = isOwnerRole 
               ? `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingName || firebaseUser.email?.split("@")[0] || "Owner")}&background=22C55E&color=fff&bold=true`
-              : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
+              : `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingName || firebaseUser.email?.split("@")[0] || "Player")}&background=22C55E&color=fff&bold=true`;
 
             // Randomly assign one of the 20 bubble-head avatars for a delightful new user experience!
             const randomAvatarIndex = Math.floor(Math.random() * 20) + 1;

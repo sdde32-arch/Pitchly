@@ -153,6 +153,7 @@ export const ChatRoom: React.FC = () => {
           />
           <button 
             type="submit"
+            aria-label="Send message"
             disabled={!newMessage.trim()}
             className="absolute right-1.5 top-1.5 bottom-1.5 w-[38px] rounded-full bg-primary-lime text-white flex items-center justify-center shrink-0 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-primary-lime/20 transition-transform active:scale-95"
           >

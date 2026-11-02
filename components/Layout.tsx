@@ -66,6 +66,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     return hiddenPaths.some(p => location.pathname.startsWith(p));
   }, [location.pathname]);
 
+  const [avatarError, setAvatarError] = React.useState(false);
+
   const hideDesktopSidebar = React.useMemo(() => {
     return location.pathname.startsWith("/turf");
   }, [location.pathname]);
@@ -518,8 +520,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="flex items-center justify-between p-2 rounded-xl bg-surface-card border border-border-subtle">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-lg bg-surface-raised border border-border-subtle flex items-center justify-center text-text-secondary shrink-0 overflow-hidden">
-                  {userProfile?.avatar ? (
-                    <img src={userProfile.avatar} alt="" className="w-full h-full object-cover" />
+                  {userProfile?.avatar && !avatarError ? (
+                    <img
+                      src={userProfile.avatar}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={() => setAvatarError(true)}
+                    />
                   ) : (
                     <User size={16} />
                   )}

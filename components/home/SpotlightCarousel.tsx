@@ -3,6 +3,7 @@ import { Star, MapPin, Zap, ChevronRight, Trophy, ShieldCheck } from "lucide-rea
 import { useNavigate } from "react-router-dom";
 import { Pitch } from "../../types/firebase";
 import { SpotlightCarouselSkeleton } from "../ui/Skeleton";
+import { PhotoPlaceholder } from "../ui/PhotoPlaceholder";
 
 interface SpotlightCarouselProps {
   pitches: Partial<Pitch>[];
@@ -16,6 +17,7 @@ export const SpotlightCarousel: React.FC<SpotlightCarouselProps> = ({
   loading = false,
 }) => {
   const navigate = useNavigate();
+  const [failedPitchIds, setFailedPitchIds] = React.useState<Set<string>>(new Set());
 
   if (loading) {
     return <SpotlightCarouselSkeleton />;
@@ -57,10 +59,12 @@ export const SpotlightCarousel: React.FC<SpotlightCarouselProps> = ({
           sm:-mx-6 sm:px-6 for tablet to match Home.tsx padding */}
       <div className="flex gap-4 sm:gap-5 overflow-x-auto no-scrollbar pb-4 pt-1 snap-x snap-mandatory w-full">
         {pitches.slice(0, 5).map((pitch, idx) => {
-          const img =
-            pitch.images?.[0] ||
-            "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80";
-          const rating = (pitch as any).rating || (4.9 - idx * 0.05).toFixed(1);
+          const img = pitch.images?.[0] || "";
+          const hasFailed = Boolean(pitch.id && failedPitchIds.has(pitch.id));
+          const reviewCount = Number((pitch as any).reviewsCount ?? (pitch as any).reviewCount ?? 0);
+          const rawRating = (pitch as any).rating;
+          const hasRealRating = reviewCount > 0 && typeof rawRating === 'number' && rawRating > 0;
+          const ratingVal = hasRealRating ? rawRating.toFixed(1) : null;
           const format = pitch.pitchFormats?.[0] || "7-A-Side";
 
           return (
@@ -71,12 +75,21 @@ export const SpotlightCarousel: React.FC<SpotlightCarouselProps> = ({
               className="group relative w-[280px] sm:w-[340px] h-[200px] sm:h-[220px] rounded-2xl overflow-hidden border border-border-subtle hover:border-primary-lime/50 transition-all duration-300 snap-center sm:snap-start shrink-0 cursor-pointer shadow-md hover:shadow-lg hover:shadow-black/10"
             >
               {/* Background Stadium Photo */}
-              <img
-                src={img}
-                alt={pitch.name || "Football Turf"}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                loading="lazy"
-              />
+              {!img || hasFailed ? (
+                <PhotoPlaceholder className="w-full h-full" />
+              ) : (
+                <img
+                  src={img}
+                  alt={pitch.name || "Football Turf"}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                  loading="lazy"
+                  onError={() => {
+                    if (pitch.id) {
+                      setFailedPitchIds((prev) => new Set(prev).add(pitch.id!));
+                    }
+                  }}
+                />
+              )}
 
               {/* Dynamic Gradient Atmosphere */}
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/20" />
@@ -89,8 +102,14 @@ export const SpotlightCarousel: React.FC<SpotlightCarouselProps> = ({
                 </span>
 
                 <div className="bg-black/75 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-black text-white flex items-center gap-1 border border-white/10">
-                  <Star size={12} className="fill-[#FACC15] text-[#FACC15]" />
-                  <span>{rating}</span>
+                  {hasRealRating ? (
+                    <>
+                      <Star size={12} className="fill-[#FACC15] text-[#FACC15]" />
+                      <span>{ratingVal}</span>
+                    </>
+                  ) : (
+                    <span className="text-[10px] uppercase font-bold text-primary-lime">New</span>
+                  )}
                 </div>
               </div>
 

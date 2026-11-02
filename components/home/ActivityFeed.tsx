@@ -166,7 +166,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
       (userProfile as any)?.photoURL ||
       (userProfile as any)?.avatar ||
       user?.photoURL ||
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80";
+      "";
 
     try {
       if (postCategory === "match_result") {
@@ -540,14 +540,17 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                 {/* Author & Activity Header */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <img
-                      src={
-                        act.userAvatar ||
-                        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-                      }
-                      alt={act.userName || "Player"}
-                      className="w-10 h-10 rounded-full object-cover border border-border-subtle shrink-0"
-                    />
+                    {act.userAvatar ? (
+                      <img
+                        src={act.userAvatar}
+                        alt={act.userName || "Player"}
+                        className="w-10 h-10 rounded-full object-cover border border-border-subtle shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-surface-raised border border-border-subtle shrink-0 flex items-center justify-center font-bold text-xs text-text-secondary">
+                        {(act.userName || "P").charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs sm:text-sm font-black text-text-primary truncate">

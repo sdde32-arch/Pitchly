@@ -121,6 +121,8 @@ export const ReportModal: React.FC<ReportModalProps> = ({
               </h2>
             </div>
             <button
+              type="button"
+              aria-label="Close"
               onClick={handleResetAndClose}
               className="p-1.5 rounded-full hover:bg-border-subtle text-slate-400 hover:text-slate-600 transition-colors"
             >

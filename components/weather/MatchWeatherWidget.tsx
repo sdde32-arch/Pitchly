@@ -18,6 +18,7 @@ import {
   Info,
   Clock,
   Loader2,
+  CloudOff,
 } from "lucide-react";
 import { weatherService, SlotWeatherForecast } from "../../services/weatherService";
 
@@ -139,7 +140,8 @@ export const MatchWeatherWidget: React.FC<MatchWeatherWidgetProps> = ({
   }, [selectedDate]);
 
   // Compact variant for Booking Summary / Checkout step
-  if (compact && forecast) {
+  if (compact) {
+    if (!forecast) return null;
     const isOptimal = forecast.pitchSuitability.status === "optimal";
     return (
       <div
@@ -195,10 +197,16 @@ export const MatchWeatherWidget: React.FC<MatchWeatherWidgetProps> = ({
       {/* Top Bar: Live indicator and Time Slot Header */}
       <div className="flex items-center justify-between gap-2 mb-3.5">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary-lime/10 border border-primary-lime/20 text-primary-lime text-[11px] font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary-lime animate-pulse" />
-            Matchday Weather
-          </span>
+          {forecast ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary-lime/10 border border-primary-lime/20 text-primary-lime text-[11px] font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary-lime animate-pulse" />
+              Matchday Weather
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-raised border border-border-subtle text-text-secondary text-[11px] font-bold">
+              Matchday Weather
+            </span>
+          )}
 
           <span className="text-xs font-semibold text-text-secondary truncate">
             {pitchName ? `${pitchName} area` : "Kampala Turf Radar"}
@@ -329,8 +337,23 @@ export const MatchWeatherWidget: React.FC<MatchWeatherWidgetProps> = ({
               </div>
             </div>
           </motion.div>
-        ) : (
-          /* NO TIME SLOT SELECTED YET: DAY OVERVIEW PROMPT */
+        ) : selectedTime ? (
+          /* SELECTED TIME SLOT BUT FORECAST UNAVAILABLE */
+          <motion.div
+            key="unavailable"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="p-5 rounded-xl bg-surface-raised/40 border border-border-subtle text-center flex flex-col items-center justify-center space-y-1.5"
+          >
+            <CloudOff size={22} className="text-text-tertiary mb-1" />
+            <p className="text-xs font-bold text-text-primary">Forecast unavailable right now</p>
+            <p className="text-[11px] text-text-secondary max-w-xs leading-relaxed">
+              Live weather data is currently not available for this time slot. Check back closer to matchday.
+            </p>
+          </motion.div>
+        ) : dayOverview ? (
+          /* NO TIME SLOT SELECTED YET: DAY OVERVIEW AVAILABLE */
           <motion.div
             key="day-overview"
             initial={{ opacity: 0 }}
@@ -346,7 +369,7 @@ export const MatchWeatherWidget: React.FC<MatchWeatherWidgetProps> = ({
                     {formattedDate} Daytime Outlook
                   </div>
                   <div className="text-[11px] text-text-secondary">
-                    Typical {dayOverview?.avgTemp ?? 25}°C • {dayOverview?.maxPrecipProb ?? 15}% rain chance
+                    {dayOverview.condition} • {dayOverview.avgTemp}°C • {dayOverview.maxPrecipProb}% rain chance
                   </div>
                 </div>
               </div>
@@ -357,6 +380,36 @@ export const MatchWeatherWidget: React.FC<MatchWeatherWidgetProps> = ({
 
             <p className="text-xs text-text-secondary leading-relaxed px-1">
               Select any time slot to view hourly playing conditions, expected temperatures, rain probability, and pitch traction recommendations.
+            </p>
+          </motion.div>
+        ) : (
+          /* NO TIME SLOT SELECTED YET: DAY OVERVIEW UNAVAILABLE */
+          <motion.div
+            key="day-unavailable"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-3"
+          >
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-raised/50 border border-border-subtle">
+              <div className="flex items-center gap-2.5">
+                <CloudOff size={18} className="text-text-tertiary" />
+                <div>
+                  <div className="text-xs font-bold text-text-primary">
+                    {formattedDate} Weather
+                  </div>
+                  <div className="text-[11px] text-text-secondary">
+                    Forecast unavailable right now
+                  </div>
+                </div>
+              </div>
+              <span className="text-[11px] font-semibold text-text-tertiary bg-surface-card px-2 py-1 rounded-md border border-border-subtle">
+                Select slot below
+              </span>
+            </div>
+
+            <p className="text-xs text-text-secondary leading-relaxed px-1">
+              Select any time slot to view hourly playing conditions and slot details.
             </p>
           </motion.div>
         )}

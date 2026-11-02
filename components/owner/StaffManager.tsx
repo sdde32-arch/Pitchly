@@ -17,6 +17,7 @@ export const StaffManager: React.FC = () => {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [failedAvatarIds, setFailedAvatarIds] = useState<Set<string>>(new Set());
   
   // Form State
   const [newStaff, setNewStaff] = useState({ name: '', phone: '', role: 'CARETAKER' });
@@ -111,8 +112,13 @@ export const StaffManager: React.FC = () => {
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-11 h-11 bg-surface-raised rounded-xl flex items-center justify-center text-[#A78BFA] shrink-0 border border-border-subtle overflow-hidden">
-                  {member.avatar ? (
-                    <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+                  {member.avatar && !failedAvatarIds.has(member.id) ? (
+                    <img
+                      src={member.avatar}
+                      alt={member.name}
+                      className="w-full h-full object-cover"
+                      onError={() => setFailedAvatarIds(prev => new Set(prev).add(member.id))}
+                    />
                   ) : (
                     <UserCheck size={20} />
                   )}

@@ -187,6 +187,11 @@ export const TournamentManager: React.FC = () => {
   };
 
   const handleSeedKickoffData = async () => {
+    const confirmed = window.confirm(
+      "WARNING: This will overwrite live fixtures, scorers, nominees and standings. Proceed?"
+    );
+    if (!confirmed) return;
+
     try {
       setLoading(true);
       const res = await tournamentService.seedWehatTournament(tournamentId);

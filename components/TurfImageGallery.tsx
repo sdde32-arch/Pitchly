@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize2, X, ImageOff } from "lucide-react";
 
 interface TurfImageGalleryProps {
   images: string[];
@@ -14,13 +14,7 @@ interface TurfImageGalleryProps {
   onIndexChange?: (index: number) => void;
 }
 
-const DEFAULT_DEMO_PITCH_IMAGES = [
-  "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1200&q=80",
-];
+
 
 export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({ 
   images, 
@@ -35,6 +29,7 @@ export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(selectedIndex ?? 0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -45,10 +40,9 @@ export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({
   // Filter valid images
   const galleryImages = React.useMemo(() => {
     if (!images || images.length === 0) {
-      return DEFAULT_DEMO_PITCH_IMAGES;
+      return [];
     }
-    const list = images.filter((img) => typeof img === "string" && img.trim().length > 0);
-    return list.length > 0 ? list : DEFAULT_DEMO_PITCH_IMAGES;
+    return images.filter((img) => typeof img === "string" && img.trim().length > 0);
   }, [images]);
 
   // Safe clamped index within bounds
@@ -86,6 +80,15 @@ export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({
     currentXRef.current = e.touches[0].clientX;
     setIsDragging(true);
   };
+
+  if (galleryImages.length === 0) {
+    return (
+      <div className={`relative w-full overflow-hidden rounded-2xl bg-surface-card border border-border-subtle aspect-[16/10] sm:aspect-[21/9] flex flex-col items-center justify-center text-text-tertiary gap-2 p-6 ${className}`}>
+        <ImageOff size={36} className="text-text-tertiary" />
+        <span className="text-xs font-semibold text-text-secondary">No photo yet</span>
+      </div>
+    );
+  }
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (startXRef.current === null) return;
@@ -204,18 +207,25 @@ export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({
           {galleryImages.map((imgUrl, idx) => (
             <div 
               key={idx} 
-              className="w-full h-full shrink-0 relative bg-surface-card overflow-hidden"
+              className="w-full h-full shrink-0 relative bg-surface-card overflow-hidden flex items-center justify-center"
             >
-              <img
-                src={imgUrl}
-                alt={`${name} facility view ${idx + 1}`}
-                className="w-full h-full object-cover pointer-events-none select-none"
-                loading={idx <= 1 ? "eager" : "lazy"}
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  e.currentTarget.src = DEFAULT_DEMO_PITCH_IMAGES[0];
-                }}
-              />
+              {failedImages[imgUrl] ? (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-surface-card text-text-tertiary gap-2 p-4">
+                  <ImageOff size={32} className="text-text-tertiary" />
+                  <span className="text-xs font-semibold text-text-secondary">No photo yet</span>
+                </div>
+              ) : (
+                <img
+                  src={imgUrl}
+                  alt={`${name} facility view ${idx + 1}`}
+                  className="w-full h-full object-cover pointer-events-none select-none"
+                  loading={idx <= 1 ? "eager" : "lazy"}
+                  referrerPolicy="no-referrer"
+                  onError={() => {
+                    setFailedImages((prev) => ({ ...prev, [imgUrl]: true }));
+                  }}
+                />
+              )}
             </div>
           ))}
         </div>
@@ -366,15 +376,22 @@ export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({
                     key={idx} 
                     className="w-full h-full shrink-0 hidden sm:flex items-center justify-center p-2"
                   >
-                    <img
-                      src={imgUrl}
-                      alt={`${name} high resolution view ${idx + 1}`}
-                      className="max-w-full max-h-[75vh] object-contain rounded-[14px] shadow-2xl border border-white/10"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        e.currentTarget.src = DEFAULT_DEMO_PITCH_IMAGES[0];
-                      }}
-                    />
+                    {failedImages[imgUrl] ? (
+                      <div className="flex flex-col items-center justify-center text-text-tertiary gap-2 p-8">
+                        <ImageOff size={36} className="text-text-tertiary" />
+                        <span className="text-xs font-semibold text-text-secondary">No photo yet</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={imgUrl}
+                        alt={`${name} high resolution view ${idx + 1}`}
+                        className="max-w-full max-h-[75vh] object-contain rounded-[14px] shadow-2xl border border-white/10"
+                        referrerPolicy="no-referrer"
+                        onError={() => {
+                          setFailedImages((prev) => ({ ...prev, [imgUrl]: true }));
+                        }}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
@@ -410,21 +427,25 @@ export const TurfImageGallery: React.FC<TurfImageGalleryProps> = ({
                   <button
                     key={idx}
                     onClick={() => changeSlide(idx)}
-                    className={`relative flex-shrink-0 w-16 h-12 rounded-[10px] overflow-hidden border-2 transition-all cursor-pointer ${
+                    className={`relative flex-shrink-0 w-16 h-12 rounded-[10px] overflow-hidden border-2 transition-all cursor-pointer flex items-center justify-center bg-surface-card ${
                       idx === safeIndex
                         ? "border-primary-lime scale-105 shadow-[0_0_12px_rgba(168,255,0,0.5)]"
                         : "border-transparent opacity-40 hover:opacity-100"
                     }`}
                   >
-                    <img
-                      src={img}
-                      alt={`Lightbox thumbnail ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        e.currentTarget.src = DEFAULT_DEMO_PITCH_IMAGES[0];
-                      }}
-                    />
+                    {failedImages[img] ? (
+                      <ImageOff size={16} className="text-text-tertiary" />
+                    ) : (
+                      <img
+                        src={img}
+                        alt={`Lightbox thumbnail ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        onError={() => {
+                          setFailedImages((prev) => ({ ...prev, [img]: true }));
+                        }}
+                      />
+                    )}
                   </button>
                 ))}
               </div>

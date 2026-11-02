@@ -45,6 +45,7 @@ import {
   Sun,
   Moon,
   Compass,
+  ImageOff,
 } from "lucide-react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -53,7 +54,7 @@ import { useUser } from "../context/UserContext";
 import { chatService } from "../services/chatService";
 import { pitchService } from "../services/pitchService";
 import { bookingService } from "../services/bookingService";
-import { optimizeAndUploadPitchPhoto } from "../utils/imageOptimizer";
+import { storageService } from "../services/storageService";
 import { Pitch, SlotAvailability, Booking } from "../types/firebase";
 import { Turf, ReportTargetType, BookingStatus } from "../types";
 import { ReportModal } from "../components/ReportModal";
@@ -327,6 +328,7 @@ export const TurfDetail: React.FC = () => {
   const [dynamicTotalReviews, setDynamicTotalReviews] = useState<number | null>(null);
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
 
   // Booking Availability Preview States
@@ -375,18 +377,9 @@ export const TurfDetail: React.FC = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
   // Gallery Photo Upload & Customization State
-  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>(() => {
-    try {
-      const targetId = id?.replace(/^pitch-/, "") || id || "";
-      const raw = localStorage.getItem(`pitchly_custom_photos_${id}`) ||
-                  localStorage.getItem(`pitchly_custom_photos_${targetId}`) ||
-                  (id && id.toLowerCase().includes("tal") ? localStorage.getItem("pitchly_custom_photos_tal-olympic-arena") : null);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const [photoUploadProgress, setPhotoUploadProgress] = useState<{ current: number; total: number; percent: number } | null>(null);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
     setToast({ message, type });
@@ -461,7 +454,7 @@ export const TurfDetail: React.FC = () => {
         image: realPitch.images?.[0] || "",
         images: realPitch.images || [],
         additionalImages: (realPitch as any).additionalImages || [],
-        rating: 4.8,
+        rating: typeof (realPitch as any).rating === 'number' ? (realPitch as any).rating : 0,
         distance: "2.4km away",
         status: realPitch.status as any,
         amenities: realPitch.amenities || [],
@@ -471,30 +464,10 @@ export const TurfDetail: React.FC = () => {
       }
     : turfs.find((t) => (t.id === id || t.id === normalizedId || `pitch-${t.id}` === id) && t.status === "ACTIVE");
 
-  const DEMO_GALLERY_FALLBACKS = [
-    { url: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80", label: "Full Pitch Arena" },
-    { url: "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=1200&q=80", label: "Floodlit Night View" },
-    { url: "https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=1200&q=80", label: "Goalpost & Net" },
-    { url: "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=1200&q=80", label: "Match Action" },
-    { url: "https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1200&q=80", label: "Spectator Pavilion & Dugout" },
-  ];
-
   const galleryImages = useMemo(() => {
     if (uploadedPhotos && uploadedPhotos.length > 0) {
       return uploadedPhotos;
     }
-
-    try {
-      const targetId = turf?.id || normalizedId || id || "";
-      const raw = localStorage.getItem(`pitchly_custom_photos_${targetId}`) ||
-                  (targetId.includes("tal") ? localStorage.getItem("pitchly_custom_photos_tal-olympic-arena") : null);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch {}
 
     if (realPitch?.images && realPitch.images.length > 0) {
       const valid = realPitch.images.filter(img => typeof img === "string" && img.trim().length > 0);
@@ -511,8 +484,8 @@ export const TurfDetail: React.FC = () => {
       return customImgs;
     }
 
-    return DEMO_GALLERY_FALLBACKS.map(f => f.url);
-  }, [uploadedPhotos, realPitch, turf, id, normalizedId]);
+    return [];
+  }, [uploadedPhotos, realPitch, turf]);
 
   // Fetch pitches owned by the user if user has owner role to confirm pitch ownership
   useEffect(() => {
@@ -561,33 +534,9 @@ export const TurfDetail: React.FC = () => {
       }
     }
 
-    // 4. Role-checked local custom pitch or demo match
+    // 4. Auto-generated pitch ID tied to user's UID slice
     if (isOwnerRole) {
-      // Local custom pitch created by this owner
-      try {
-        const targetKey = turf?.id || normalizedId || id || "";
-        const customData = localStorage.getItem(`pitchly_custom_pitch_${targetKey}`);
-        if (customData) {
-          const parsed = JSON.parse(customData);
-          if (parsed.ownerId && (parsed.ownerId === currentUid || parsed.ownerId === profileId)) {
-            return true;
-          }
-        }
-      } catch {}
-
-      // Auto-generated pitch ID tied to user's UID slice
       if ((turf?.id && turf.id.includes(currentUid.slice(0, 8))) || (id && id.includes(currentUid.slice(0, 8)))) {
-        return true;
-      }
-
-      // Demo owner account handles Kigozi Sports Arena / demo arena
-      if (userEmail === "demo.owner@pitchly.ug" && (
-        pitchOwnerId === "owner-kigozi" || 
-        pitchOwnerId === "owner_tal_olympic" ||
-        pitchOwnerId === "demo-owner-id" ||
-        turf?.name?.toLowerCase().includes("kigozi") ||
-        turf?.id?.toLowerCase().includes("kigozi")
-      )) {
         return true;
       }
     }
@@ -602,54 +551,71 @@ export const TurfDetail: React.FC = () => {
       return;
     }
 
+    if (!user?.uid) {
+      showToast("Authentication required to upload photos.", "error");
+      e.target.value = "";
+      return;
+    }
+
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     setIsUploadingPhotos(true);
+    setPhotoUploadProgress({ current: 0, total: files.length, percent: 0 });
+
     try {
       const newUrls: string[] = [];
       const fileList = Array.from(files);
 
-      for (const file of fileList) {
-        const res = await optimizeAndUploadPitchPhoto(file, user?.uid, {
-          maxDimension: 1280,
-          quality: 0.82,
-          mimeType: "image/jpeg"
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        setPhotoUploadProgress({ current: i + 1, total: fileList.length, percent: 0 });
+        const res = await storageService.uploadPitchPhoto(user.uid, file, (percent) => {
+          setPhotoUploadProgress({ current: i + 1, total: fileList.length, percent });
         });
-        if (res) newUrls.push(res);
+        if (res && res.startsWith('https://')) {
+          newUrls.push(res);
+        }
       }
 
       if (newUrls.length > 0) {
-        const nextList = [...newUrls, ...galleryImages].filter((v, i, a) => a.indexOf(v) === i);
-        setUploadedPhotos(nextList);
+        const targetKey = turf?.id || normalizedId || id;
+        if (!targetKey) {
+          showToast("Could not determine pitch ID to save photos.", "error");
+          return;
+        }
 
-        const targetKey = turf?.id || normalizedId || id || "tal-olympic-arena";
-        localStorage.setItem(`pitchly_custom_photos_${targetKey}`, JSON.stringify(nextList));
-        localStorage.setItem(`pitchly_custom_pitch_${targetKey}`, JSON.stringify({ images: nextList }));
-        if (targetKey.includes("tal") || (id && id.toLowerCase().includes("tal"))) {
-          localStorage.setItem("pitchly_custom_photos_tal-olympic-arena", JSON.stringify(nextList));
-          localStorage.setItem("pitchly_custom_pitch_tal-olympic-arena", JSON.stringify({ images: nextList }));
+        const combined = [...newUrls, ...galleryImages].filter((v, i, a) => a.indexOf(v) === i);
+        const hasLegacyData = combined.some((url) => typeof url === 'string' && url.startsWith('data:'));
+        const nextList = combined.filter((url) => typeof url === 'string' && !url.startsWith('data:'));
+
+        if (hasLegacyData) {
+          showToast("Some old photos could not be kept. Please upload them again.", "info");
         }
 
         try {
           await pitchService.update(targetKey, { images: nextList });
-        } catch {
-          // offline fallback
+        } catch (updateErr: any) {
+          console.error("Failed to update pitch photos:", updateErr);
+          showToast("Photos uploaded, but could not be saved to this pitch. Check your connection and try again.", "error");
+          return;
         }
 
+        setUploadedPhotos(nextList);
         setCurrentImgIndex(0);
         showToast(`Added ${newUrls.length} HD photo${newUrls.length > 1 ? "s" : ""} to ${turf?.name || "pitch"} gallery!`, "success");
       }
     } catch (err: any) {
       console.error("Photo upload error", err);
-      showToast("Could not process some photos. Please try again.", "error");
+      showToast(err.message || "Could not upload some photos. Please try again.", "error");
     } finally {
       setIsUploadingPhotos(false);
+      setPhotoUploadProgress(null);
       e.target.value = "";
     }
   };
 
-  const handleRemovePhoto = (indexToRemove: number, e: React.MouseEvent) => {
+  const handleRemovePhoto = async (indexToRemove: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isPitchOwner) {
       showToast("Only the pitch owner can remove photos from this pitch.", "error");
@@ -658,16 +624,13 @@ export const TurfDetail: React.FC = () => {
 
     const updated = galleryImages.filter((_, idx) => idx !== indexToRemove);
     setUploadedPhotos(updated);
-    const targetKey = turf?.id || normalizedId || id || "tal-olympic-arena";
-    if (updated.length > 0) {
-      localStorage.setItem(`pitchly_custom_photos_${targetKey}`, JSON.stringify(updated));
-      localStorage.setItem(`pitchly_custom_pitch_${targetKey}`, JSON.stringify({ images: updated }));
-    } else {
-      localStorage.removeItem(`pitchly_custom_photos_${targetKey}`);
-      localStorage.removeItem(`pitchly_custom_pitch_${targetKey}`);
-      if (targetKey.includes("tal")) {
-        localStorage.removeItem("pitchly_custom_photos_tal-olympic-arena");
-        localStorage.removeItem("pitchly_custom_pitch_tal-olympic-arena");
+    const targetKey = turf?.id || normalizedId || id;
+    if (targetKey) {
+      try {
+        await pitchService.update(targetKey, { images: updated });
+      } catch (err) {
+        console.error("Failed to update photos on Firestore:", err);
+        showToast("Could not save updated gallery to Firestore. Check your connection.", "error");
       }
     }
     if (currentImgIndex >= updated.length) {
@@ -786,64 +749,20 @@ export const TurfDetail: React.FC = () => {
     fetchPitch();
   }, [id, normalizedId]);
 
-  const PITCH_MANAGERS: Record<string, { name: string; role: string; phone: string; image: string; bio: string; ownerId: string }> = {
-    "panamera-kololo": {
-      name: "Denis Mukasa",
-      role: "Senior Facility & Matchday Manager",
-      phone: "+256 701 556 778",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300",
-      bio: "Head caretaker & matchday operations manager at Panamera Sports Lounge, Kololo.",
-      ownerId: "owner_panamera_kololo"
-    },
-    "kinetic-bugolobi": {
-      name: "Sarah Namubiru",
-      role: "Operations & League Coordinator",
-      phone: "+256 782 449 112",
-      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300",
-      bio: "Facility manager overseeing floodlights and match operations at Kinetic Bugolobi.",
-      ownerId: "owner_kinetic_bugolobi"
-    },
-    "lugogo-astroturf": {
-      name: "Coach Brian Kigozi",
-      role: "Chief Pitch Superintendent",
-      phone: "+256 752 991 304",
-      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=300",
-      bio: "Manages pitch grounds, tournament logistics, and gear rentals at Lugogo.",
-      ownerId: "owner_lugogo_grounds"
-    },
-    "kensington-kololo": {
-      name: "Arthur Kasozi",
-      role: "Ground Operations Lead",
-      phone: "+256 772 113 450",
-      image: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=300",
-      bio: "On-ground match marshal and maintenance lead at Kensington Arena.",
-      ownerId: "owner_kensington"
-    },
-    "tal-olympic-arena": {
-      name: "Musa Kayondo",
-      role: "Operations & Tournament Grounds Manager",
-      phone: "+256 700 882 119",
-      image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=300",
-      bio: "Facility supervisor & match coordinator overseeing pitch turf maintenance, team dugouts, and tournament match sessions at Tal Olympic Park, Munyonyo.",
-      ownerId: "owner_tal_olympic"
-    }
-  };
-
-  const pitchKey = turf?.id || normalizedId || id || "";
-  const matchedManager = PITCH_MANAGERS[pitchKey] || 
-    (pitchKey.includes("tal-olympic") ? PITCH_MANAGERS["tal-olympic-arena"] : null) ||
-    (pitchKey.includes("panamera") ? PITCH_MANAGERS["panamera-kololo"] : null) ||
-    (pitchKey.includes("kinetic") ? PITCH_MANAGERS["kinetic-bugolobi"] : null) ||
-    (pitchKey.includes("lugogo") ? PITCH_MANAGERS["lugogo-astroturf"] : null) ||
-    (pitchKey.includes("kensington") ? PITCH_MANAGERS["kensington-kololo"] : null);
+  const managerName = (realPitch as any)?.managerName || (turf as any)?.managerName;
+  const managerRole = (realPitch as any)?.managerRole || (turf as any)?.managerRole || "Facility & Pitch Host";
+  const managerPhone = (realPitch as any)?.managerPhone || (realPitch as any)?.contactPhone || turf?.contactPhone || "";
+  const managerImage = (realPitch as any)?.managerImage || (turf as any)?.managerImage || "";
+  const managerBio = (realPitch as any)?.managerBio || "";
+  const ownerId = turf?.ownerId || (realPitch as any)?.ownerId || "";
 
   const currentManager = {
-    name: (realPitch as any)?.managerName || (turf as any)?.managerName || matchedManager?.name || "Denis Mukasa",
-    role: (realPitch as any)?.managerRole || (turf as any)?.managerRole || matchedManager?.role || "Facility & Pitch Manager",
-    phone: (realPitch as any)?.managerPhone || (realPitch as any)?.contactPhone || turf?.contactPhone || matchedManager?.phone || "+256 701 556 778",
-    image: (realPitch as any)?.managerImage || (turf as any)?.managerImage || matchedManager?.image || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300",
-    bio: (realPitch as any)?.managerBio || matchedManager?.bio || "On-ground pitch caretaker and facility coordinator.",
-    ownerId: turf?.ownerId || (realPitch as any)?.ownerId || matchedManager?.ownerId || "owner_facility_default"
+    name: managerName || (turf?.name ? `${turf.name} Management` : "Venue Management"),
+    role: managerRole,
+    phone: managerPhone,
+    image: managerImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(managerName || turf?.name || "Pitch")}&background=22C55E&color=fff&bold=true`,
+    bio: managerBio || `Direct operations and on-ground management for ${turf?.name || "this pitch"}.`,
+    ownerId: ownerId || "owner_facility_default"
   };
 
   const handleSendMessageToOwner = async () => {
@@ -979,7 +898,7 @@ export const TurfDetail: React.FC = () => {
     );
   }
 
-  const primaryPhoto = galleryImages[0] || DEMO_GALLERY_FALLBACKS[0].url;
+  const primaryPhoto = galleryImages[0] || "";
   const secondaryPhotos = galleryImages.slice(1, 5);
 
   return (
@@ -1081,16 +1000,29 @@ export const TurfDetail: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs sm:text-sm text-text-secondary">
-              <a
-                href="#reviews-section"
-                className="flex items-center gap-1 font-semibold text-text-primary hover:text-primary-lime transition-colors cursor-pointer"
-              >
-                <Star size={14} className="fill-[#FACC15] text-[#FACC15]" />
-                <span>{dynamicRating !== null && dynamicRating > 0 ? dynamicRating.toFixed(1) : (turf.rating || "4.9")}</span>
-                <span className="text-text-tertiary">
-                  ({dynamicTotalReviews !== null && dynamicTotalReviews > 0 ? dynamicTotalReviews : "24"} reviews)
-                </span>
-              </a>
+              {(() => {
+                const totalCount = dynamicTotalReviews ?? (turf as any).reviewCount ?? (turf as any).reviewsCount ?? 0;
+                const score = dynamicRating ?? (typeof turf.rating === 'number' && turf.rating > 0 ? turf.rating : null);
+                if (totalCount > 0 && score !== null) {
+                  return (
+                    <a
+                      href="#reviews-section"
+                      className="flex items-center gap-1 font-semibold text-text-primary hover:text-primary-lime transition-colors cursor-pointer"
+                    >
+                      <Star size={14} className="fill-[#FACC15] text-[#FACC15]" />
+                      <span>{score.toFixed(1)}</span>
+                      <span className="text-text-tertiary">
+                        ({totalCount} review{totalCount > 1 ? "s" : ""})
+                      </span>
+                    </a>
+                  );
+                }
+                return (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-primary-lime/10 text-primary-lime border border-primary-lime/20">
+                    New Ground
+                  </span>
+                );
+              })()}
 
               <span className="text-border-subtle">·</span>
 
@@ -1110,69 +1042,26 @@ export const TurfDetail: React.FC = () => {
           </div>
 
           {/* DESKTOP PHOTO MOSAIC & MOBILE CAROUSEL */}
-          {/* 1. Desktop 5-Photo Mosaic Grid */}
-          <div className="hidden md:grid grid-cols-4 gap-3 h-[380px] lg:h-[420px] rounded-2xl overflow-hidden mb-8 relative group">
-            {/* Primary Large Featured Image (Left 50%) */}
-            <div
-              onClick={() => {
-                setCurrentImgIndex(0);
-                setIsLightboxOpen(true);
-              }}
-              className="col-span-2 row-span-2 relative cursor-pointer overflow-hidden bg-surface-card"
-            >
-              <img
-                src={primaryPhoto}
-                alt={`${turf.name} main pitch`}
-                className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-300"
-                onError={(e) => {
-                  e.currentTarget.src = DEMO_GALLERY_FALLBACKS[0].url;
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
-              <div className="absolute bottom-3.5 left-4 text-white">
-                <span className="text-xs font-bold uppercase tracking-wider bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/20">
-                  Main Pitch
-                </span>
+          {/* 1. Desktop 5-Photo Mosaic Grid or Placeholder */}
+          {galleryImages.length === 0 ? (
+            <div className="hidden md:flex flex-col items-center justify-center h-[320px] lg:h-[360px] rounded-2xl bg-surface-card border border-border-subtle mb-8 text-text-tertiary gap-3 relative">
+              <div className="w-14 h-14 rounded-2xl bg-surface-raised flex items-center justify-center border border-border-subtle">
+                <ImageOff size={28} className="text-text-tertiary" />
               </div>
-            </div>
-
-            {/* 4 Angle Thumbnails (Right 50%) */}
-            {secondaryPhotos.slice(0, 4).map((photoUrl, idx) => (
-              <div
-                key={idx}
-                onClick={() => {
-                  setCurrentImgIndex(idx + 1);
-                  setIsLightboxOpen(true);
-                }}
-                className="relative cursor-pointer overflow-hidden bg-surface-card group/thumb"
-              >
-                <img
-                  src={photoUrl}
-                  alt={`${turf.name} angle ${idx + 2}`}
-                  className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
-                  onError={(e) => {
-                    e.currentTarget.src = DEMO_GALLERY_FALLBACKS[idx + 1]?.url || DEMO_GALLERY_FALLBACKS[0].url;
-                  }}
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover/thumb:bg-transparent transition-colors" />
-              </div>
-            ))}
-
-            {/* Bottom Right Photo Actions */}
-            <div className="absolute bottom-4 right-4 flex items-center gap-2">
+              <span className="text-sm font-semibold text-text-secondary">No photo yet</span>
               {isPitchOwner && (
                 <label
-                  className={`px-3 py-2 rounded-xl bg-surface-card/95 hover:bg-surface-raised backdrop-blur-md border border-primary-lime/40 text-xs font-bold text-text-primary shadow-lg flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${
+                  className={`mt-2 px-4 py-2 rounded-xl bg-surface-card hover:bg-surface-raised border border-border-subtle text-xs font-bold text-text-primary shadow-xs flex items-center gap-2 cursor-pointer transition-all active:scale-95 ${
                     isUploadingPhotos ? "opacity-75 pointer-events-none" : ""
                   }`}
-                  title="Pitch Owner: Add photos to pitch gallery"
+                  title="Pitch Owner: Upload pitch photo"
                 >
                   {isUploadingPhotos ? (
                     <Loader2 size={13} className="animate-spin text-primary-lime" />
                   ) : (
                     <Upload size={13} className="text-primary-lime" />
                   )}
-                  <span>Add Photos</span>
+                  <span>{isUploadingPhotos && photoUploadProgress ? `Uploading (${photoUploadProgress.percent}%)` : "Upload Pitch Photo"}</span>
                   <input
                     type="file"
                     multiple
@@ -1183,66 +1072,90 @@ export const TurfDetail: React.FC = () => {
                   />
                 </label>
               )}
-
-              <button
-                type="button"
-                onClick={() => setIsLightboxOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-surface-card/95 hover:bg-surface-raised backdrop-blur-md border border-border-subtle text-xs font-bold text-text-primary shadow-lg flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
-              >
-                <Camera size={14} className="text-primary-lime" />
-                <span>Show all ({galleryImages.length})</span>
-              </button>
             </div>
-          </div>
-
-          {/* 2. Mobile Edge-to-Edge Carousel */}
-          <div className="md:hidden mb-6 -mx-4 sm:mx-0 rounded-none sm:rounded-2xl overflow-hidden relative bg-surface-card">
-            <div className="relative aspect-[16/10] w-full">
-              <img
-                src={galleryImages[currentImgIndex] || primaryPhoto}
-                alt={`${turf.name} photo`}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = DEMO_GALLERY_FALLBACKS[0].url;
+          ) : (
+            <div className="hidden md:grid grid-cols-4 gap-3 h-[380px] lg:h-[420px] rounded-2xl overflow-hidden mb-8 relative group">
+              {/* Primary Large Featured Image (Left 50%) */}
+              <div
+                onClick={() => {
+                  setCurrentImgIndex(0);
+                  setIsLightboxOpen(true);
                 }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
+                className="col-span-2 row-span-2 relative cursor-pointer overflow-hidden bg-surface-card flex items-center justify-center"
+              >
+                {failedImages[primaryPhoto] || !primaryPhoto ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-surface-card text-text-tertiary gap-2">
+                    <ImageOff size={32} className="text-text-tertiary" />
+                    <span className="text-xs font-semibold text-text-secondary">No photo yet</span>
+                  </div>
+                ) : (
+                  <>
+                    <img
+                      src={primaryPhoto}
+                      alt={`${turf.name} main pitch`}
+                      className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-300"
+                      onError={() => {
+                        setFailedImages((prev) => ({ ...prev, [primaryPhoto]: true }));
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
+                    <div className="absolute bottom-3.5 left-4 text-white">
+                      <span className="text-xs font-bold uppercase tracking-wider bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/20">
+                        Main Pitch
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
 
-              {/* Prev / Next Controls */}
-              {galleryImages.length > 1 && (
-                <>
-                  <button
-                    onClick={() => setCurrentImgIndex((prev) => (prev > 0 ? prev - 1 : galleryImages.length - 1))}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center cursor-pointer"
-                    title="Previous photo"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  <button
-                    onClick={() => setCurrentImgIndex((prev) => (prev < galleryImages.length - 1 ? prev + 1 : 0))}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center cursor-pointer"
-                    title="Next photo"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </>
-              )}
+              {/* 4 Angle Thumbnails (Right 50%) */}
+              {secondaryPhotos.slice(0, 4).map((photoUrl, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    if (!failedImages[photoUrl]) {
+                      setCurrentImgIndex(idx + 1);
+                      setIsLightboxOpen(true);
+                    }
+                  }}
+                  className="relative cursor-pointer overflow-hidden bg-surface-card group/thumb flex items-center justify-center"
+                >
+                  {failedImages[photoUrl] ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-surface-raised text-text-tertiary gap-1 p-2">
+                      <ImageOff size={20} className="text-text-tertiary" />
+                      <span className="text-[10px] font-semibold text-text-secondary">No photo yet</span>
+                    </div>
+                  ) : (
+                    <>
+                      <img
+                        src={photoUrl}
+                        alt={`${turf.name} angle ${idx + 2}`}
+                        className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
+                        onError={() => {
+                          setFailedImages((prev) => ({ ...prev, [photoUrl]: true }));
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/20 group-hover/thumb:bg-transparent transition-colors" />
+                    </>
+                  )}
+                </div>
+              ))}
 
-              {/* Bottom Actions Bar (Mobile) */}
-              <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-                {isPitchOwner ? (
+              {/* Bottom Right Photo Actions */}
+              <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                {isPitchOwner && (
                   <label
-                    className={`pointer-events-auto px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-primary-lime/40 text-[11px] font-bold text-white shadow-lg flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                    className={`px-3 py-2 rounded-xl bg-surface-card/95 hover:bg-surface-raised backdrop-blur-md border border-primary-lime/40 text-xs font-bold text-text-primary shadow-lg flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${
                       isUploadingPhotos ? "opacity-75 pointer-events-none" : ""
                     }`}
-                    title="Pitch Owner: Add photos"
+                    title="Pitch Owner: Add photos to pitch gallery"
                   >
                     {isUploadingPhotos ? (
-                      <Loader2 size={12} className="animate-spin text-primary-lime" />
+                      <Loader2 size={13} className="animate-spin text-primary-lime" />
                     ) : (
-                      <Upload size={12} className="text-primary-lime" />
+                      <Upload size={13} className="text-primary-lime" />
                     )}
-                    <span>Add Photos</span>
+                    <span>{isUploadingPhotos && photoUploadProgress ? `Uploading (${photoUploadProgress.percent}%)` : "Add Photos"}</span>
                     <input
                       type="file"
                       multiple
@@ -1252,15 +1165,121 @@ export const TurfDetail: React.FC = () => {
                       onChange={handlePhotoUpload}
                     />
                   </label>
-                ) : <div />}
+                )}
 
-                {/* Photo Counter Pill */}
-                <div className="pointer-events-auto px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md text-white text-[11px] font-bold border border-white/20">
-                  {currentImgIndex + 1} / {galleryImages.length}
+                <button
+                  type="button"
+                  onClick={() => setIsLightboxOpen(true)}
+                  className="px-3.5 py-2 rounded-xl bg-surface-card/95 hover:bg-surface-raised backdrop-blur-md border border-border-subtle text-xs font-bold text-text-primary shadow-lg flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
+                >
+                  <Camera size={14} className="text-primary-lime" />
+                  <span>Show all ({galleryImages.length})</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 2. Mobile Edge-to-Edge Carousel or Placeholder */}
+          {galleryImages.length === 0 ? (
+            <div className="md:hidden mb-6 -mx-4 sm:mx-0 rounded-none sm:rounded-2xl overflow-hidden relative bg-surface-card border border-border-subtle aspect-[16/10] flex flex-col items-center justify-center text-text-tertiary gap-2">
+              <ImageOff size={28} className="text-text-tertiary" />
+              <span className="text-xs font-semibold text-text-secondary">No photo yet</span>
+              {isPitchOwner && (
+                <label
+                  className={`mt-1 px-3 py-1.5 rounded-full bg-surface-raised border border-border-subtle text-text-primary text-xs font-bold flex items-center gap-1.5 cursor-pointer ${
+                    isUploadingPhotos ? "opacity-75 pointer-events-none" : ""
+                  }`}
+                >
+                  <Upload size={12} className="text-primary-lime" />
+                  <span>Upload Photo</span>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    disabled={isUploadingPhotos}
+                    onChange={handlePhotoUpload}
+                  />
+                </label>
+              )}
+            </div>
+          ) : (
+            <div className="md:hidden mb-6 -mx-4 sm:mx-0 rounded-none sm:rounded-2xl overflow-hidden relative bg-surface-card">
+              <div className="relative aspect-[16/10] w-full">
+                {failedImages[galleryImages[currentImgIndex] || primaryPhoto] ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-surface-card text-text-tertiary gap-2">
+                    <ImageOff size={28} className="text-text-tertiary" />
+                    <span className="text-xs font-semibold text-text-secondary">No photo yet</span>
+                  </div>
+                ) : (
+                  <img
+                    src={galleryImages[currentImgIndex] || primaryPhoto}
+                    alt={`${turf.name} photo`}
+                    className="w-full h-full object-cover"
+                    onError={() => {
+                      const activeImg = galleryImages[currentImgIndex] || primaryPhoto;
+                      if (activeImg) {
+                        setFailedImages((prev) => ({ ...prev, [activeImg]: true }));
+                      }
+                    }}
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
+
+                {/* Prev / Next Controls */}
+                {galleryImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setCurrentImgIndex((prev) => (prev > 0 ? prev - 1 : galleryImages.length - 1))}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center cursor-pointer"
+                      title="Previous photo"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button
+                      onClick={() => setCurrentImgIndex((prev) => (prev < galleryImages.length - 1 ? prev + 1 : 0))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center cursor-pointer"
+                      title="Next photo"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </>
+                )}
+
+                {/* Bottom Actions Bar (Mobile) */}
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                  {isPitchOwner ? (
+                    <label
+                      className={`pointer-events-auto px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-primary-lime/40 text-[11px] font-bold text-white shadow-lg flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                        isUploadingPhotos ? "opacity-75 pointer-events-none" : ""
+                      }`}
+                      title="Pitch Owner: Add photos"
+                    >
+                      {isUploadingPhotos ? (
+                        <Loader2 size={12} className="animate-spin text-primary-lime" />
+                      ) : (
+                        <Upload size={12} className="text-primary-lime" />
+                      )}
+                      <span>{isUploadingPhotos && photoUploadProgress ? `Uploading (${photoUploadProgress.percent}%)` : "Add Photos"}</span>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        disabled={isUploadingPhotos}
+                        onChange={handlePhotoUpload}
+                      />
+                    </label>
+                  ) : <div />}
+
+                  {/* Photo Counter Pill */}
+                  <div className="pointer-events-auto px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md text-white text-[11px] font-bold border border-white/20">
+                    {currentImgIndex + 1} / {galleryImages.length}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* TWO-COLUMN BOOKING ENGINE LAYOUT */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -1664,7 +1683,7 @@ export const TurfDetail: React.FC = () => {
                       alt={currentManager.name}
                       className="w-10 h-10 rounded-xl object-cover border border-border-subtle bg-surface-raised shrink-0"
                       onError={(e) => {
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300";
+                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentManager.name)}&background=22C55E&color=fff&bold=true`;
                       }}
                     />
                     <div className="min-w-0">
@@ -1692,13 +1711,15 @@ export const TurfDetail: React.FC = () => {
                       <MessageSquare size={13} />
                       <span>Message Host</span>
                     </button>
-                    <a
-                      href={`tel:${currentManager.phone}`}
-                      className="h-8 w-8 rounded-lg bg-surface-raised hover:bg-surface-card border border-border-subtle text-text-primary flex items-center justify-center transition-colors cursor-pointer"
-                      title={`Call ${currentManager.name}`}
-                    >
-                      <Phone size={13} className="text-primary-lime" />
-                    </a>
+                    {currentManager.phone && (
+                      <a
+                        href={`tel:${currentManager.phone}`}
+                        className="h-8 w-8 rounded-lg bg-surface-raised hover:bg-surface-card border border-border-subtle text-text-primary flex items-center justify-center transition-colors cursor-pointer"
+                        title={`Call ${currentManager.name}`}
+                      >
+                        <Phone size={13} className="text-primary-lime" />
+                      </a>
+                    )}
                   </div>
                 </div>
               </section>
@@ -1711,7 +1732,14 @@ export const TurfDetail: React.FC = () => {
                     <span>Player Reviews &amp; Ratings</span>
                   </h2>
                   <span className="text-xs font-bold text-text-primary">
-                    ★ {dynamicRating !== null && dynamicRating > 0 ? dynamicRating.toFixed(1) : (turf.rating || "4.9")} / 5.0
+                    {(() => {
+                      const totalCount = dynamicTotalReviews ?? (turf as any).reviewCount ?? (turf as any).reviewsCount ?? 0;
+                      const score = dynamicRating ?? (typeof turf.rating === 'number' && turf.rating > 0 ? turf.rating : null);
+                      if (totalCount > 0 && score !== null) {
+                        return `★ ${score.toFixed(1)} / 5.0`;
+                      }
+                      return "No reviews yet";
+                    })()}
                   </span>
                 </div>
 
@@ -1747,8 +1775,19 @@ export const TurfDetail: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-1 text-xs font-bold text-text-primary">
-                    <Star size={13} className="fill-[#FACC15] text-[#FACC15]" />
-                    <span>{dynamicRating !== null && dynamicRating > 0 ? dynamicRating.toFixed(1) : (turf.rating || "4.9")}</span>
+                    {(() => {
+                      const totalCount = dynamicTotalReviews ?? (turf as any).reviewCount ?? (turf as any).reviewsCount ?? 0;
+                      const score = dynamicRating ?? (typeof turf.rating === 'number' && turf.rating > 0 ? turf.rating : null);
+                      if (totalCount > 0 && score !== null) {
+                        return (
+                          <>
+                            <Star size={13} className="fill-[#FACC15] text-[#FACC15]" />
+                            <span>{score.toFixed(1)}</span>
+                          </>
+                        );
+                      }
+                      return <span className="text-[10px] uppercase font-bold text-primary-lime">New</span>;
+                    })()}
                   </div>
                 </div>
 
@@ -1936,12 +1975,25 @@ export const TurfDetail: React.FC = () => {
                 <X size={20} />
               </button>
 
-              <div className="relative w-full aspect-[16/10] max-h-[75vh] rounded-2xl overflow-hidden bg-black flex items-center justify-center">
-                <img
-                  src={galleryImages[currentImgIndex] || primaryPhoto}
-                  alt={`${turf.name} photo ${currentImgIndex + 1}`}
-                  className="max-h-full max-w-full object-contain"
-                />
+              <div className="relative w-full aspect-[16/10] max-h-[75vh] rounded-2xl overflow-hidden bg-surface-card flex items-center justify-center">
+                {failedImages[galleryImages[currentImgIndex] || primaryPhoto] || (!galleryImages[currentImgIndex] && !primaryPhoto) ? (
+                  <div className="flex flex-col items-center justify-center text-text-tertiary gap-2 p-8">
+                    <ImageOff size={36} className="text-text-tertiary" />
+                    <span className="text-xs font-semibold text-text-secondary">No photo yet</span>
+                  </div>
+                ) : (
+                  <img
+                    src={galleryImages[currentImgIndex] || primaryPhoto}
+                    alt={`${turf.name} photo ${currentImgIndex + 1}`}
+                    className="max-h-full max-w-full object-contain"
+                    onError={() => {
+                      const activeImg = galleryImages[currentImgIndex] || primaryPhoto;
+                      if (activeImg) {
+                        setFailedImages((prev) => ({ ...prev, [activeImg]: true }));
+                      }
+                    }}
+                  />
+                )}
 
                 {galleryImages.length > 1 && (
                   <>
@@ -1979,7 +2031,7 @@ export const TurfDetail: React.FC = () => {
                         ) : (
                           <Upload size={12} className="text-primary-lime" />
                         )}
-                        <span>Add Photos</span>
+                        <span>{isUploadingPhotos && photoUploadProgress ? `Uploading (${photoUploadProgress.percent}%)` : "Add Photos"}</span>
                         <input
                           type="file"
                           multiple
@@ -2053,7 +2105,7 @@ export const TurfDetail: React.FC = () => {
                       alt={currentManager.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300";
+                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentManager.name)}&background=22C55E&color=fff&bold=true`;
                       }}
                     />
                     <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-surface-card" />

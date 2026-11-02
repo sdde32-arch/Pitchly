@@ -305,6 +305,11 @@ export const Teams: React.FC = () => {
   };
 
   const handleCreateTeam = async () => {
+    if (!user) {
+      setShowCreateModal(false);
+      setShowAuthGate(true);
+      return;
+    }
     if (!newTeam.name.trim()) {
       setCreateError("Team name is required");
       return;
@@ -318,8 +323,8 @@ export const Teams: React.FC = () => {
         type: newTeam.type,
         location: newTeam.location.trim() || "Kampala",
         description: newTeam.description.trim(),
-        captainId: user?.uid || "demo-user-id",
-        ownerId: user?.uid || "demo-user-id",
+        captainId: user.uid,
+        ownerId: user.uid,
         inviteCode,
         members: [
           {
@@ -329,7 +334,7 @@ export const Teams: React.FC = () => {
             isCaptain: true,
             role: "captain",
             hasPaid: true,
-            userId: user?.uid,
+            userId: user.uid,
             joinedAt: new Date().toISOString(),
           },
         ],

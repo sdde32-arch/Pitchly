@@ -16,12 +16,14 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NoPitchesCard } from "../components/home/NoPitchesCard";
+import { PhotoPlaceholder } from "../components/ui/PhotoPlaceholder";
 
 export const ExploreMap: React.FC = () => {
   const navigate = useNavigate();
   const { turfs, loading } = useBooking();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedArea, setSelectedArea] = useState<string>("all");
+  const [failedPitchIds, setFailedPitchIds] = useState<Set<string>>(new Set());
 
   const areas = [
     { id: "all", label: "All Areas" },
@@ -181,10 +183,8 @@ export const ExploreMap: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             {filteredPitches.map((pitch) => {
-              const image =
-                pitch.images?.[0] ||
-                pitch.image ||
-                "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=600&q=80";
+              const image = pitch.images?.[0] || pitch.image || "";
+              const hasFailed = Boolean(pitch.id && failedPitchIds.has(pitch.id));
 
               return (
                 <div
@@ -195,18 +195,29 @@ export const ExploreMap: React.FC = () => {
                   <div className="flex gap-3.5">
                     {/* Thumbnail */}
                     <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-surface-raised shrink-0 relative">
-                      <img
-                        src={image}
-                        alt={pitch.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          e.currentTarget.src =
-                            "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=600&q=80";
-                        }}
-                      />
+                      {!image || hasFailed ? (
+                        <PhotoPlaceholder className="w-full h-full" />
+                      ) : (
+                        <img
+                          src={image}
+                          alt={pitch.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={() => {
+                            if (pitch.id) {
+                              setFailedPitchIds((prev) => new Set(prev).add(pitch.id));
+                            }
+                          }}
+                        />
+                      )}
                       <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-black/70 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-0.5">
-                        <Star size={10} className="fill-[#FACC15] text-[#FACC15]" />
-                        <span>{pitch.rating || "4.8"}</span>
+                        {Number((pitch as any).reviewsCount || (pitch as any).reviewCount || 0) > 0 && typeof pitch.rating === 'number' && pitch.rating > 0 ? (
+                          <>
+                            <Star size={10} className="fill-[#FACC15] text-[#FACC15]" />
+                            <span>{pitch.rating.toFixed(1)}</span>
+                          </>
+                        ) : (
+                          <span className="text-primary-lime uppercase font-bold text-[9px]">New</span>
+                        )}
                       </div>
                     </div>
 

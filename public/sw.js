@@ -1,7 +1,9 @@
 // Pitchly Progressive Web App Service Worker
-// Caches app shell, manages offline resilience, and updates cleanly
+// Production App Shell Caching & Offline Resilience
 
-const CACHE_NAME = 'pitchly-app-shell-v1';
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `pitchly-app-shell-${CACHE_VERSION}`;
+
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -16,12 +18,12 @@ const PRECACHE_ASSETS = [
   '/logo.svg',
 ];
 
-// Install: precache app shell and activate immediately
+// Install: precache static app shell assets and activate immediately
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Precaching app shell assets');
+      console.log(`[SW] Precaching app shell assets (${CACHE_NAME})`);
       return cache.addAll(PRECACHE_ASSETS).catch((err) => {
         console.warn('[SW] Non-fatal precache item fetch issue:', err);
       });
@@ -29,7 +31,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate: clean up outdated cache buckets and claim clients
+// Activate: clean up all outdated cache buckets and claim clients immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -45,61 +47,89 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: Network-first for navigation, stale-while-revalidate for static assets
+// Fetch event handler
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+
+  // 1. Never intercept non-GET requests
+  if (request.method !== 'GET') return;
+
   const url = new URL(request.url);
 
-  // Skip non-GET requests and external API endpoints
-  if (request.method !== 'GET') return;
-  if (url.pathname.startsWith('/api/') || url.hostname.includes('firestore.googleapis.com') || url.hostname.includes('firebase')) {
+  // 2. Never cache Firebase or Firestore API requests or auth tokens
+  if (
+    url.hostname.includes('googleapis.com') ||
+    url.hostname.includes('firebaseio.com') ||
+    url.hostname.includes('firestore.googleapis.com') ||
+    url.hostname.includes('identitytoolkit') ||
+    url.hostname.includes('securetoken') ||
+    url.pathname.startsWith('/api/')
+  ) {
     return;
   }
 
-  // 1. Navigation requests (HTML pages): Network-first with cache fallback
-  if (request.mode === 'navigate') {
+  // 3. Never intercept or cache Vite dev server requests, node_modules, or ais-dev hostnames
+  if (
+    url.hostname.includes('ais-dev') ||
+    url.pathname.includes('/node_modules/') ||
+    url.pathname.includes('/@vite') ||
+    url.pathname.includes('/@fs') ||
+    url.pathname.includes('/@id') ||
+    url.search.includes('v=') ||
+    url.search.includes('t=')
+  ) {
+    return;
+  }
+
+  const isHashedAsset = url.pathname.startsWith('/assets/');
+  const isStaticAppIcon =
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.svg') ||
+    url.pathname.endsWith('.ico') ||
+    url.pathname === '/manifest.json';
+
+  // 4. Cache-first ONLY for immutable hashed assets under /assets/ and static app icons/manifest
+  if (isHashedAsset || isStaticAppIcon) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const responseClone = response.clone();
+      caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return fetch(request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
           }
-          return response;
-        })
-        .catch(() => {
-          return caches.match(request).then((cached) => {
-            return cached || caches.match('/index.html') || caches.match('/');
-          });
-        })
+          return networkResponse;
+        });
+      })
     );
     return;
   }
 
-  // 2. Static assets (images, fonts, scripts, css): Stale-while-revalidate
-  if (
-    request.destination === 'image' ||
-    request.destination === 'style' ||
-    request.destination === 'script' ||
-    request.destination === 'font' ||
-    url.pathname.endsWith('.png') ||
-    url.pathname.endsWith('.svg') ||
-    url.pathname.endsWith('.ico')
-  ) {
-    event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        const fetchPromise = fetch(request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const responseClone = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
-            }
-            return networkResponse;
-          })
-          .catch(() => cachedResponse);
+  const isNavigation = request.mode === 'navigate';
+  const isScript = request.destination === 'script' || url.pathname.endsWith('.js');
 
-        return cachedResponse || fetchPromise;
-      })
+  // 5. Network-first for navigation requests (HTML) and script requests (fall back to cache only when offline)
+  if (isNavigation || isScript) {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(request).then((cached) => {
+            if (cached) return cached;
+            if (isNavigation) {
+              return caches.match('/index.html') || caches.match('/');
+            }
+            return Promise.reject(new Error('Network unavailable and asset not cached'));
+          });
+        })
     );
     return;
   }

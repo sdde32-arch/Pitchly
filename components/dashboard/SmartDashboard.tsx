@@ -147,6 +147,16 @@ export const SmartDashboard: React.FC<SmartDashboardProps> = ({
             </div>
           </div>
 
+          {/* Optional Weather line - hidden automatically if no real forecast exists */}
+          {upcomingBooking?.date && (
+            <MatchWeatherWidget
+              selectedDate={upcomingBooking.date}
+              selectedTime={upcomingBooking.timeSlot || upcomingBooking.time}
+              pitchName={upcomingBooking.pitchName}
+              compact={true}
+            />
+          )}
+
           {/* Matchday Action Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-3.5 border-t border-border-subtle">
             <div className="flex items-center gap-2 text-xs text-text-secondary">

@@ -52,7 +52,6 @@ import { JoinTeam } from './pages/JoinTeam';
 import { ChatList } from './pages/ChatList';
 import { ChatRoom } from './pages/ChatRoom';
 import { Invitations } from './pages/Invitations';
-import { DesignSystemTest } from './pages/DesignSystemTest';
 import { TournamentHub } from './pages/tournament/TournamentHub';
 import { TournamentManager } from './pages/admin/TournamentManager';
 
@@ -237,7 +236,6 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/onboarding" element={<PageTransition><Onboarding /></PageTransition>} />
         <Route path="/welcome-back" element={<PageTransition><WelcomeBack /></PageTransition>} />
         <Route path="/auth" element={<PageTransition><Auth /></PageTransition>} />
-        <Route path="/design-system" element={<PageTransition><DesignSystemTest /></PageTransition>} />
         
         {/* Public Routes (No Auth Required) */}
         <Route path="/install" element={<PageTransition><Install /></PageTransition>} />

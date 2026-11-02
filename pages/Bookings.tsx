@@ -11,12 +11,14 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { BookingCardSkeleton } from "../components/ui/Skeleton";
 import { formatBookingDate, formatBookingTime } from "../lib/dateUtils";
 import { bookingService } from "../services/bookingService";
+import { PhotoPlaceholder } from "../components/ui/PhotoPlaceholder";
 
 export const Bookings: React.FC = () => {
   const navigate = useNavigate();
   const { user, userProfile } = useUser();
   const { bookings, loading, updateBookingStatus, removeBooking } = useBooking();
   const [activeTab, setActiveTab] = useState<"upcoming" | "completed" | "cancelled">("upcoming");
+  const [failedBookingIds, setFailedBookingIds] = useState<Set<string>>(new Set());
   const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string } | null>(null);
   const [activeReportMenu, setActiveReportMenu] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -297,14 +299,20 @@ export const Bookings: React.FC = () => {
 
                   <div className="flex gap-4">
                     <div className="w-18 h-18 rounded-2xl overflow-hidden shrink-0 border border-border-subtle bg-surface-raised shadow-xs">
-                      <img 
-                        src={(b as any).image || "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80"} 
-                        alt="Pitch"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80";
-                        }}
-                      />
+                      {!(b as any).image || (b.id && failedBookingIds.has(b.id)) ? (
+                        <PhotoPlaceholder className="w-full h-full" />
+                      ) : (
+                        <img 
+                          src={(b as any).image} 
+                          alt="Pitch"
+                          className="w-full h-full object-cover"
+                          onError={() => {
+                            if (b.id) {
+                              setFailedBookingIds((prev) => new Set(prev).add(b.id!));
+                            }
+                          }}
+                        />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
                       <div className="flex items-center gap-2">

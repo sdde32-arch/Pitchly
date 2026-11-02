@@ -150,7 +150,7 @@ export const CommunityActivityFeed: React.FC = () => {
         (userProfile as any)?.photoURL ||
         (userProfile as any)?.avatar ||
         user?.photoURL ||
-        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80";
+        "";
 
       if (postType === "match_played") {
         await communityActivityService.publishActivity({
@@ -476,14 +476,17 @@ export const CommunityActivityFeed: React.FC = () => {
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="relative shrink-0">
-                    <img
-                      src={
-                        activity.userAvatar ||
-                        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-                      }
-                      alt={activity.userName || "User"}
-                      className="w-10 h-10 rounded-xl object-cover border border-border-subtle"
-                    />
+                    {activity.userAvatar ? (
+                      <img
+                        src={activity.userAvatar}
+                        alt={activity.userName || "User"}
+                        className="w-10 h-10 rounded-xl object-cover border border-border-subtle"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-xl bg-surface-raised border border-border-subtle flex items-center justify-center font-bold text-xs text-text-secondary">
+                        {(activity.userName || "U").charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <div
                       className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-md flex items-center justify-center text-[9px] shadow-xs ${
                         activity.type === "match_played"

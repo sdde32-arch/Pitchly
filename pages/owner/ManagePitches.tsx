@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { pitchService } from '../../services/pitchService';
+import { PhotoPlaceholder } from '../../components/ui/PhotoPlaceholder';
 
 export const ManagePitches: React.FC = () => {
   const { user, loading: authLoading } = useUser();
@@ -26,6 +27,7 @@ export const ManagePitches: React.FC = () => {
 
   const [pitches, setPitches] = useState<Turf[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failedPitchIds, setFailedPitchIds] = useState<Set<string>>(new Set());
 
   const [showReReviewBanner, setShowReReviewBanner] = useState(false);
   const [showUpdateSuccess, setShowUpdateSuccess] = useState(false);
@@ -53,14 +55,14 @@ export const ManagePitches: React.FC = () => {
           name: p.name,
           location: p.location,
           pricePerHour: p.pricePerHour,
-          image: (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800',
+          image: (p.images && p.images[0]) || '',
           amenities: p.amenities || [],
           openingHour: p.openingHour || '07:00',
           closingHour: p.closingHour || '23:00',
           status: p.status as any,
           rejectionReason: 'changeRequestMessage' in p ? (p as any).changeRequestMessage : undefined,
           pitchFormats: p.pitchFormats || [],
-          rating: 4.8,
+          rating: typeof (p as any).rating === 'number' ? (p as any).rating : 0,
           blockedDates: [],
           distance: '0 km',
           staff: [],
@@ -207,14 +209,20 @@ export const ManagePitches: React.FC = () => {
                 <div>
                   {/* Card Image Banner */}
                   <div className="h-44 relative bg-surface-raised overflow-hidden">
-                    <img
-                      src={pitch.image}
-                      alt={pitch.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800';
-                      }}
-                    />
+                    {!pitch.image || failedPitchIds.has(pitch.id) ? (
+                      <PhotoPlaceholder className="w-full h-full" />
+                    ) : (
+                      <img
+                        src={pitch.image}
+                        alt={pitch.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={() => {
+                          if (pitch.id) {
+                            setFailedPitchIds((prev) => new Set(prev).add(pitch.id));
+                          }
+                        }}
+                      />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     
                     <div className="absolute top-3 left-3">

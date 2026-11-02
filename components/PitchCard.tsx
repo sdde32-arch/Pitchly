@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Star, Heart, Zap, Flame } from 'lucide-react';
 import { PitchStatus, Turf } from '../types';
+import { PhotoPlaceholder } from './ui/PhotoPlaceholder';
 
 interface PitchCardProps {
   pitch: Partial<Turf>;
@@ -16,13 +17,17 @@ export const PitchCard: React.FC<PitchCardProps> = ({
   onToggleFavorite,
 }) => {
   const navigate = useNavigate();
+  const [imageError, setImageError] = useState(false);
 
   const pitchImage =
     (pitch.images && pitch.images[0]) ||
     pitch.image ||
-    'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=1000&q=80';
+    '';
 
-  const ratingVal = (pitch as any).rating !== undefined && (pitch as any).rating !== null ? Number((pitch as any).rating).toFixed(1) : '4.8';
+  const reviewCount = Number((pitch as any).reviewsCount ?? (pitch as any).reviewCount ?? 0);
+  const rawRating = (pitch as any).rating;
+  const hasRealRating = reviewCount > 0 && typeof rawRating === 'number' && rawRating > 0;
+  const ratingVal = hasRealRating ? rawRating.toFixed(1) : null;
 
   // Extract football-specific details
   const formats = pitch.pitchFormats || [];
@@ -48,12 +53,17 @@ export const PitchCard: React.FC<PitchCardProps> = ({
     >
       {/* Top Image with Overlaid Badges */}
       <div className="relative w-full h-32 bg-surface-raised overflow-hidden">
-        <img
-          src={pitchImage}
-          alt={pitch.name || 'Football pitch'}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          loading="lazy"
-        />
+        {!pitchImage || imageError ? (
+          <PhotoPlaceholder className="w-full h-full" />
+        ) : (
+          <img
+            src={pitchImage}
+            alt={pitch.name || 'Football pitch'}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+            onError={() => setImageError(true)}
+          />
+        )}
 
         {/* Popular Tag */}
         <div className="absolute top-2.5 left-2.5 bg-white/90 dark:bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-md flex items-center gap-1 text-[10px] font-bold text-text-primary border border-border-subtle shadow-xs">
@@ -81,8 +91,14 @@ export const PitchCard: React.FC<PitchCardProps> = ({
 
         {/* Overlaid Bottom-Right Rating */}
         <div className="absolute bottom-2.5 right-2.5 bg-white/90 dark:bg-black/80 backdrop-blur-md px-2 py-0.5 rounded-md flex items-center gap-1 text-[11px] font-bold text-text-primary border border-border-subtle shadow-xs">
-          <Star size={12} className="fill-amber-400 text-amber-500" />
-          <span>{ratingVal}</span>
+          {hasRealRating ? (
+            <>
+              <Star size={12} className="fill-amber-400 text-amber-500" />
+              <span>{ratingVal}</span>
+            </>
+          ) : (
+            <span className="text-[10px] uppercase font-bold text-primary-lime">New</span>
+          )}
         </div>
       </div>
 

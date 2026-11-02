@@ -1,5 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Booking, BookingStatus, PaymentMethod, ReportTargetType } from "../../types";
+
+export const isBookingStale = (booking: Booking): boolean => {
+  const isPending =
+    booking.status === BookingStatus.PENDING_PAYMENT ||
+    booking.status === BookingStatus.PENDING ||
+    (booking.status as any) === 'PENDING_PAYMENT' ||
+    (booking.status as any) === 'PENDING';
+  if (!isPending) return false;
+  const hasProof = Boolean(booking.paymentProofUrl || (booking as any).transactionRef);
+  if (hasProof) return false;
+  if (!booking.holdExpiresAt) return false;
+  return new Date(booking.holdExpiresAt).getTime() < Date.now();
+};
 import { ReportModal } from "../ReportModal";
 import { OwnerService } from "../../services/owner";
 import { bookingService } from "../../services/bookingService";
@@ -72,6 +85,42 @@ export const BookingManager: React.FC = () => {
   const [viewMode, setViewMode] = useState<"bookings" | "payments">("bookings");
   const [activePaymentBucket, setActivePaymentBucket] = useState<"SUBMITTED" | "CASH" | "UNPAID">("SUBMITTED");
 
+  // Detect overlapping slot conflicts across active bookings
+  const conflictingBookingIds = useMemo(() => {
+    const conflictIds = new Set<string>();
+    const activeList = bookings.filter((b) => {
+      const isInactive =
+        b.status === BookingStatus.CANCELLED ||
+        b.status === BookingStatus.REJECTED ||
+        b.status === BookingStatus.PREEMPTED ||
+        (b.status as any) === 'CANCELLED' ||
+        (b.status as any) === 'REJECTED' ||
+        (b.status as any) === 'PREEMPTED' ||
+        isBookingStale(b) ||
+        bookingService.isHoldExpired(b);
+      return !isInactive;
+    });
+
+    for (let i = 0; i < activeList.length; i++) {
+      const b1 = activeList[i];
+      const p1 = b1.pitchId || b1.turfId;
+      const s1 = Array.isArray(b1.slots) && b1.slots.length > 0 ? b1.slots : [b1.time];
+      for (let j = i + 1; j < activeList.length; j++) {
+        const b2 = activeList[j];
+        const p2 = b2.pitchId || b2.turfId;
+        if (p1 && p2 && p1 === p2 && b1.date === b2.date) {
+          const s2 = Array.isArray(b2.slots) && b2.slots.length > 0 ? b2.slots : [b2.time];
+          const overlaps = s1.some((slot) => s2.includes(slot));
+          if (overlaps) {
+            conflictIds.add(b1.id);
+            conflictIds.add(b2.id);
+          }
+        }
+      }
+    }
+    return conflictIds;
+  }, [bookings]);
+
   const handleChatPlayer = async (booking: Booking) => {
     if (!user) return;
     const targetPlayerId = booking.playerId || (booking as any).userId;
@@ -135,6 +184,22 @@ export const BookingManager: React.FC = () => {
     action: "CONFIRMED" | "CANCELLED" | "REJECTED" | "CHECKED_IN",
     customReason?: string
   ) => {
+    if (action === "CONFIRMED") {
+      if (isBookingStale(booking)) {
+        setToast({
+          type: "error",
+          title: "Booking Expired",
+          message: "This pending booking has expired and its slot was released. It cannot be confirmed."
+        });
+        return;
+      }
+      if (conflictingBookingIds.has(booking.id)) {
+        const proceed = window.confirm(
+          "Warning: Possible double booking detected! This booking overlaps with another active match on this pitch. Do you want to proceed and confirm anyway?"
+        );
+        if (!proceed) return;
+      }
+    }
     setProcessingId(booking.id);
     const reasonToUse = customReason || rejectReason || (action === "REJECTED" ? "Payment rejected by facility owner" : "Booking cancelled");
     
@@ -245,6 +310,20 @@ export const BookingManager: React.FC = () => {
   };
 
   const handleConfirmReservation = async (booking: Booking) => {
+    if (isBookingStale(booking) || bookingService.isHoldExpired(booking)) {
+      setToast({
+        type: "error",
+        title: "Reservation Expired",
+        message: "This reservation hold has expired and cannot be confirmed."
+      });
+      return;
+    }
+    if (conflictingBookingIds.has(booking.id)) {
+      const proceed = window.confirm(
+        "Warning: Possible double booking detected! This reservation overlaps with another active match on this pitch. Do you want to proceed and confirm anyway?"
+      );
+      if (!proceed) return;
+    }
     setProcessingId(booking.id);
     try {
       await bookingService.confirmUnpaidReservation(booking as any);
@@ -506,7 +585,7 @@ export const BookingManager: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search player or ID..."
-                className="w-full bg-surface-card border border-border-subtle text-text-primary rounded-lg pl-9 pr-4 h-9 text-xs font-semibold outline-none focus:border-border-prominent transition-all placeholder:text-text-tertiary"
+                className="w-full bg-surface-card border border-border-subtle text-text-primary rounded-lg pl-9 pr-4 h-11 min-h-11 text-base font-semibold outline-none focus:border-border-prominent transition-all placeholder:text-text-tertiary"
               />
               {searchQuery && (
                 <button
@@ -541,7 +620,9 @@ export const BookingManager: React.FC = () => {
                 const isPaymentReview = booking.status === BookingStatus.PAYMENT_SUBMITTED;
                 const isTentative = booking.status === BookingStatus.TENTATIVE;
                 const isHoldExpired = isTentative && bookingService.isHoldExpired(booking);
-                const isOpenTentative = isTentative && !isHoldExpired;
+                const isStale = isBookingStale(booking);
+                const isOpenTentative = isTentative && !isHoldExpired && !isStale;
+                const hasConflict = conflictingBookingIds.has(booking.id);
                 const isJustConfirmed = justConfirmedId === booking.id;
                 const bookingRef = (booking.id || "").slice(-6).toUpperCase();
                 const playerDisplayName = booking.userName || (booking as any).playerName || "Player";
@@ -621,7 +702,9 @@ export const BookingManager: React.FC = () => {
                         return (
                           <span
                             className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0 border ${
-                              isPreempted
+                              isStale
+                                ? "bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/30"
+                                : isPreempted
                                 ? "bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/30"
                                 : isHoldExpired
                                 ? "bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/30"
@@ -644,7 +727,9 @@ export const BookingManager: React.FC = () => {
                                 : "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30"
                             }`}
                           >
-                            {isPreempted
+                            {isStale
+                              ? "Expired – slot released"
+                              : isPreempted
                               ? "Reallocated"
                               : isHoldExpired
                               ? "Expired"
@@ -667,6 +752,14 @@ export const BookingManager: React.FC = () => {
                         );
                       })()}
                     </div>
+
+                    {/* Possible double booking conflict banner */}
+                    {hasConflict && (
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold">
+                        <AlertCircle size={14} className="shrink-0 text-amber-400" />
+                        <span>Possible double booking</span>
+                      </div>
+                    )}
 
                     {/* Rich Facility, Slot & Pricing Specification Grid */}
                     <div className="bg-surface-raised/70 rounded-xl p-3 sm:p-3.5 border border-border-subtle space-y-2.5 text-xs">
@@ -824,23 +917,25 @@ export const BookingManager: React.FC = () => {
                         {/* Pending Match Confirmation */}
                         {isPending && (
                           <>
-                            <button
-                              onClick={() => handleAction(booking, "CONFIRMED")}
-                              disabled={processingId === booking.id}
-                              className="h-9 px-4 bg-primary-lime hover:bg-[#96E600] text-accent-text font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md shadow-primary-lime/25 cursor-pointer active:scale-95 disabled:opacity-50"
-                            >
-                              {processingId === booking.id ? (
-                                <>
-                                  <Loader2 size={14} className="animate-spin" />
-                                  <span>Confirming...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Check size={15} strokeWidth={3} />
-                                  <span>Confirm Match</span>
-                                </>
-                              )}
-                            </button>
+                            {!isStale && (
+                              <button
+                                onClick={() => handleAction(booking, "CONFIRMED")}
+                                disabled={processingId === booking.id}
+                                className="h-9 px-4 bg-primary-lime hover:bg-[#96E600] text-accent-text font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md shadow-primary-lime/25 cursor-pointer active:scale-95 disabled:opacity-50"
+                              >
+                                {processingId === booking.id ? (
+                                  <>
+                                    <Loader2 size={14} className="animate-spin" />
+                                    <span>Confirming...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Check size={15} strokeWidth={3} />
+                                    <span>Confirm Match</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
 
                             <button
                               onClick={() => setDeclineModalBooking(booking)}
@@ -945,20 +1040,22 @@ export const BookingManager: React.FC = () => {
                               </button>
                             )}
 
-                            <button
-                              onClick={() => handleAction(booking, "CONFIRMED")}
-                              disabled={processingId === booking.id}
-                              className="px-3.5 h-9 bg-primary-lime hover:bg-[#96E600] text-accent-text font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50 shadow-sm"
-                            >
-                              {processingId === booking.id ? (
-                                <Loader2 size={14} className="animate-spin" />
-                              ) : (
-                                <>
-                                  <Check size={14} strokeWidth={3} />
-                                  <span>Approve MoMo</span>
-                                </>
-                              )}
-                            </button>
+                            {!isStale && (
+                              <button
+                                onClick={() => handleAction(booking, "CONFIRMED")}
+                                disabled={processingId === booking.id}
+                                className="px-3.5 h-9 bg-primary-lime hover:bg-[#96E600] text-accent-text font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50 shadow-sm"
+                              >
+                                {processingId === booking.id ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                                ) : (
+                                  <>
+                                    <Check size={14} strokeWidth={3} />
+                                    <span>Approve MoMo</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
 
                             <button
                               onClick={() => setDeclineModalBooking(booking)}
@@ -1145,6 +1242,13 @@ export const BookingManager: React.FC = () => {
                       </span>
                     </div>
 
+                    {conflictingBookingIds.has(booking.id) && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[11px] font-bold">
+                        <AlertCircle size={13} className="shrink-0 text-amber-400" />
+                        <span>Possible double booking</span>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between pt-2.5 border-t border-border-subtle text-xs gap-2">
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
                         booking.paymentStatus === "PAID"
@@ -1167,7 +1271,7 @@ export const BookingManager: React.FC = () => {
                           </button>
                         )}
 
-                        {booking.status === BookingStatus.PAYMENT_SUBMITTED && (
+                        {booking.status === BookingStatus.PAYMENT_SUBMITTED && !isBookingStale(booking) && (
                           <button
                             onClick={() => handleAction(booking, "CONFIRMED")}
                             disabled={processingId === booking.id}
@@ -1313,7 +1417,7 @@ export const BookingManager: React.FC = () => {
                     onChange={(e) => setCustomDeclineReason(e.target.value)}
                     placeholder="Provide specific details to inform the player..."
                     rows={3}
-                    className="w-full bg-surface-raised border border-border-subtle rounded-xl p-3 text-xs text-text-primary placeholder:text-text-tertiary focus:border-[#EF4444] outline-none"
+                    className="w-full min-h-11 bg-surface-raised border border-border-subtle rounded-xl p-3 text-base text-text-primary placeholder:text-text-tertiary focus:border-[#EF4444] outline-none"
                   />
                 </div>
               )}
@@ -1399,6 +1503,7 @@ export const BookingManager: React.FC = () => {
                     #{(viewDetailsBooking.id || "").slice(-6).toUpperCase()}
                   </span>
                   {(() => {
+                    const isModalStale = isBookingStale(viewDetailsBooking);
                     const isModalTentative = viewDetailsBooking.status === BookingStatus.TENTATIVE;
                     const isModalHoldExpired = isModalTentative && bookingService.isHoldExpired(viewDetailsBooking);
                     const isModalConfirmedTentative = (viewDetailsBooking.status === "CONFIRMED" || viewDetailsBooking.status === "CHECKED_IN") && (viewDetailsBooking as any).bookingTier === 'TENTATIVE';
@@ -1406,7 +1511,7 @@ export const BookingManager: React.FC = () => {
 
                     return (
                       <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
-                        isModalHoldExpired
+                        isModalStale || isModalHoldExpired
                           ? "bg-[#EF4444]/15 text-[#EF4444] border border-[#EF4444]/30"
                           : isModalTentative
                           ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
@@ -1418,7 +1523,9 @@ export const BookingManager: React.FC = () => {
                           ? "bg-primary-lime/15 text-primary-lime"
                           : "bg-[#EF4444]/15 text-[#EF4444]"
                       }`}>
-                        {isModalHoldExpired
+                        {isModalStale
+                          ? "Expired – slot released"
+                          : isModalHoldExpired
                           ? "Expired"
                           : isModalTentative
                           ? "Unpaid reservation · pay at the pitch"
@@ -1442,6 +1549,14 @@ export const BookingManager: React.FC = () => {
               </button>
             </div>
 
+            {/* Possible double booking conflict banner in modal */}
+            {conflictingBookingIds.has(viewDetailsBooking.id) && (
+              <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold">
+                <AlertCircle size={14} className="shrink-0 text-amber-400" />
+                <span>Possible double booking</span>
+              </div>
+            )}
+
             {/* Booker Information Card */}
             <div className="bg-surface-raised rounded-xl p-4 border border-border-subtle space-y-3">
               <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
@@ -1457,7 +1572,7 @@ export const BookingManager: React.FC = () => {
                       {viewDetailsBooking.userName || "Registered Player"}
                     </h4>
                     <p className="text-xs text-text-secondary mt-0.5">
-                      {viewDetailsBooking.playerPhone || (viewDetailsBooking as any).userPhone || "+256 700 000 000"}
+                      {viewDetailsBooking.playerPhone || (viewDetailsBooking as any).userPhone || "No phone provided"}
                     </p>
                   </div>
                 </div>
@@ -1571,7 +1686,7 @@ export const BookingManager: React.FC = () => {
               </button>
 
               <div className="flex items-center gap-2">
-                {viewDetailsBooking.status === BookingStatus.TENTATIVE && !bookingService.isHoldExpired(viewDetailsBooking) && (
+                {viewDetailsBooking.status === BookingStatus.TENTATIVE && !bookingService.isHoldExpired(viewDetailsBooking) && !isBookingStale(viewDetailsBooking) && (
                   <>
                     <button
                       type="button"
@@ -1601,20 +1716,22 @@ export const BookingManager: React.FC = () => {
                   </>
                 )}
 
-                {viewDetailsBooking.status === "PENDING" && (
+                {(viewDetailsBooking.status === "PENDING" || (viewDetailsBooking.status as any) === "PENDING_PAYMENT") && (
                   <>
-                    <button
-                      type="button"
-                      disabled={processingId === viewDetailsBooking.id}
-                      onClick={async () => {
-                        await handleAction(viewDetailsBooking, "CONFIRMED");
-                        setViewDetailsBooking(null);
-                      }}
-                      className="px-4 py-2 bg-primary-lime hover:bg-[#96E600] text-accent-text rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 shadow-md shadow-primary-lime/20 flex items-center gap-1.5"
-                    >
-                      <Check size={14} strokeWidth={2.5} />
-                      <span>Confirm Match</span>
-                    </button>
+                    {!isBookingStale(viewDetailsBooking) && (
+                      <button
+                        type="button"
+                        disabled={processingId === viewDetailsBooking.id}
+                        onClick={async () => {
+                          await handleAction(viewDetailsBooking, "CONFIRMED");
+                          setViewDetailsBooking(null);
+                        }}
+                        className="px-4 py-2 bg-primary-lime hover:bg-[#96E600] text-accent-text rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 shadow-md shadow-primary-lime/20 flex items-center gap-1.5"
+                      >
+                        <Check size={14} strokeWidth={2.5} />
+                        <span>Confirm Match</span>
+                      </button>
+                    )}
 
                     <button
                       type="button"

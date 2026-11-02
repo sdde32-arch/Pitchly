@@ -36,7 +36,6 @@ import { NoPitchesCard } from "../components/home/NoPitchesCard";
 import { Skeleton, PitchCardSkeleton } from "../components/ui/Skeleton";
 import { FirstTimeUserTourModal } from "../components/onboarding/FirstTimeUserTourModal";
 import { SmartDashboard } from "../components/dashboard/SmartDashboard";
-import { HomeCommunityPickups } from "../components/dashboard/HomeCommunityPickups";
 import { MatchdayDateStrip } from "../components/home/MatchdayDateStrip";
 import { FootballPitchCard } from "../components/home/FootballPitchCard";
 import { MatchdayBanner } from "../components/home/MatchdayBanner";
@@ -230,7 +229,7 @@ export const Home: React.FC = () => {
       images: p.images?.length ? p.images : [],
       pitchFormats: p.pitchFormats?.length ? p.pitchFormats : ["7-a-side"],
       status: p.status || PitchStatus.ACTIVE,
-      rating: (p as any).rating || 4.8,
+      rating: typeof (p as any).rating === "number" ? (p as any).rating : 0,
       reviewsCount: (p as any).reviewsCount || 0,
       distance: (p as any).distance || `${(1.2 + (idx * 0.7) % 4).toFixed(1)} km`,
     }));
@@ -376,7 +375,7 @@ export const Home: React.FC = () => {
         // Collection tab
         let matchesCollection = true;
         if (activeCollectionTab === "trending") {
-          matchesCollection = ((pitch as any).rating || 4.8) >= 4.8;
+          matchesCollection = Number((pitch as any).reviewsCount || 0) > 0 && ((pitch as any).rating || 0) >= 4.5;
         } else if (activeCollectionTab === "budget") {
           matchesCollection = (pitch.pricePerHour || 0) <= 75000;
         } else if (activeCollectionTab === "floodlit") {
@@ -438,7 +437,7 @@ export const Home: React.FC = () => {
           return (b.pricePerHour || 0) - (a.pricePerHour || 0);
         }
         if (sortBy === "rating") {
-          return ((b as any).rating || 4.8) - ((a as any).rating || 4.8);
+          return ((b as any).rating || 0) - ((a as any).rating || 0);
         }
         return 0; // recommended
       });

@@ -451,13 +451,6 @@ export const OwnerOverview: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <a
-              href="tel:+256700000000"
-              className="px-3.5 py-2 rounded-xl bg-surface-raised hover:bg-surface-raised/80 text-text-primary text-xs font-bold border border-border-subtle transition-all flex items-center gap-1.5"
-            >
-              <Phone size={13} />
-              <span>+256 700 000 000</span>
-            </a>
             <button
               onClick={() => openWalkthrough(8)}
               className="px-3.5 py-2 rounded-xl bg-primary-lime/10 hover:bg-primary-lime/20 text-primary-lime border border-primary-lime/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"

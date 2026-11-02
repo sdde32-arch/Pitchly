@@ -30,7 +30,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           ${Icon ? 'pl-10 pr-3.5' : 'px-3.5'}
           h-11
           min-h-[44px]
-          text-xs sm:text-sm
+          text-base lg:text-sm
           font-body
           font-normal
           rounded-xl
@@ -40,6 +40,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           text-text-primary
           placeholder-[#71717A]
           outline-none
+          focus-visible:outline-2
+          focus-visible:outline-offset-2
+          focus-visible:outline-primary-lime
           focus:border-primary-lime
           focus:ring-2
           focus:ring-primary-lime/20

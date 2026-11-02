@@ -240,5 +240,4 @@ export interface Report {
   createdAt: string;
   resolvedAt?: string;
   resolutionNotes?: string;
-  isDemoData?: boolean;
 }

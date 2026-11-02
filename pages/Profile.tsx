@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Layout } from "../components/Layout";
 import { useUser } from "../context/UserContext";
+import { useBooking } from "../context/BookingContext";
 import { useInteractiveWalkthrough } from "../context/InteractiveWalkthroughContext";
 import { PlayerAvatar, AVATARS_LIST } from "../components/PlayerAvatars";
 import { Toggle } from "../components/ui/Toggle";
@@ -16,8 +17,6 @@ import {
   LogOut,
   ChevronRight,
   X,
-  Plus,
-  Trash2,
   Check,
   History,
   MessageSquare,
@@ -29,6 +28,7 @@ import { useNavigate } from "react-router-dom";
 export const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { userProfile, signOut, user, updateProfile } = useUser();
+  const { bookings } = useBooking();
   const { startWalkthrough } = useInteractiveWalkthrough();
 
   const [activeAlerts, setActiveAlerts] = useState<any[]>([]);
@@ -44,25 +44,6 @@ export const Profile: React.FC = () => {
   const [editBio, setEditBio] = useState("");
   const [editAvatarId, setEditAvatarId] = useState("avatar_01");
   const [savingProfile, setSavingProfile] = useState(false);
-
-  // Payment methods states
-  const [savedWallets, setSavedWallets] = useState([
-    { id: "w_1", phone: "0772123456", provider: "MTN MoMo", isDefault: true },
-    { id: "w_2", phone: "0701987654", provider: "Airtel Money", isDefault: false },
-  ]);
-  const [newPhone, setNewPhone] = useState("");
-  const [newProvider, setNewProvider] = useState("MTN MoMo");
-  const [showAddWallet, setShowAddWallet] = useState(false);
-
-  // Saved Card states
-  const [savedCards, setSavedCards] = useState([
-    { id: "c_1", name: "JAMES WILLIAM", number: "•••• •••• •••• 4242", expiry: "12/28", brand: "visa" },
-  ]);
-  const [cardName, setCardName] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
-  const [showAddCard, setShowAddCard] = useState(false);
 
   // Notification toggles states
   const [notifPreferences, setNotifPreferences] = useState({
@@ -145,47 +126,6 @@ export const Profile: React.FC = () => {
     } finally {
       setSavingProfile(false);
     }
-  };
-
-  const handleAddWallet = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPhone) return;
-    const newW = {
-      id: "w_" + Date.now(),
-      phone: newPhone,
-      provider: newProvider,
-      isDefault: savedWallets.length === 0,
-    };
-    setSavedWallets([...savedWallets, newW]);
-    setNewPhone("");
-    setShowAddWallet(false);
-  };
-
-  const handleDeleteWallet = (id: string) => {
-    setSavedWallets(savedWallets.filter((w) => w.id !== id));
-  };
-
-  const handleAddCard = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!cardName || !cardNumber || !cardExpiry) return;
-    const last4 = cardNumber.replace(/\s+/g, "").slice(-4) || "4242";
-    const newC = {
-      id: "c_" + Date.now(),
-      name: cardName.toUpperCase(),
-      number: `•••• •••• •••• ${last4}`,
-      expiry: cardExpiry,
-      brand: "mastercard",
-    };
-    setSavedCards([...savedCards, newC]);
-    setCardName("");
-    setCardNumber("");
-    setCardExpiry("");
-    setCardCvv("");
-    setShowAddCard(false);
-  };
-
-  const handleDeleteCard = (id: string) => {
-    setSavedCards(savedCards.filter((c) => c.id !== id));
   };
 
   const handleSaveNotifs = () => {
@@ -499,7 +439,7 @@ export const Profile: React.FC = () => {
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     required
-                    className="w-full h-10 px-3 rounded-[10px] bg-surface-raised border border-border-subtle text-xs text-text-primary focus:outline-none focus:border-primary-lime"
+                    className="w-full h-11 min-h-11 px-3 rounded-[10px] bg-surface-raised border border-border-subtle text-base text-text-primary focus:outline-none focus:border-primary-lime"
                   />
                 </div>
 
@@ -511,8 +451,8 @@ export const Profile: React.FC = () => {
                     type="tel"
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
-                    placeholder="0770000000"
-                    className="w-full h-10 px-3 rounded-[10px] bg-surface-raised border border-border-subtle text-xs text-text-primary focus:outline-none focus:border-primary-lime"
+                    placeholder="e.g. 0772 123 456"
+                    className="w-full h-11 min-h-11 px-3 rounded-[10px] bg-surface-raised border border-border-subtle text-base text-text-primary focus:outline-none focus:border-primary-lime"
                   />
                 </div>
 
@@ -525,7 +465,7 @@ export const Profile: React.FC = () => {
                     onChange={(e) => setEditBio(e.target.value)}
                     placeholder="Midfielder, 7-a-side enthusiast..."
                     rows={2}
-                    className="w-full p-2.5 rounded-[10px] bg-surface-raised border border-border-subtle text-xs text-text-primary focus:outline-none focus:border-primary-lime"
+                    className="w-full min-h-11 p-2.5 rounded-[10px] bg-surface-raised border border-border-subtle text-base text-text-primary focus:outline-none focus:border-primary-lime"
                   />
                 </div>
 
@@ -571,99 +511,16 @@ export const Profile: React.FC = () => {
                 </button>
               </div>
 
-              {/* Mobile Money Wallets */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-medium text-text-secondary">
-                    Mobile money wallets
-                  </span>
-                  <button
-                    onClick={() => setShowAddWallet(!showAddWallet)}
-                    className="text-primary-lime font-medium flex items-center gap-1"
-                  >
-                    <Plus size={12} /> add new
-                  </button>
-                </div>
-
-                {showAddWallet && (
-                  <form onSubmit={handleAddWallet} className="p-3 bg-surface-raised rounded-[10px] border border-border-subtle space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setNewProvider("MTN MoMo")}
-                        className={`py-1.5 rounded-[8px] border text-xs font-medium ${
-                          newProvider === "MTN MoMo"
-                            ? "bg-primary-lime/15 border-primary-lime text-primary-lime"
-                            : "bg-surface-card border-border-subtle"
-                        }`}
-                      >
-                        MTN MoMo
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setNewProvider("Airtel Money")}
-                        className={`py-1.5 rounded-[8px] border text-xs font-medium ${
-                          newProvider === "Airtel Money"
-                            ? "bg-red-500/15 border-red-500 text-red-600"
-                            : "bg-surface-card border-border-subtle"
-                        }`}
-                      >
-                        Airtel Money
-                      </button>
-                    </div>
-                    <input
-                      type="tel"
-                      value={newPhone}
-                      onChange={(e) => setNewPhone(e.target.value)}
-                      placeholder="0770000000"
-                      required
-                      className="w-full h-9 px-3 text-xs rounded-[8px] bg-surface-card border border-border-subtle"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowAddWallet(false)}
-                        className="px-3 py-1 text-xs rounded-[8px] border border-slate-200"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-3 py-1 text-xs rounded-[8px] bg-primary-lime text-slate-950 font-medium"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                <div className="space-y-1.5">
-                  {savedWallets.map((w) => (
-                    <div
-                      key={w.id}
-                      className="p-2.5 bg-surface-raised rounded-[10px] border border-border-subtle flex justify-between items-center text-xs"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            w.provider.includes("MTN") ? "bg-primary-lime" : "bg-red-500"
-                          }`}
-                        />
-                        <div>
-                          <span className="font-medium text-text-primary">
-                            {w.phone}
-                          </span>
-                          <span className="text-[10px] text-slate-400 block">{w.provider}</span>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteWallet(w.id)}
-                        className="text-slate-400 hover:text-red-500 p-1"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  ))}
+              {/* Mobile Money Notice */}
+              <div className="space-y-3">
+                <div className="p-3.5 bg-surface-raised rounded-xl border border-border-subtle space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-primary-lime"></span>
+                    <span className="text-xs font-bold text-text-primary">Direct Mobile Money Payments</span>
+                  </div>
+                  <p className="text-xs text-text-secondary leading-relaxed">
+                    To pay a deposit, send mobile money to the pitch's payment number shown at checkout, then upload your receipt or enter the transaction reference.
+                  </p>
                 </div>
               </div>
 
@@ -673,17 +530,28 @@ export const Profile: React.FC = () => {
                   Recent transactions
                 </span>
                 <div className="space-y-1.5">
-                  <div className="p-2.5 bg-surface-raised rounded-[10px] flex justify-between items-center text-xs">
-                    <div>
-                      <p className="font-medium text-text-primary">
-                        Lugogo Arena Booking
-                      </p>
-                      <p className="text-[10px] text-slate-400">10 Jul 2026 · MTN MoMo</p>
-                    </div>
-                    <span className="font-semibold text-text-primary">
-                      UGX 75,000
-                    </span>
-                  </div>
+                  {bookings.filter(b => !user || b.playerId === user.uid || b.userId === user.uid).length === 0 ? (
+                    <p className="text-[11px] text-text-tertiary text-center py-2.5 bg-surface-raised/40 rounded-[10px] border border-dashed border-border-subtle">
+                      No recent transactions recorded yet.
+                    </p>
+                  ) : (
+                    bookings
+                      .filter(b => !user || b.playerId === user.uid || b.userId === user.uid)
+                      .slice(0, 5)
+                      .map((b) => (
+                        <div key={b.id} className="p-2.5 bg-surface-raised rounded-[10px] flex justify-between items-center text-xs">
+                          <div>
+                            <p className="font-medium text-text-primary">
+                              {b.turfName || b.pitchName || "Pitch Booking"}
+                            </p>
+                            <p className="text-[10px] text-slate-400">{b.date} · {b.paymentMethod || "Mobile Money"}</p>
+                          </div>
+                          <span className="font-semibold text-text-primary">
+                            UGX {(b.totalPrice || b.price || 0).toLocaleString()}
+                          </span>
+                        </div>
+                      ))
+                  )}
                 </div>
               </div>
             </div>
@@ -808,7 +676,7 @@ export const Profile: React.FC = () => {
                   <select
                     value={profileVisibility}
                     onChange={(e) => setProfileVisibility(e.target.value)}
-                    className="w-full h-10 px-3 rounded-[10px] bg-surface-raised border border-border-subtle text-xs"
+                    className="w-full h-11 min-h-11 px-3 rounded-[10px] bg-surface-raised border border-border-subtle text-base"
                   >
                     <option value="public">Public (Searchable by all players)</option>
                     <option value="teams">Squads only (Teammates only)</option>
@@ -942,7 +810,7 @@ export const Profile: React.FC = () => {
                   value={supportSubject}
                   onChange={(e) => setSupportSubject(e.target.value)}
                   required
-                  className="w-full h-9 px-3 rounded-xl bg-surface-raised border border-border-subtle text-xs"
+                  className="w-full h-11 min-h-11 px-3 rounded-xl bg-surface-raised border border-border-subtle text-base"
                 />
                 <textarea
                   placeholder="Describe your question or issue..."
@@ -950,7 +818,7 @@ export const Profile: React.FC = () => {
                   onChange={(e) => setSupportMessage(e.target.value)}
                   required
                   rows={2}
-                  className="w-full p-2.5 rounded-xl bg-surface-raised border border-border-subtle text-xs"
+                  className="w-full min-h-11 p-2.5 rounded-xl bg-surface-raised border border-border-subtle text-base"
                 />
                 <button
                   type="submit"

@@ -14,18 +14,42 @@ if (typeof window !== 'undefined' && window.location.pathname === '/install' && 
   window.location.replace(`${window.location.origin}/#/install`);
 }
 
-// Register PWA Service Worker for app shell caching
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((reg) => {
-        console.log('[PWA] Service worker registered successfully with scope:', reg.scope);
-      })
-      .catch((err) => {
-        console.warn('[PWA] Service worker registration notice:', err);
+// Register PWA Service Worker in production only; in development unregister and clear caches
+if (typeof window !== 'undefined') {
+  if (import.meta.env.PROD) {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker
+          .register('/sw.js')
+          .then((reg) => {
+            console.log('[PWA] Service worker registered successfully with scope:', reg.scope);
+          })
+          .catch((err) => {
+            console.warn('[PWA] Service worker registration notice:', err);
+          });
       });
-  });
+    }
+  } else {
+    // Development mode: unregister any active service worker and clear cache storage
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister().then((ok) => {
+            if (ok) console.log('[PWA Dev] Unregistered service worker:', registration.scope);
+          });
+        }
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then((keys) => {
+        for (const key of keys) {
+          caches.delete(key).then(() => {
+            console.log('[PWA Dev] Cleared cache bucket:', key);
+          });
+        }
+      });
+    }
+  }
 }
 
 // Mount React immediately
@@ -43,13 +67,3 @@ root.render(
     <App />
   </React.StrictMode>
 );
-
-// Run background tasks safely after mount
-setTimeout(() => {
-  import('./utils/seedTurfs')
-    .then(({ autoSeedIfEmpty }) => {
-      console.log('[Pitchly Boot] 🌱 Running autoSeedIfEmpty check...');
-      return autoSeedIfEmpty();
-    })
-    .catch((err) => console.warn('Turf seeding notice:', err));
-}, 1000);

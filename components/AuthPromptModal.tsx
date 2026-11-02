@@ -21,6 +21,8 @@ export const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
       <div className="bg-surface-card w-full max-w-sm rounded-2xl p-4 shadow-2xl border border-border-subtle relative overflow-hidden">
         <button
+          type="button"
+          aria-label="Close"
           onClick={onClose}
           className="absolute top-4 right-4 p-2 bg-surface-raised rounded-full text-text-secondary hover:text-text-primary hover:bg-border-subtle transition-colors z-10"
         >
