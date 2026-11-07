@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, Check, Users, UserPlus, Phone, Mail, Shield } from 'lucide-react';
+import { Search, X, Check, Users, UserPlus, Shield } from 'lucide-react';
 import { User } from '../../types/firebase';
 import { userService } from '../../services/userService';
 
@@ -64,10 +64,7 @@ export const PlayerSelectionModal: React.FC<PlayerSelectionModalProps> = ({
 
   const filteredUsers = users.filter((u) => {
     const q = searchQuery.toLowerCase();
-    const nameMatch = u.name?.toLowerCase().includes(q) || false;
-    const emailMatch = u.email?.toLowerCase().includes(q) || false;
-    const phoneMatch = u.phone?.toLowerCase().includes(q) || false;
-    return nameMatch || emailMatch || phoneMatch;
+    return u.name?.toLowerCase().includes(q) || false;
   });
 
   const handleConfirm = () => {
@@ -117,7 +114,7 @@ export const PlayerSelectionModal: React.FC<PlayerSelectionModalProps> = ({
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-tertiary" />
             <input
               type="text"
-              placeholder="Search players by name, phone or email..."
+              placeholder="Search players by name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-surface-raised border border-border-subtle rounded-xl pl-10 pr-4 py-2.5 text-xs text-text-primary placeholder:text-text-tertiary font-semibold outline-none focus:border-primary-lime transition-all"
@@ -163,7 +160,7 @@ export const PlayerSelectionModal: React.FC<PlayerSelectionModalProps> = ({
           ) : (
             filteredUsers.map((u) => {
               const isSelected = !!selectedMap[u.id];
-              const initials = (u.name || u.email || 'PL')
+              const initials = (u.name || 'PL')
                 .split(' ')
                 .map((n) => n[0])
                 .join('')
@@ -192,18 +189,6 @@ export const PlayerSelectionModal: React.FC<PlayerSelectionModalProps> = ({
                         {u.role && (
                           <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-surface-card border border-border-subtle text-text-tertiary">
                             {u.role}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-[11px] text-text-secondary truncate mt-0.5">
-                        {u.phone && (
-                          <span className="flex items-center gap-1">
-                            <Phone size={10} className="text-text-tertiary" /> {u.phone}
-                          </span>
-                        )}
-                        {u.email && (
-                          <span className="flex items-center gap-1 truncate">
-                            <Mail size={10} className="text-text-tertiary" /> {u.email}
                           </span>
                         )}
                       </div>

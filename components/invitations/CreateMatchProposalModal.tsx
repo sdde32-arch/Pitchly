@@ -135,6 +135,11 @@ export const CreateMatchProposalModal: React.FC<CreateMatchProposalModalProps> =
       return;
     }
 
+    if (!selectedPitch || typeof selectedPitch.pricePerHour !== 'number' || selectedPitch.pricePerHour <= 0) {
+      setError("This pitch has no price set.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -146,7 +151,7 @@ export const CreateMatchProposalModal: React.FC<CreateMatchProposalModalProps> =
         pitchId: selectedPitchId,
         pitchName: selectedPitch?.name || 'Pitch Booking',
         pitchLocation: typeof selectedPitch?.location === 'string' ? selectedPitch.location : 'Kampala, Uganda',
-        pricePerHour: selectedPitch?.pricePerHour || 50000,
+        pricePerHour: selectedPitch.pricePerHour,
         proposedDateTime: `${date}T${time}:00`,
         date,
         time,
@@ -220,11 +225,16 @@ export const CreateMatchProposalModal: React.FC<CreateMatchProposalModalProps> =
                   onChange={(e) => setSelectedPitchId(e.target.value)}
                   className="w-full bg-surface-raised border border-border-subtle rounded-xl px-4 py-3 text-xs text-text-primary font-bold outline-none focus:border-primary-lime cursor-pointer appearance-none"
                 >
-                  {pitches.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} — {typeof p.location === 'string' ? p.location : 'Kampala'} (UGX {Number(p.pricePerHour || 50000).toLocaleString()}/hr)
-                    </option>
-                  ))}
+                  {pitches.map((p) => {
+                    const priceLabel = typeof p.pricePerHour === 'number' && p.pricePerHour > 0
+                      ? ` (UGX ${p.pricePerHour.toLocaleString()}/hr)`
+                      : '';
+                    return (
+                      <option key={p.id} value={p.id}>
+                        {p.name} — {typeof p.location === 'string' ? p.location : 'Kampala'}{priceLabel}
+                      </option>
+                    );
+                  })}
                 </select>
                 <Building2 size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none" />
               </div>

@@ -15,7 +15,6 @@ interface FootballPitchCardProps {
   pitch: Partial<Pitch>;
   isFavorite: boolean;
   onToggleFavorite: (pitchId: string, e: React.MouseEvent) => void;
-  onSelectSlot: (pitch: Partial<Pitch>, slot: string) => void;
   selectedDate: string;
   distanceKm?: number | null;
 }
@@ -24,7 +23,6 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
   pitch,
   isFavorite,
   onToggleFavorite,
-  onSelectSlot,
   selectedDate,
   distanceKm,
 }) => {
@@ -53,7 +51,9 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
         : distanceKm < 1
         ? `${Math.round(distanceKm * 1000)} m`
         : `${distanceKm.toFixed(1)} km`
-      : (pitch as any).distance || "2.1 km";
+      : (typeof (pitch as any).distance === "string" && (pitch as any).distance.trim().length > 0)
+      ? (pitch as any).distance
+      : null;
 
   return (
     <article
@@ -134,8 +134,12 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
             <div className="flex items-center gap-1.5 text-text-secondary text-xs">
               <MapPin size={13} className="text-primary-lime shrink-0" />
               <span className="truncate">{pitch.location || "Kampala, Uganda"}</span>
-              <span className="text-text-tertiary">·</span>
-              <span className="font-mono tabular-nums text-text-primary font-bold shrink-0">{distance}</span>
+              {distance && (
+                <>
+                  <span className="text-text-tertiary">·</span>
+                  <span className="font-mono tabular-nums text-text-primary font-bold shrink-0">{distance}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -144,15 +148,19 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
       {/* Footer Pricing & Action */}
       <div className="px-4 py-3 border-t border-border-subtle flex items-center justify-between gap-3 bg-surface-raised/40 shrink-0">
         <div>
-          <span className="text-[9px] font-black uppercase tracking-widest text-text-tertiary block mb-0.5">
-            Hourly Rate
-          </span>
-          <div className="flex items-baseline gap-1">
-            <span className="font-mono tabular-nums text-base sm:text-lg font-black text-text-primary tracking-tight">
-              UGX {(pitch.pricePerHour || 90000).toLocaleString()}
-            </span>
-            <span className="text-[11px] text-text-tertiary font-bold">/hr</span>
-          </div>
+          {typeof pitch.pricePerHour === 'number' && pitch.pricePerHour > 0 ? (
+            <>
+              <span className="text-[9px] font-black uppercase tracking-widest text-text-tertiary block mb-0.5">
+                Hourly Rate
+              </span>
+              <div className="flex items-baseline gap-1">
+                <span className="font-mono tabular-nums text-base sm:text-lg font-black text-text-primary tracking-tight">
+                  UGX {pitch.pricePerHour.toLocaleString()}
+                </span>
+                <span className="text-[11px] text-text-tertiary font-bold">/hr</span>
+              </div>
+            </>
+          ) : null}
         </div>
         <button
           id={`book-pitch-${pitch.id}-btn`}

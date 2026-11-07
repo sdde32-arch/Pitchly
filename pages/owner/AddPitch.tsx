@@ -509,7 +509,7 @@ export const AddPitch: React.FC = () => {
       return 'Please pin your pitch location on the map.';
     }
     if (!formData.pricePerHour || Number(formData.pricePerHour) <= 0) {
-      return 'Please enter a valid standard hourly booking rate.';
+      return 'Enter an hourly rate greater than 0.';
     }
     const depositPct = Number(formData.depositPercentage);
     if (isNaN(depositPct) || depositPct < 10 || depositPct > 100) {
@@ -517,6 +517,11 @@ export const AddPitch: React.FC = () => {
     }
     if (!formData.pitchFormats.length) {
       return 'Please select at least one match format (e.g. 5-a-side, 7-a-side).';
+    }
+    const openH = parseInt(formData.openingHour, 10);
+    const closeH = parseInt(formData.closingHour, 10);
+    if (!formData.openingHour || !formData.closingHour || isNaN(openH) || isNaN(closeH) || !(closeH > openH)) {
+      return 'Closing time must be later than opening time (same day).';
     }
     if (!formData.coverImage.trim()) {
       return 'Please upload a cover photo of your pitch.';
@@ -536,8 +541,9 @@ export const AddPitch: React.FC = () => {
         return `Gallery photo #${i + 1} must be a valid secure image URL starting with https://.`;
       }
     }
-    if (!formData.paymentPhone.trim()) {
-      return 'Mobile Money Payment Phone is required for players to pay deposits.';
+    const paymentDigits = formData.paymentPhone.replace(/\D/g, '');
+    if (!formData.paymentPhone.trim() || paymentDigits.length < 9) {
+      return 'Mobile Money Payment Phone is required and must contain at least 9 digits for players to pay deposits.';
     }
     if (!formData.paymentAccountName.trim()) {
       return 'Payment Registered Account Name is required for payment verification.';
@@ -666,7 +672,7 @@ export const AddPitch: React.FC = () => {
         } as any);
 
         navigate('/owner/pitches', {
-          state: { showUpdateSuccess: true }
+          state: { showSubmittedForReview: true }
         });
       }
     } catch (err: any) {
@@ -687,9 +693,14 @@ export const AddPitch: React.FC = () => {
     );
   }
 
-  const hoursList = [
-    '05:00', '06:00', '07:00', '08:00', '09:00', '10:00',
-    '18:00', '19:00', '20:00', '21:00', '22:00', '23:00', '00:00', '01:00'
+  const openingHoursList = [
+    '00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00',
+    '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'
+  ];
+
+  const closingHoursList = [
+    '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00',
+    '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00', '24:00'
   ];
 
   return (
@@ -1053,8 +1064,8 @@ export const AddPitch: React.FC = () => {
                         onChange={handleInputChange}
                         className="w-full bg-surface-raised border border-border-subtle rounded-xl px-4 py-3 text-base min-h-11 font-bold text-text-primary focus:border-primary-lime outline-none transition-all cursor-pointer"
                       >
-                        {hoursList.map(h => (
-                          <option key={h} value={h}>{h} ({parseInt(h) < 12 ? 'Morning' : 'Evening'})</option>
+                        {openingHoursList.map(h => (
+                          <option key={h} value={h}>{h}</option>
                         ))}
                       </select>
                     </div>
@@ -1068,8 +1079,8 @@ export const AddPitch: React.FC = () => {
                         onChange={handleInputChange}
                         className="w-full bg-surface-raised border border-border-subtle rounded-xl px-4 py-3 text-base min-h-11 font-bold text-text-primary focus:border-primary-lime outline-none transition-all cursor-pointer"
                       >
-                        {hoursList.map(h => (
-                          <option key={h} value={h}>{h} ({parseInt(h) >= 20 || parseInt(h) < 5 ? 'Night' : 'Late Evening'})</option>
+                        {closingHoursList.map(h => (
+                          <option key={h} value={h}>{h}</option>
                         ))}
                       </select>
                     </div>
@@ -1923,7 +1934,9 @@ export const AddPitch: React.FC = () => {
                     <div className="absolute bottom-3 right-3 bg-surface-card/95 backdrop-blur-md px-3 py-1.5 rounded-xl text-right border border-border-subtle shadow-md">
                       <span className="text-[9px] font-bold text-text-tertiary uppercase block">From</span>
                       <span className="text-xs font-black text-primary-lime">
-                        UGX {Number(formData.pricePerHour || 70000).toLocaleString()} / hr
+                        {Number(formData.pricePerHour) > 0
+                          ? `UGX ${Number(formData.pricePerHour).toLocaleString()} / hr`
+                          : '—'}
                       </span>
                     </div>
                   </div>

@@ -15,6 +15,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Pitch } from "../../types/firebase";
 import { computeDeposit } from "../../utils/pricing";
+import { pitchService } from "../../services/pitchService";
 
 interface QuickBookingModalProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
   const [selectedTime, setSelectedTime] = useState<string>(initialTimeSlot);
   const [duration, setDuration] = useState<number>(1); // hours
   const [paymentOption, setPaymentOption] = useState<"deposit" | "full" | "tentative">("deposit");
+  const [fetchedPitch, setFetchedPitch] = useState<Pitch | null>(null);
 
   // Keep state in sync with prop changes
   React.useEffect(() => {
@@ -43,21 +45,56 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
     }
   }, [initialTimeSlot]);
 
+  // Fetch real pitch when modal opens with pitch.id
+  React.useEffect(() => {
+    if (isOpen && pitch?.id) {
+      let active = true;
+      pitchService.getById(pitch.id).then((p) => {
+        if (active && p) {
+          setFetchedPitch(p);
+        }
+      }).catch(console.warn);
+      return () => {
+        active = false;
+      };
+    } else {
+      setFetchedPitch(null);
+    }
+  }, [isOpen, pitch?.id]);
+
   if (!isOpen || !pitch) return null;
 
-  const depositPercentage = (pitch as any)?.depositPercentage;
-  const pricePerHour = pitch.pricePerHour || 75000;
-  const totalPrice = pricePerHour * duration;
-  const depositCalc = computeDeposit(totalPrice, depositPercentage);
-  const depositAmount = depositCalc.depositAmount;
-  const isFull = depositCalc.isFull;
-  const allowUnpaidReservations = (pitch as any)?.allowUnpaidReservations !== false;
+  const effectivePitch = fetchedPitch || pitch;
+  const depositPercentage = (effectivePitch as any)?.depositPercentage ?? (pitch as any)?.depositPercentage;
+  const rawPricePerHour = effectivePitch?.pricePerHour ?? pitch.pricePerHour;
+  const pricePerHour = typeof rawPricePerHour === "number" && rawPricePerHour > 0 ? rawPricePerHour : null;
+  const hasValidPrice = pricePerHour !== null;
+  const totalPrice = hasValidPrice ? pricePerHour * duration : null;
+  const depositCalc = hasValidPrice ? computeDeposit(totalPrice!, depositPercentage) : null;
+  const depositAmount = depositCalc ? depositCalc.depositAmount : null;
+  const isFull = depositCalc ? depositCalc.isFull : false;
+  const allowUnpaidReservations = (effectivePitch as any)?.allowUnpaidReservations !== undefined
+    ? (effectivePitch as any).allowUnpaidReservations !== false
+    : (pitch as any)?.allowUnpaidReservations !== false;
 
-  // Available slots preview around selected time
-  const availableSlots = [
-    "07:00", "08:00", "09:00", "16:00", "17:00", "18:00",
-    "19:00", "20:00", "21:00", "22:00"
-  ];
+  const openingHour = (effectivePitch as any)?.openingHour || (pitch as any)?.openingHour;
+  const closingHour = (effectivePitch as any)?.closingHour || (pitch as any)?.closingHour;
+
+  // Hourly start times from openingHour to closingHour, or selectedTime if unknown
+  const availableSlots = (() => {
+    if (openingHour && closingHour) {
+      const openHourNum = parseInt(openingHour.split(":")[0], 10);
+      const closeHourNum = parseInt(closingHour.split(":")[0], 10);
+      if (!isNaN(openHourNum) && !isNaN(closeHourNum) && closeHourNum > openHourNum) {
+        const slots: string[] = [];
+        for (let h = openHourNum; h < closeHourNum; h++) {
+          slots.push(`${String(h).padStart(2, "0")}:00`);
+        }
+        return slots;
+      }
+    }
+    return [selectedTime || initialTimeSlot].filter(Boolean) as string[];
+  })();
 
   const handleProceedToCheckout = () => {
     onClose();
@@ -146,7 +183,7 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-text-primary flex items-center gap-1.5">
               <Clock size={14} className="text-primary-lime" />
-              <span>Choose Kickoff Time</span>
+              <span>Pick a start time</span>
             </label>
             <span className="text-[11px] text-text-tertiary font-medium">60-minute blocks</span>
           </div>
@@ -226,7 +263,7 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
                 </span>
               </div>
               <p className="text-xs font-bold text-primary-lime">
-                UGX {depositAmount.toLocaleString()}
+                {hasValidPrice && depositAmount !== null ? `UGX ${depositAmount.toLocaleString()}` : "Price shown at checkout"}
               </p>
               <span className="text-[10px] text-text-tertiary">
                 {isFull ? "Secures instant slot" : "Pay balance at pitch"}
@@ -250,7 +287,7 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
                 </span>
               </div>
               <p className="text-xs font-bold text-text-primary">
-                UGX {totalPrice.toLocaleString()}
+                {hasValidPrice && totalPrice !== null ? `UGX ${totalPrice.toLocaleString()}` : "Price shown at checkout"}
               </p>
               <span className="text-[10px] text-text-tertiary">Zero balance left</span>
             </button>
@@ -287,11 +324,11 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
         <div className="p-3.5 rounded-2xl bg-surface-raised/70 border border-border-subtle space-y-1.5">
           <div className="flex justify-between text-xs text-text-secondary">
             <span>Hourly rate</span>
-            <span>UGX {pricePerHour.toLocaleString()}</span>
+            <span>{hasValidPrice ? `UGX ${pricePerHour.toLocaleString()}` : "Price shown at checkout"}</span>
           </div>
           <div className="flex justify-between text-xs text-text-secondary">
             <span>Duration ({duration} hr)</span>
-            <span>UGX {totalPrice.toLocaleString()}</span>
+            <span>{hasValidPrice && totalPrice !== null ? `UGX ${totalPrice.toLocaleString()}` : "Price shown at checkout"}</span>
           </div>
           <div className="flex justify-between text-xs text-text-secondary">
             <span>Booking & pitch lights</span>
@@ -300,18 +337,33 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
           <div className="pt-2 border-t border-border-subtle flex justify-between items-baseline">
             <span className="text-xs font-bold text-text-primary">Due Right Now</span>
             <span className={`text-base font-black ${paymentOption === "tentative" ? "text-amber-400" : "text-primary-lime"}`}>
-              UGX {(paymentOption === "tentative" ? 0 : (paymentOption === "deposit" ? depositAmount : totalPrice)).toLocaleString()}
+              {paymentOption === "tentative"
+                ? "UGX 0 due now"
+                : hasValidPrice && (paymentOption === "deposit" ? depositAmount !== null : totalPrice !== null)
+                  ? `UGX ${(paymentOption === "deposit" ? depositAmount! : totalPrice!).toLocaleString()}`
+                  : "Price shown at checkout"}
             </span>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="space-y-2 pt-1">
+          {!hasValidPrice && (
+            <p className="text-xs text-red-400 text-center font-bold">
+              Pricing not set for this pitch.
+            </p>
+          )}
+          {hasValidPrice && availableSlots.length === 0 && (
+            <p className="text-xs text-red-400 text-center font-bold">
+              Booking hours not set for this pitch.
+            </p>
+          )}
           <button
             id="quick-booking-submit-btn"
             type="button"
+            disabled={!hasValidPrice || availableSlots.length === 0}
             onClick={handleProceedToCheckout}
-            className="w-full h-12 rounded-full bg-primary-lime hover:bg-[#96E600] text-accent-text font-black text-sm transition-all duration-200 shadow-md shadow-primary-lime/20 flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+            className="w-full h-12 rounded-full bg-primary-lime hover:bg-[#96E600] disabled:opacity-50 disabled:hover:bg-primary-lime disabled:cursor-not-allowed disabled:shadow-none text-accent-text font-black text-sm transition-all duration-200 shadow-md shadow-primary-lime/20 flex items-center justify-center gap-2 cursor-pointer active:scale-98"
           >
             <span>Lock Slot & Proceed to Pay</span>
             <ChevronRight size={16} strokeWidth={2.5} />

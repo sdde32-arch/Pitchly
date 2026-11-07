@@ -39,7 +39,8 @@ try {
   firestoreInstance = initializeFirestore(
     app,
     {
-      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+      ignoreUndefinedProperties: true
     },
     databaseId
   );

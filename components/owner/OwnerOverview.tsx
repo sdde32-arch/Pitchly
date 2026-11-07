@@ -493,8 +493,18 @@ export const OwnerOverview: React.FC = () => {
     .reduce((sum, b) => sum + (b.price || b.totalPrice || 0), 0);
 
   // Pitch Utilization Calculation
-  const totalOperatingSlotsToday = (pitches.length || 1) * 14;
-  const pitchUtilizationRate = Math.min(100, Math.round((todaysBookingsCount / (totalOperatingSlotsToday || 1)) * 100));
+  const totalOperatingSlotsToday = pitches.reduce((sum, p) => {
+    if (!p.openingHour || !p.closingHour) return sum;
+    const openH = parseInt(p.openingHour.split(':')[0], 10);
+    const closeH = parseInt(p.closingHour.split(':')[0], 10);
+    if (!isNaN(openH) && !isNaN(closeH) && closeH > openH) {
+      return sum + (closeH - openH);
+    }
+    return sum;
+  }, 0);
+  const pitchUtilizationRate = totalOperatingSlotsToday > 0
+    ? Math.min(100, Math.round((todaysBookingsCount / totalOperatingSlotsToday) * 100))
+    : 0;
 
   // Filtered Slots for the Live Matrix
   const filteredOperatingTimes = operatingTimes.filter(time => {
@@ -575,11 +585,11 @@ export const OwnerOverview: React.FC = () => {
         <BentoKpiCard
           id="kpi-utilization"
           title="Pitch Utilization"
-          value={`${pitchUtilizationRate}%`}
+          value={totalOperatingSlotsToday > 0 ? `${pitchUtilizationRate}%` : "—"}
           subtitle={`${todaysBookingsCount} of ${totalOperatingSlotsToday} slots`}
           icon={Activity}
           accentColor="text-[#A78BFA]"
-          badgeText={pitchUtilizationRate > 50 ? "High" : "Normal"}
+          badgeText={totalOperatingSlotsToday > 0 ? (pitchUtilizationRate > 50 ? "High" : "Normal") : "—"}
           badgeBg="bg-[#A78BFA]/10 text-[#A78BFA] border-[#A78BFA]/30"
         />
 

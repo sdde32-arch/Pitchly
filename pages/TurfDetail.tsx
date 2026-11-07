@@ -377,9 +377,13 @@ export const TurfDetail: React.FC = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
   // Gallery Photo Upload & Customization State
-  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[] | null>(null);
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
   const [photoUploadProgress, setPhotoUploadProgress] = useState<{ current: number; total: number; percent: number } | null>(null);
+
+  useEffect(() => {
+    setUploadedPhotos(null);
+  }, [id]);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
     setToast({ message, type });
@@ -455,7 +459,7 @@ export const TurfDetail: React.FC = () => {
         images: realPitch.images || [],
         additionalImages: (realPitch as any).additionalImages || [],
         rating: typeof (realPitch as any).rating === 'number' ? (realPitch as any).rating : 0,
-        distance: "2.4km away",
+        distance: (realPitch as any).distance || "",
         status: realPitch.status as any,
         amenities: realPitch.amenities || [],
         openingHour: realPitch.openingHour || "06:00",
@@ -465,7 +469,7 @@ export const TurfDetail: React.FC = () => {
     : turfs.find((t) => (t.id === id || t.id === normalizedId || `pitch-${t.id}` === id) && t.status === "ACTIVE");
 
   const galleryImages = useMemo(() => {
-    if (uploadedPhotos && uploadedPhotos.length > 0) {
+    if (uploadedPhotos !== null) {
       return uploadedPhotos;
     }
 
@@ -585,7 +589,7 @@ export const TurfDetail: React.FC = () => {
           return;
         }
 
-        const combined = [...newUrls, ...galleryImages].filter((v, i, a) => a.indexOf(v) === i);
+        const combined = [...galleryImages, ...newUrls].filter((v, i, a) => a.indexOf(v) === i);
         const hasLegacyData = combined.some((url) => typeof url === 'string' && url.startsWith('data:'));
         const nextList = combined.filter((url) => typeof url === 'string' && !url.startsWith('data:'));
 
@@ -594,7 +598,7 @@ export const TurfDetail: React.FC = () => {
         }
 
         try {
-          await pitchService.update(targetKey, { images: nextList });
+          await pitchService.update(targetKey, { images: nextList, additionalImages: nextList.slice(1) });
         } catch (updateErr: any) {
           console.error("Failed to update pitch photos:", updateErr);
           showToast("Photos uploaded, but could not be saved to this pitch. Check your connection and try again.", "error");
@@ -602,6 +606,7 @@ export const TurfDetail: React.FC = () => {
         }
 
         setUploadedPhotos(nextList);
+        setRealPitch((prev) => (prev ? { ...prev, images: nextList, additionalImages: nextList.slice(1) } : null));
         setCurrentImgIndex(0);
         showToast(`Added ${newUrls.length} HD photo${newUrls.length > 1 ? "s" : ""} to ${turf?.name || "pitch"} gallery!`, "success");
       }
@@ -622,17 +627,22 @@ export const TurfDetail: React.FC = () => {
       return;
     }
 
+    const previous = [...galleryImages];
     const updated = galleryImages.filter((_, idx) => idx !== indexToRemove);
-    setUploadedPhotos(updated);
     const targetKey = turf?.id || normalizedId || id;
     if (targetKey) {
       try {
-        await pitchService.update(targetKey, { images: updated });
+        await pitchService.update(targetKey, { images: updated, additionalImages: updated.slice(1) });
       } catch (err) {
         console.error("Failed to update photos on Firestore:", err);
+        setUploadedPhotos(previous);
         showToast("Could not save updated gallery to Firestore. Check your connection.", "error");
+        return;
       }
     }
+
+    setUploadedPhotos(updated);
+    setRealPitch((prev) => (prev ? { ...prev, images: updated, additionalImages: updated.slice(1) } : null));
     if (currentImgIndex >= updated.length) {
       setCurrentImgIndex(Math.max(0, updated.length - 1));
     }
@@ -820,8 +830,14 @@ export const TurfDetail: React.FC = () => {
     }
   };
 
+  const hasValidPrice = typeof turf?.pricePerHour === 'number' && turf.pricePerHour > 0;
+
   const handleProceedToBooking = () => {
     if (!turf) return;
+    if (!hasValidPrice) {
+      showToast("Pricing is not set for this pitch yet.", "error");
+      return;
+    }
     if (ownOpenReservationForSelectedSlot) {
       showToast("This is your reservation. Secure it from My Bookings.", "info");
       return;
@@ -1029,7 +1045,9 @@ export const TurfDetail: React.FC = () => {
               <div className="flex items-center gap-1 text-text-secondary min-w-0">
                 <MapPin size={14} className="text-primary-lime shrink-0" />
                 <span className="truncate">{turf.location}</span>
-                <span className="text-text-tertiary shrink-0">({turf.distance || "2.4 km away"})</span>
+                {turf.distance && (
+                  <span className="text-text-tertiary shrink-0">({turf.distance})</span>
+                )}
               </div>
 
               <span className="text-border-subtle">·</span>
@@ -1508,7 +1526,9 @@ export const TurfDetail: React.FC = () => {
                             <span className={`block text-[11px] ${getSlotStatus(selectedTime) === "tentative" ? "text-amber-300 font-bold" : "text-text-secondary"}`}>
                               {getSlotStatus(selectedTime) === "tentative"
                                 ? "This slot is held. Pay a deposit to take it."
-                                : `Rate: UGX ${(turf.pricePerHour || 0).toLocaleString()} (Standard 1 hr match)`}
+                                : hasValidPrice
+                                ? `Rate: UGX ${turf.pricePerHour.toLocaleString()} (Standard 1 hr match)`
+                                : "Pricing not set yet"}
                             </span>
                           )}
                         </div>
@@ -1523,11 +1543,13 @@ export const TurfDetail: React.FC = () => {
                         </Link>
                       ) : (
                         <motion.button
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.96 }}
+                          whileHover={hasValidPrice ? { scale: 1.03 } : {}}
+                          whileTap={hasValidPrice ? { scale: 0.96 } : {}}
                           transition={{ type: "spring", stiffness: 400, damping: 25 }}
                           onClick={handleProceedToBooking}
-                          className="px-4 py-2 bg-primary-lime hover:bg-primary-lime-hover text-accent-text font-black text-xs uppercase tracking-wider rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer transition-all group"
+                          disabled={!hasValidPrice}
+                          title={!hasValidPrice ? "Pricing is not set for this pitch yet." : undefined}
+                          className="px-4 py-2 bg-primary-lime hover:bg-primary-lime-hover text-accent-text font-black text-xs uppercase tracking-wider rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <span>Continue Booking</span>
                           <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
@@ -1745,14 +1767,9 @@ export const TurfDetail: React.FC = () => {
 
                 <TurfReviews
                   pitchId={turf.id}
-                  onReviewAdded={async (avg, total) => {
+                  onReviewAdded={(avg, total) => {
                     setDynamicRating(avg);
                     setDynamicTotalReviews(total);
-                    try {
-                      await pitchService.update(turf.id, { rating: avg } as any);
-                    } catch (err) {
-                      console.error("Failed to update pitch rating", err);
-                    }
                   }}
                 />
               </section>
@@ -1764,13 +1781,17 @@ export const TurfDetail: React.FC = () => {
                 {/* Rate Header */}
                 <div className="flex items-baseline justify-between gap-2 border-b border-border-subtle/70 pb-4">
                   <div>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider">UGX</span>
-                      <span className="text-2xl xl:text-3xl font-black text-primary-lime tracking-tight font-display">
-                        {(turf.pricePerHour || 0).toLocaleString()}
-                      </span>
-                      <span className="text-xs font-semibold text-text-secondary">/ hour</span>
-                    </div>
+                    {hasValidPrice ? (
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider">UGX</span>
+                        <span className="text-2xl xl:text-3xl font-black text-primary-lime tracking-tight font-display">
+                          {turf.pricePerHour.toLocaleString()}
+                        </span>
+                        <span className="text-xs font-semibold text-text-secondary">/ hour</span>
+                      </div>
+                    ) : (
+                      <div className="text-sm font-bold text-text-tertiary">Pricing not set yet</div>
+                    )}
                     <span className="text-[11px] text-text-tertiary">Standard pitch reservation</span>
                   </div>
 
@@ -1830,16 +1851,22 @@ export const TurfDetail: React.FC = () => {
 
                 {/* Match Cost Summary */}
                 <div className="space-y-2 text-xs pt-1">
-                  <div className="flex items-center justify-between text-text-secondary">
-                    <span>Pitch Rental (1 hr)</span>
-                    <span className="font-mono text-text-primary font-bold">UGX {(turf.pricePerHour || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="border-t border-border-subtle pt-2.5 flex items-center justify-between text-sm font-black text-text-primary">
-                    <span>Total Matchday Cost</span>
-                    <span className="text-base text-primary-lime font-display">
-                      UGX {(turf.pricePerHour || 0).toLocaleString()}
-                    </span>
-                  </div>
+                  {hasValidPrice ? (
+                    <>
+                      <div className="flex items-center justify-between text-text-secondary">
+                        <span>Pitch Rental (1 hr)</span>
+                        <span className="font-mono text-text-primary font-bold">UGX {turf.pricePerHour.toLocaleString()}</span>
+                      </div>
+                      <div className="border-t border-border-subtle pt-2.5 flex items-center justify-between text-sm font-black text-text-primary">
+                        <span>Total Matchday Cost</span>
+                        <span className="text-base text-primary-lime font-display">
+                          UGX {turf.pricePerHour.toLocaleString()}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-xs font-bold text-text-tertiary">Pricing not set yet</div>
+                  )}
                   <p className="text-[11px] text-text-tertiary">
                     Includes pitch access, night floodlights &amp; changing rooms.
                   </p>
@@ -1848,11 +1875,13 @@ export const TurfDetail: React.FC = () => {
                 {/* CTA Buttons */}
                 <div className="space-y-2.5 pt-2">
                   <motion.button
-                    whileHover={{ scale: 1.015, boxShadow: "0 10px 25px -5px rgba(168, 255, 0, 0.3)" }}
-                    whileTap={{ scale: 0.97 }}
+                    whileHover={hasValidPrice ? { scale: 1.015, boxShadow: "0 10px 25px -5px rgba(168, 255, 0, 0.3)" } : {}}
+                    whileTap={hasValidPrice ? { scale: 0.97 } : {}}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
                     onClick={handleProceedToBooking}
-                    className="w-full py-3.5 bg-primary-lime hover:bg-primary-lime-hover text-accent-text font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-primary-lime/20 flex items-center justify-center gap-2 cursor-pointer transition-all group"
+                    disabled={!hasValidPrice}
+                    title={!hasValidPrice ? "Pricing is not set for this pitch yet." : undefined}
+                    className="w-full py-3.5 bg-primary-lime hover:bg-primary-lime-hover text-accent-text font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-primary-lime/20 flex items-center justify-center gap-2 cursor-pointer transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span>{selectedTime ? "Reserve Selected Slot" : "Proceed to Booking"}</span>
                     <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
@@ -1915,16 +1944,22 @@ export const TurfDetail: React.FC = () => {
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-card/95 backdrop-blur-xl border-t border-border-subtle p-3 px-4 shadow-2xl safe-area-bottom">
           <div className="flex items-center justify-between gap-3 max-w-lg mx-auto">
             <div className="min-w-0">
-              <div className="flex items-baseline gap-1">
-                <span className="text-[10px] font-bold text-text-tertiary uppercase">UGX</span>
-                <span className="text-base sm:text-lg font-black text-primary-lime tracking-tight">
-                  {(turf.pricePerHour || 0).toLocaleString()}
-                </span>
-                <span className="text-xs text-text-secondary">/hr</span>
-              </div>
+              {hasValidPrice ? (
+                <div className="flex items-baseline gap-1">
+                  <span className="text-[10px] font-bold text-text-tertiary uppercase">UGX</span>
+                  <span className="text-base sm:text-lg font-black text-primary-lime tracking-tight">
+                    {turf.pricePerHour.toLocaleString()}
+                  </span>
+                  <span className="text-xs text-text-secondary">/hr</span>
+                </div>
+              ) : (
+                <div className="text-xs font-bold text-text-tertiary">Pricing not set yet</div>
+              )}
               <div className="flex items-center gap-1 text-[11px] text-text-tertiary truncate">
-                <Star size={11} className="fill-[#FACC15] text-[#FACC15]" />
-                <span className="font-bold text-text-primary">{dynamicRating?.toFixed(1) || "4.9"}</span>
+                <Star size={11} className={typeof dynamicRating === 'number' && dynamicRating > 0 ? "fill-[#FACC15] text-[#FACC15]" : "text-text-tertiary"} />
+                <span className="font-bold text-text-primary">
+                  {typeof dynamicRating === 'number' && dynamicRating > 0 ? dynamicRating.toFixed(1) : "New"}
+                </span>
                 <span>· {selectedTime ? selectedTime : "Select slot"}</span>
               </div>
             </div>
@@ -1944,11 +1979,13 @@ export const TurfDetail: React.FC = () => {
               </button>
 
               <motion.button
-                whileHover={{ scale: 1.02, boxShadow: "0 4px 16px rgba(168, 255, 0, 0.3)" }}
-                whileTap={{ scale: 0.96 }}
+                whileHover={hasValidPrice ? { scale: 1.02, boxShadow: "0 4px 16px rgba(168, 255, 0, 0.3)" } : {}}
+                whileTap={hasValidPrice ? { scale: 0.96 } : {}}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 onClick={handleProceedToBooking}
-                className="px-4 sm:px-5 py-2.5 bg-primary-lime hover:bg-primary-lime-hover text-accent-text font-black text-xs uppercase tracking-wider rounded-xl shadow-md shadow-primary-lime/20 flex items-center gap-1.5 transition-all group"
+                disabled={!hasValidPrice}
+                title={!hasValidPrice ? "Pricing is not set for this pitch yet." : undefined}
+                className="px-4 sm:px-5 py-2.5 bg-primary-lime hover:bg-primary-lime-hover text-accent-text font-black text-xs uppercase tracking-wider rounded-xl shadow-md shadow-primary-lime/20 flex items-center gap-1.5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span>{selectedTime ? "Book Slot" : "Book Now"}</span>
                 <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />

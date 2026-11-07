@@ -1,0 +1,12 @@
+| Collection | Operation | Signed-in As | Document Payload (Full Resulting Doc) | Expected Result | Reason |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| publicProfiles/user123 | create/update | user123 | `{"id": "user123", "name": "John Doe", "avatar": "https://example.com/avatar.png", "updatedAt": "2026-11-04T12:00:00Z"}` | ALLOW | Owner writes own document matching schema, valid id, keys restricted, name <= 100 chars. |
+| publicProfiles/user123 | create/update | user123 | `{"id": "user123", "name": "John Doe", "avatar": "https://example.com/avatar.png", "email": "john@example.com", "updatedAt": "2026-11-04T12:00:00Z"}` | DENY | Extra unpermitted field 'email'; keys restricted by hasOnly(['id','name','avatar','avatarId','updatedAt']). |
+| publicProfiles/user456 | create/update | user123 | `{"id": "user456", "name": "Imposter", "updatedAt": "2026-11-04T12:00:00Z"}` | DENY | User user123 is not owner of user456 (isOwner(userId) fails). |
+| publicProfiles/user123 | create/update | user123 | `{"id": "differentId", "name": "John Doe", "updatedAt": "2026-11-04T12:00:00Z"}` | DENY | request.resource.data.id != userId check fails. |
+| publicProfiles/user123 | create/update | user123 | `{"id": "user123", "name": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus", "updatedAt": "2026-11-04T12:00:00Z"}` | DENY | name.size() > 100 characters constraint violated. |
+| publicProfiles/user123 | get/list | user999 (authenticated) | N/A (read operation) | ALLOW | allow read: if isAuthenticated() permits any signed-in user. |
+| publicProfiles/user123 | get/list | unauthenticated (null) | N/A (read operation) | DENY | allow read: if isAuthenticated() rejects unauthenticated requests. |
+| publicProfiles/user123 | delete | user123 | N/A (delete operation) | ALLOW | isOwner(userId) allows document owner to delete own profile. |
+| publicProfiles/user456 | delete | user123 | N/A (delete operation) | DENY | user123 is neither the document owner (isOwner fails) nor an admin. |
+| publicProfiles/user456 | delete | adminUser (role='admin') | N/A (delete operation) | ALLOW | isAdmin() allows platform administrators to delete public profile. |

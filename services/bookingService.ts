@@ -5,6 +5,7 @@ import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, query, 
 import { offlineCacheService } from './offlineCacheService';
 import { slotAlertService } from './slotAlertService';
 import { isValidTransactionRef, normalizeUgPhone } from '../utils/validation';
+import { computeCutoffMs } from '../utils/paymentCutoff';
 
 export const PENDING_BOOKING_EXPIRATION_MINUTES = 15;
 export const PENDING_BOOKING_EXPIRATION_MS = PENDING_BOOKING_EXPIRATION_MINUTES * 60 * 1000;
@@ -77,6 +78,47 @@ export function isHoldExpired(booking: Partial<Booking> | null | undefined): boo
   }
   return false;
 }
+
+/**
+ * Returns the earliest kickoff moment in milliseconds across all slots of a booking.
+ */
+export function getBookingKickoffMs(booking: Partial<Booking> | null | undefined): number {
+  if (!booking) return Date.now();
+  const date = booking.date || '';
+  const slots = Array.isArray(booking.slots) && booking.slots.length > 0
+    ? booking.slots
+    : (booking.time ? [booking.time] : []);
+  if (slots.length === 0) return Date.now();
+  const timestamps = slots.map(s => new Date(getKickoffISO(date, s)).getTime());
+  return Math.min(...timestamps);
+}
+
+/**
+ * Computes the auto-cancellation cutoff in milliseconds for a PAYMENT_SUBMITTED booking.
+ * Proof submitted <1h before kickoff extends cutoff to kickoff itself.
+ */
+export function getPaymentCutoffMs(booking: Partial<Booking> | null | undefined): number {
+  if (!booking) return Date.now();
+  const kickoffMs = getBookingKickoffMs(booking);
+  const submittedMs = booking.paymentSubmittedAt
+    ? new Date(booking.paymentSubmittedAt).getTime()
+    : (booking.createdAt ? new Date(booking.createdAt).getTime() : 0);
+  return computeCutoffMs(kickoffMs, submittedMs);
+}
+
+/**
+ * Returns true only if booking status is PAYMENT_SUBMITTED and current time >= payment cutoff.
+ */
+export function isPaymentCutoffPassed(booking: Partial<Booking> | null | undefined): boolean {
+  if (!booking) return false;
+  const isSubmitted =
+    booking.status === BookingStatus.PAYMENT_SUBMITTED ||
+    (booking.status as any) === 'PAYMENT_SUBMITTED';
+  if (!isSubmitted) return false;
+  return Date.now() >= getPaymentCutoffMs(booking);
+}
+
+const inFlightCutoffSweepIds = new Set<string>();
 
 export const MAX_OPEN_UNPAID_HOLDS = 1;
 
@@ -456,8 +498,8 @@ export const bookingService = {
   async upgradeTentativeBooking(
     bookingId: string,
     tier: 'DEPOSIT' | 'FULL',
-    paymentDetails: {
-      paymentMethod: PaymentMethod;
+    paymentDetails?: {
+      paymentMethod?: PaymentMethod | string;
       paymentProofUrl?: string;
       transactionRef?: string;
       depositAmount?: number;
@@ -515,22 +557,41 @@ export const bookingService = {
         : getKickoffISO(b.date, slots[0] || b.time);
 
       const nextStatus = BookingStatus.PAYMENT_SUBMITTED;
-      const nextPaymentStatus = tier === 'DEPOSIT' ? 'PARTIAL' : (paymentDetails.paymentProofUrl ? 'SUBMITTED' : 'PAID');
+      const nextPaymentStatus = tier === 'DEPOSIT' ? 'PARTIAL' : 'SUBMITTED';
       const nowIso = new Date().toISOString();
+
+      let mappedMethod: PaymentMethod | undefined;
+      if (paymentDetails?.paymentMethod) {
+        const raw = String(paymentDetails.paymentMethod).trim().toUpperCase();
+        if (raw === 'MTN' || raw.includes('MTN')) {
+          mappedMethod = PaymentMethod.MTN;
+        } else if (raw === 'AIRTEL' || raw.includes('AIRTEL')) {
+          mappedMethod = PaymentMethod.AIRTEL;
+        } else if (raw === 'CASH') {
+          mappedMethod = PaymentMethod.CASH;
+        } else if (raw === 'CARD') {
+          mappedMethod = PaymentMethod.CARD;
+        } else if (raw === 'MOBILE_MONEY') {
+          mappedMethod = PaymentMethod.MOBILE_MONEY;
+        }
+      }
 
       const updates: Partial<Booking> = {
         bookingTier: tier,
         status: nextStatus,
         paymentStatus: nextPaymentStatus,
-        paymentMethod: paymentDetails.paymentMethod,
-        paymentProofUrl: paymentDetails.paymentProofUrl || b.paymentProofUrl,
-        transactionRef: paymentDetails.transactionRef ? paymentDetails.transactionRef.trim() : (b.transactionRef ? b.transactionRef.trim() : undefined),
-        depositAmount: paymentDetails.depositAmount ?? (b.depositAmount || 0),
-        balanceDue: paymentDetails.balanceDue ?? (b.balanceDue || 0),
+        paymentProofUrl: paymentDetails?.paymentProofUrl || b.paymentProofUrl,
+        transactionRef: paymentDetails?.transactionRef ? paymentDetails.transactionRef.trim() : (b.transactionRef ? b.transactionRef.trim() : undefined),
+        depositAmount: paymentDetails?.depositAmount ?? (b.depositAmount || 0),
+        balanceDue: paymentDetails?.balanceDue ?? (b.balanceDue || 0),
         holdExpiresAt: earliestKickoffISO,
         paymentSubmittedAt: nowIso,
         updatedAt: nowIso
       };
+
+      if (mappedMethod) {
+        updates.paymentMethod = mappedMethod;
+      }
 
       // 3. WRITES: Update booking document
       transaction.update(bookingRef, updates);
@@ -575,8 +636,36 @@ export const bookingService = {
       }
     });
 
-    if (!updatedBooking) throw new Error('Failed to upgrade booking');
-    return updatedBooking;
+    const finalBooking = updatedBooking as Booking | null;
+    if (!finalBooking) throw new Error('Failed to upgrade booking');
+
+    // Fire-and-forget notification to the owner about submitted payment proof
+    const targetOwnerId = (finalBooking as any).ownerId;
+    if (targetOwnerId) {
+      const notifRef = doc(collection(db, "notifications"));
+      const title = "Payment proof submitted";
+      const bodyMsg = `${(finalBooking as any).userName || "Player"} · ${finalBooking.date} ${finalBooking.time} · ${(finalBooking as any).pitchName || (finalBooking as any).turfName || "Pitch"}`;
+      const nowIso = new Date().toISOString();
+      setDoc(notifRef, {
+        id: notifRef.id,
+        userId: targetOwnerId,
+        type: "SYSTEM",
+        title,
+        body: bodyMsg,
+        message: bodyMsg,
+        bookingId: finalBooking.id,
+        pitchId: finalBooking.pitchId || (finalBooking as any).turfId,
+        link: "/owner",
+        read: false,
+        isRead: false,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      }).catch((notifErr) => {
+        console.warn("Failed to notify owner about upgraded booking payment proof:", notifErr);
+      });
+    }
+
+    return finalBooking;
   },
 
   async getById(id: string): Promise<Booking | null> {
@@ -728,6 +817,7 @@ export const bookingService = {
       if (data.status === BookingStatus.CANCELLED || data.status === BookingStatus.REJECTED) {
         let alertData: { pitchId: string; date: string; time: string; turfName: string } | null = null;
         await runTransaction(db, async (transaction) => {
+          // 1. ALL READS FIRST
           const bookingDoc = await transaction.get(bookingRef);
           if (!bookingDoc.exists()) return;
           const b = bookingDoc.data() as Booking;
@@ -742,34 +832,55 @@ export const bookingService = {
             };
           }
 
-          transaction.update(bookingRef, {
-            ...data,
-            updatedAt: new Date().toISOString()
-          });
-
+          const pitchId = b.pitchId || b.turfId || '';
           const slots = b.slots && b.slots.length > 0 ? b.slots : [b.time];
+          const lockItems: Array<{
+            slot: string;
+            slotLockId: string;
+            slotLockRef: any;
+            slotLockDoc: any;
+            slotAvailRef: any;
+          }> = [];
+
           for (const slot of slots) {
-            const slotLockId = `${b.pitchId || b.turfId}_${b.date}_${slot}`.replace(/[\/\s—:]/g, '-');
+            const slotLockId = `${pitchId}_${b.date}_${slot}`.replace(/[\/\s—:]/g, '-');
             const slotLockRef = doc(db, 'slotLocks', slotLockId);
             const slotLockDoc = await transaction.get(slotLockRef);
+            const slotAvailRef = doc(db, 'slotAvailability', slotLockId);
+            lockItems.push({ slot, slotLockId, slotLockRef, slotLockDoc, slotAvailRef });
+          }
 
-            if (slotLockDoc.exists()) {
-              transaction.update(slotLockRef, { 
+          // 2. ALL WRITES AFTER READS
+          const nowIso = new Date().toISOString();
+          transaction.update(bookingRef, {
+            ...data,
+            updatedAt: nowIso
+          });
+
+          for (const item of lockItems) {
+            const lockExists = item.slotLockDoc.exists();
+            if (lockExists) {
+              const lockData = item.slotLockDoc.data();
+              const lockBookingId = lockData?.bookingId;
+              if (lockBookingId && lockBookingId !== b.id && lockBookingId !== id) {
+                // Skip BOTH the lock update AND the slotAvailability 'open' write for that slot
+                continue;
+              }
+              transaction.update(item.slotLockRef, { 
                  status: 'released',
-                 releasedAt: new Date().toISOString(),
+                 releasedAt: nowIso,
                  releaseReason: data.status === BookingStatus.CANCELLED ? 'player_cancelled' : 'owner_rejected_payment'
               });
             }
 
             // Update lightweight slot availability mirror to open
-            const slotAvailRef = doc(db, 'slotAvailability', slotLockId);
-            transaction.set(slotAvailRef, {
-              id: slotLockId,
-              pitchId: b.pitchId || b.turfId,
+            transaction.set(item.slotAvailRef, {
+              id: item.slotLockId,
+              pitchId: pitchId,
               date: b.date,
-              time: slot,
+              time: item.slot,
               status: 'open',
-              updatedAt: new Date().toISOString()
+              updatedAt: nowIso
             }, { merge: true });
           }
         });
@@ -805,6 +916,7 @@ export const bookingService = {
             transaction.set(slotAvailRef, {
               id: slotLockId,
               pitchId: b.pitchId || b.turfId,
+              bookingId: b.id,
               date: b.date,
               time: slot,
               status: 'booked',
@@ -1021,38 +1133,60 @@ export const bookingService = {
     try {
       const bookingRef = doc(db, this.collectionPath, bookingId);
       await runTransaction(db, async (transaction) => {
+        // 1. ALL READS FIRST
         const bookingDoc = await transaction.get(bookingRef);
         if (!bookingDoc.exists()) return;
         const b = bookingDoc.data() as Booking;
 
-        transaction.update(bookingRef, {
-          status: BookingStatus.CANCELLED,
-          updatedAt: new Date().toISOString()
-        });
-
+        const pitchId = b.pitchId || b.turfId || '';
         const slots = b.slots && b.slots.length > 0 ? b.slots : [b.time];
+        const lockItems: Array<{
+          slot: string;
+          slotLockId: string;
+          slotLockRef: any;
+          slotLockDoc: any;
+          slotAvailRef: any;
+        }> = [];
+
         for (const slot of slots) {
-          const slotLockId = `${b.pitchId}_${b.date}_${slot}`.replace(/[\/\s—:]/g, '-');
+          const slotLockId = `${pitchId}_${b.date}_${slot}`.replace(/[\/\s—:]/g, '-');
           const slotLockRef = doc(db, 'slotLocks', slotLockId);
           const slotLockDoc = await transaction.get(slotLockRef);
+          const slotAvailRef = doc(db, 'slotAvailability', slotLockId);
+          lockItems.push({ slot, slotLockId, slotLockRef, slotLockDoc, slotAvailRef });
+        }
 
-          if (slotLockDoc.exists()) {
-            transaction.update(slotLockRef, {
+        // 2. ALL WRITES AFTER READS
+        const nowIso = new Date().toISOString();
+        transaction.update(bookingRef, {
+          status: BookingStatus.CANCELLED,
+          updatedAt: nowIso
+        });
+
+        for (const item of lockItems) {
+          const lockExists = item.slotLockDoc.exists();
+          if (lockExists) {
+            const lockData = item.slotLockDoc.data();
+            const lockBookingId = lockData?.bookingId;
+            if (lockBookingId && lockBookingId !== b.id && lockBookingId !== bookingId) {
+              // Skip BOTH the lock update AND the slotAvailability 'open' write for that slot
+              continue;
+            }
+            transaction.update(item.slotLockRef, {
               status: 'released',
-              releasedAt: new Date().toISOString(),
+              releasedAt: nowIso,
               releaseReason: 'hold_released'
             });
           }
 
           // Update lightweight slot availability mirror to open
-          const slotAvailRef = doc(db, 'slotAvailability', slotLockId);
-          transaction.set(slotAvailRef, {
-            id: slotLockId,
-            pitchId: b.pitchId,
+          transaction.set(item.slotAvailRef, {
+            id: item.slotLockId,
+            pitchId: pitchId,
             date: b.date,
-            time: slot,
+            time: item.slot,
             status: 'open',
-            updatedAt: new Date().toISOString()
+            updatedAt: nowIso
           }, { merge: true });
         }
       });
@@ -1251,9 +1385,19 @@ export const bookingService = {
       const nowIso = new Date().toISOString();
 
       await runTransaction(db, async (transaction) => {
+        // 1. ALL READS FIRST
         const bookingDoc = await transaction.get(bookingRef);
         if (!bookingDoc.exists()) return;
         const b = bookingDoc.data() as Booking;
+
+        // Skip if already cancelled, rejected, or preempted
+        if (
+          b.status === BookingStatus.CANCELLED ||
+          b.status === BookingStatus.REJECTED ||
+          b.status === BookingStatus.PREEMPTED
+        ) {
+          return;
+        }
 
         // Skip if already confirmed, checked in, paid, or submitted payment proof / deposit paid
         const isPaidOrSubmitted =
@@ -1269,7 +1413,6 @@ export const bookingService = {
           b.paymentStatus === 'SUBMITTED' ||
           (b.paymentStatus as any) === 'PARTIAL' ||
           Boolean(b.transactionRef || b.paymentProofUrl);
-
         if (isPaidOrSubmitted) {
           console.log(`Skipping auto-release for booking ${bookingId}: status is ${b.status}, paymentStatus is ${b.paymentStatus}, or proof attached.`);
           return;
@@ -1283,7 +1426,24 @@ export const bookingService = {
         time = b.time;
         slots = b.slots && b.slots.length > 0 ? b.slots : [b.time];
 
-        // 1. Mark booking CANCELLED with auto-release audit reason
+        const lockItems: Array<{
+          slot: string;
+          slotLockId: string;
+          slotLockRef: any;
+          slotLockDoc: any;
+          slotAvailRef: any;
+        }> = [];
+
+        for (const slot of slots) {
+          const slotLockId = `${pitchId}_${b.date}_${slot}`.replace(/[\/\s—:]/g, '-');
+          const slotLockRef = doc(db, 'slotLocks', slotLockId);
+          const slotLockDoc = await transaction.get(slotLockRef);
+          const slotAvailRef = doc(db, 'slotAvailability', slotLockId);
+          lockItems.push({ slot, slotLockId, slotLockRef, slotLockDoc, slotAvailRef });
+        }
+
+        // 2. ALL WRITES AFTER READS
+        // Mark booking CANCELLED with auto-release audit reason
         transaction.update(bookingRef, {
           status: BookingStatus.CANCELLED,
           cancellationReason: reason,
@@ -1291,27 +1451,29 @@ export const bookingService = {
           updatedAt: nowIso
         });
 
-        // 2. Release all associated slot locks
-        for (const slot of slots) {
-          const slotLockId = `${pitchId}_${b.date}_${slot}`.replace(/[\/\s—:]/g, '-');
-          const slotLockRef = doc(db, 'slotLocks', slotLockId);
-          const slotLockDoc = await transaction.get(slotLockRef);
-
-          if (slotLockDoc.exists()) {
-            transaction.update(slotLockRef, {
+        // Release all associated slot locks
+        for (const item of lockItems) {
+          const lockExists = item.slotLockDoc.exists();
+          if (lockExists) {
+            const lockData = item.slotLockDoc.data();
+            const lockBookingId = lockData?.bookingId;
+            if (lockBookingId && lockBookingId !== b.id && lockBookingId !== bookingId) {
+              // Skip BOTH the lock update AND the slotAvailability 'open' write for that slot
+              continue;
+            }
+            transaction.update(item.slotLockRef, {
               status: 'expired',
               releasedAt: nowIso,
               releaseReason: 'payment_window_expired_15min'
             });
           }
 
-          // 3. Mark lightweight public slot mirror as open immediately
-          const slotAvailRef = doc(db, 'slotAvailability', slotLockId);
-          transaction.set(slotAvailRef, {
-            id: slotLockId,
+          // Mark lightweight public slot mirror as open immediately
+          transaction.set(item.slotAvailRef, {
+            id: item.slotLockId,
             pitchId: pitchId,
             date: b.date,
-            time: slot,
+            time: item.slot,
             status: 'open',
             updatedAt: nowIso
           }, { merge: true });
@@ -1344,6 +1506,202 @@ export const bookingService = {
     } catch (error) {
       console.error(`Failed to release pending booking ${bookingId}:`, error);
       return false;
+    }
+  },
+
+  getBookingKickoffMs,
+  getPaymentCutoffMs,
+  isPaymentCutoffPassed,
+
+  /**
+   * Cancels unconfirmed PAYMENT_SUBMITTED booking at kickoff minus 1 hour (or kickoff if submitted <1h).
+   * Executes atomic cancellation of booking + release of slotLocks + opening of slotAvailability in ONE transaction.
+   */
+  async autoCancelUnconfirmedPayment(bookingId: string): Promise<boolean> {
+    if (!bookingId) return false;
+    let didCancel = false;
+    let pitchId = '';
+    let turfName = 'Pitch';
+    let date = '';
+    let time = '';
+    let slots: string[] = [];
+
+    try {
+      const bookingRef = doc(db, this.collectionPath, bookingId);
+      const nowIso = new Date().toISOString();
+
+      await runTransaction(db, async (transaction) => {
+        // 1. ALL READS FIRST
+        const bookingDoc = await transaction.get(bookingRef);
+        if (!bookingDoc.exists()) return;
+        const b = bookingDoc.data() as Booking;
+
+        // Verify status is PAYMENT_SUBMITTED and cutoff has passed
+        const isSubmitted =
+          b.status === BookingStatus.PAYMENT_SUBMITTED ||
+          (b.status as any) === 'PAYMENT_SUBMITTED';
+        if (!isSubmitted) return;
+
+        if (!isPaymentCutoffPassed(b)) return;
+
+        didCancel = true;
+        pitchId = b.pitchId || b.turfId || '';
+        turfName = b.turfName || b.pitchName || 'Pitch';
+        date = b.date;
+        time = b.time;
+        slots = b.slots && b.slots.length > 0 ? b.slots : [b.time];
+
+        const lockItems: Array<{
+          slot: string;
+          slotLockId: string;
+          slotLockRef: any;
+          slotLockDoc: any;
+          slotAvailRef: any;
+        }> = [];
+
+        for (const slot of slots) {
+          const slotLockId = `${pitchId}_${b.date}_${slot}`.replace(/[\/\s—:]/g, '-');
+          const slotLockRef = doc(db, 'slotLocks', slotLockId);
+          const slotLockDoc = await transaction.get(slotLockRef);
+          const slotAvailRef = doc(db, 'slotAvailability', slotLockId);
+          lockItems.push({ slot, slotLockId, slotLockRef, slotLockDoc, slotAvailRef });
+        }
+
+        // 2. ALL WRITES AFTER READS
+        transaction.update(bookingRef, {
+          status: BookingStatus.CANCELLED,
+          cancelledAt: nowIso,
+          cancellationReason: 'Payment not confirmed before the cutoff (1 hour before kickoff)',
+          updatedAt: nowIso
+        });
+
+        for (const item of lockItems) {
+          if (item.slotLockDoc.exists()) {
+            const lockData = item.slotLockDoc.data();
+            const lockBookingId = lockData?.bookingId;
+            if (lockBookingId && lockBookingId !== b.id && lockBookingId !== bookingId) {
+              continue;
+            }
+            transaction.update(item.slotLockRef, {
+              status: 'released',
+              releasedAt: nowIso,
+              releaseReason: 'payment_unconfirmed_cutoff'
+            });
+          }
+
+          transaction.set(item.slotAvailRef, {
+            id: item.slotLockId,
+            pitchId: pitchId,
+            date: b.date,
+            time: item.slot,
+            status: 'open',
+            updatedAt: nowIso
+          }, { merge: true });
+        }
+
+        // Notifications: If kickoff has ALREADY passed (Date.now() >= kickoff), cancel with NO notifications.
+        const kickoffMs = getBookingKickoffMs(b);
+        if (Date.now() < kickoffMs) {
+          const playerUid = b.playerId || b.userId;
+          if (playerUid) {
+            const playerNotifRef = doc(collection(db, 'notifications'));
+            const playerMsg = `Your booking at ${turfName} on ${b.date} ${b.time} was cancelled because the owner did not confirm the payment in time.`;
+            transaction.set(playerNotifRef, {
+              id: playerNotifRef.id,
+              userId: playerUid,
+              type: 'SYSTEM',
+              title: 'Booking cancelled',
+              message: playerMsg,
+              body: playerMsg,
+              bookingId: bookingId,
+              pitchId: pitchId,
+              read: false,
+              isRead: false,
+              createdAt: nowIso,
+              updatedAt: nowIso
+            });
+          }
+
+          if (b.ownerId) {
+            const ownerNotifRef = doc(collection(db, 'notifications'));
+            const ownerMsg = `Unconfirmed booking by ${b.userName || 'Player'} on ${b.date} ${b.time} was cancelled automatically.`;
+            transaction.set(ownerNotifRef, {
+              id: ownerNotifRef.id,
+              userId: b.ownerId,
+              type: 'SYSTEM',
+              title: 'Unconfirmed booking cancelled',
+              message: ownerMsg,
+              body: ownerMsg,
+              bookingId: bookingId,
+              pitchId: pitchId,
+              read: false,
+              isRead: false,
+              createdAt: nowIso,
+              updatedAt: nowIso
+            });
+          }
+        }
+      });
+
+      if (!didCancel) return false;
+
+      // After transaction: best-effort slot alerts in try/catch
+      if (pitchId && date && time) {
+        try {
+          await slotAlertService.triggerAlerts(pitchId, date, time, turfName);
+        } catch (alertErr) {
+          console.warn("Failed to trigger slot alerts after autoCancelUnconfirmedPayment:", alertErr);
+        }
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('pitchly:pending_booking_released', {
+            detail: {
+              bookingId,
+              pitchId,
+              date,
+              slots,
+              reason: 'Payment not confirmed before the cutoff (1 hour before kickoff)'
+            }
+          })
+        );
+      }
+
+      return true;
+    } catch (error) {
+      console.warn(`Failed to auto-cancel unconfirmed booking ${bookingId}:`, error);
+      return false;
+    }
+  },
+
+  /**
+   * Sweeps eligible bookings for the current user and auto-cancels any past the cutoff.
+   * Processes at most 5 per call sequentially, guarding against duplicates via inFlightCutoffSweepIds.
+   */
+  async runCutoffSweep(bookings: Array<Booking | any>, currentUid: string): Promise<void> {
+    if (!currentUid || !Array.isArray(bookings) || bookings.length === 0) return;
+
+    const eligible = bookings.filter((b) => {
+      if (!b || !b.id) return false;
+      const isPlayer = b.playerId === currentUid || (b as any).userId === currentUid;
+      const isOwner = b.ownerId === currentUid;
+      if (!isPlayer && !isOwner) return false;
+      if (inFlightCutoffSweepIds.has(b.id)) return false;
+      return isPaymentCutoffPassed(b);
+    });
+
+    const batch = eligible.slice(0, 5);
+
+    for (const b of batch) {
+      inFlightCutoffSweepIds.add(b.id);
+      try {
+        await this.autoCancelUnconfirmedPayment(b.id);
+      } catch (err) {
+        console.warn(`runCutoffSweep failed for booking ${b.id}:`, err);
+      } finally {
+        inFlightCutoffSweepIds.delete(b.id);
+      }
     }
   },
 

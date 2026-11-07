@@ -37,13 +37,44 @@ export const userService = {
     }
   },
 
+  async syncPublicProfile(
+    uid: string,
+    profile: { name?: string; avatar?: string; avatarId?: string }
+  ): Promise<void> {
+    if (!uid || !profile.name) return;
+    try {
+      const includeAvatar = profile.avatar && !profile.avatar.startsWith('data:');
+      await setDoc(
+        doc(db, 'publicProfiles', uid),
+        {
+          id: uid,
+          name: profile.name,
+          ...(includeAvatar ? { avatar: profile.avatar } : {}),
+          ...(profile.avatarId ? { avatarId: profile.avatarId } : {}),
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    } catch (err) {
+      console.warn("Failed to sync public profile in Firestore:", err);
+    }
+  },
+
   async listSearchableUsers(): Promise<User[]> {
     try {
-      const q = query(collection(db, this.collectionPath), limit(100));
+      const q = query(collection(db, 'publicProfiles'), limit(100));
       const snap = await getDocs(q);
       const users: User[] = [];
       snap.forEach((d) => {
-        users.push({ id: d.id, ...d.data() } as User);
+        const data = d.data();
+        users.push({
+          id: d.id,
+          name: data.name || '',
+          avatar: data.avatar || '',
+          avatarId: data.avatarId || '',
+          createdAt: data.updatedAt || '',
+          updatedAt: data.updatedAt || '',
+        } as unknown as User);
       });
       return users;
     } catch (err) {

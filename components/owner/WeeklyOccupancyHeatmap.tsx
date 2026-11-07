@@ -92,8 +92,10 @@ export const WeeklyOccupancyHeatmap: React.FC<WeeklyOccupancyHeatmapProps> = ({
     if (selectedPitchId !== 'ALL') {
       const targetPitch = pitches.find(p => p.id === selectedPitchId);
       if (targetPitch) {
-        const o = parseInt((targetPitch.openingHour || '07:00').split(':')[0], 10) || 7;
-        const c = parseInt((targetPitch.closingHour || '23:00').split(':')[0], 10) || 23;
+        const parsedO = parseInt((targetPitch.openingHour || '07:00').split(':')[0], 10);
+        const parsedC = parseInt((targetPitch.closingHour || '23:00').split(':')[0], 10);
+        const o = isNaN(parsedO) ? 7 : parsedO;
+        const c = isNaN(parsedC) ? 23 : parsedC;
         minHour = o;
         maxHour = c;
       }

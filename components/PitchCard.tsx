@@ -110,10 +110,14 @@ export const PitchCard: React.FC<PitchCardProps> = ({
               {pitch.name}
             </h3>
             <div className="text-right flex flex-col shrink-0">
-              <span className="text-[9px] text-text-tertiary uppercase tracking-wider leading-none">From</span>
-              <span className="text-[13px] font-bold text-primary-lime leading-tight">
-                UGX {(pitch.pricePerHour || 50000).toLocaleString()}
-              </span>
+              {typeof pitch.pricePerHour === 'number' && pitch.pricePerHour > 0 ? (
+                <>
+                  <span className="text-[9px] text-text-tertiary uppercase tracking-wider leading-none">From</span>
+                  <span className="text-[13px] font-bold text-primary-lime leading-tight">
+                    UGX {pitch.pricePerHour.toLocaleString()}
+                  </span>
+                </>
+              ) : null}
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-text-secondary truncate">

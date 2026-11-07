@@ -9,6 +9,7 @@ import {
   User,
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { userService } from "../services/userService";
 
 export interface Badge {
   id: string;
@@ -138,6 +139,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
             try {
               localStorage.setItem("pitchly_last_user", JSON.stringify(profile));
             } catch (e) {}
+
+            if (profile.name) {
+              userService.syncPublicProfile(firebaseUser.uid, {
+                name: profile.name,
+                avatar: profile.avatar,
+                avatarId: profile.avatarId,
+              }).catch(console.warn);
+            }
           } else {
             let pendingRole: UserRole | null = null;
             let pendingName: string | null = null;
@@ -202,6 +211,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     if (user) {
       const docRef = doc(db, "users", user.uid);
       await setDoc(docRef, data, { merge: true });
+
+      if (data.name || data.avatar || data.avatarId) {
+        userService.syncPublicProfile(user.uid, {
+          name: data.name || userProfile?.name,
+          avatar: data.avatar || userProfile?.avatar,
+          avatarId: data.avatarId || userProfile?.avatarId,
+        }).catch(console.warn);
+      }
     }
   };
 

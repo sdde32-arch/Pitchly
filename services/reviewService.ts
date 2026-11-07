@@ -146,22 +146,33 @@ export const reviewService = {
   async recalculatePitchRating(pitchId: string): Promise<{ averageRating: number; totalReviews: number }> {
     try {
       const reviews = await this.listByPitch(pitchId);
-      const totalReviews = reviews.length;
+      const validReviews = reviews.filter(
+        (r) => typeof r.rating === 'number' && r.rating >= 1 && r.rating <= 5
+      );
+      const totalReviews = validReviews.length;
       const averageRating = totalReviews > 0
-        ? Number((reviews.reduce((acc, r) => acc + (r.rating || 5), 0) / totalReviews).toFixed(1))
+        ? Number((validReviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews).toFixed(1))
         : 0;
 
-      const idsToUpdate = [pitchId, pitchId.replace(/^pitch-/, '')];
+      const idsToUpdate = Array.from(new Set([pitchId, pitchId.replace(/^pitch-/, '')]));
+      let updatedAny = false;
+      let lastError: any = null;
       for (const targetId of idsToUpdate) {
         try {
           const pitchRef = doc(db, 'pitches', targetId);
           await updateDoc(pitchRef, {
             rating: averageRating,
-            totalReviews: totalReviews,
+            reviewCount: totalReviews,
+            updatedAt: new Date().toISOString(),
           });
-        } catch {
-          // May not exist in Firestore pitches collection (e.g. static constants turf)
+          updatedAny = true;
+          break;
+        } catch (err) {
+          lastError = err;
         }
+      }
+      if (!updatedAny && lastError) {
+        console.warn(`Could not update pitch rating in Firestore for pitch ${pitchId}:`, lastError);
       }
 
       return { averageRating, totalReviews };

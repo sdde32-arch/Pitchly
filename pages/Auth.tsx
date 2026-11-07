@@ -24,6 +24,12 @@ import {
 import { Logo } from "../components/Logo";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "../context/UserContext";
+import {
+  SUPPORT_EMAIL,
+  getSupportMailto,
+  hasWhatsApp,
+  getWhatsAppUrl,
+} from "../utils/contact";
 
 type AuthMode = "SIGN_IN" | "SIGN_UP" | "FORGOT_PASSWORD";
 export const Auth: React.FC = () => {
@@ -569,6 +575,29 @@ export const Auth: React.FC = () => {
                 Forgot Password?
               </button>
             )}
+
+            <div className="mt-5 pt-4 border-t border-border-subtle text-center text-xs text-text-secondary">
+              <span>Need help? </span>
+              <a
+                href={getSupportMailto("Pitchly sign-in help")}
+                className="text-primary-lime hover:underline font-medium"
+              >
+                Email {SUPPORT_EMAIL}
+              </a>
+              {hasWhatsApp() && (
+                <>
+                  <span className="mx-1.5 text-text-tertiary">•</span>
+                  <a
+                    href={getWhatsAppUrl("Hello Pitchly Support, I need help signing in") || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-500 hover:underline font-medium"
+                  >
+                    WhatsApp
+                  </a>
+                </>
+              )}
+            </div>
 
           </form>
         </div>

@@ -1,6 +1,7 @@
 import React from "react";
 import { PlusCircle, Share2, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "../../context/UserContext";
 
 interface NoPitchesCardProps {
   className?: string;
@@ -8,6 +9,26 @@ interface NoPitchesCardProps {
 
 export const NoPitchesCard: React.FC<NoPitchesCardProps> = ({ className = "" }) => {
   const navigate = useNavigate();
+  const { user, isOwner, userProfile, role } = useUser();
+
+  const handleListPitchClick = () => {
+    if (!user) {
+      navigate("/auth?role=owner", { state: { isOwner: true, role: "owner" } });
+      return;
+    }
+
+    const hasOwnerRole =
+      isOwner ||
+      userProfile?.roles?.includes("OWNER") ||
+      (userProfile?.role || "").toUpperCase() === "OWNER" ||
+      (role || "").toUpperCase() === "OWNER";
+
+    if (hasOwnerRole) {
+      navigate("/owner/add-pitch");
+    } else {
+      navigate("/settings");
+    }
+  };
 
   const handleShareInvite = async () => {
     const inviteUrl = window.location.origin;
@@ -52,7 +73,7 @@ export const NoPitchesCard: React.FC<NoPitchesCardProps> = ({ className = "" }) 
         <button
           id="empty-state-list-pitch-btn"
           type="button"
-          onClick={() => navigate("/auth?role=owner", { state: { isOwner: true, role: "owner" } })}
+          onClick={handleListPitchClick}
           className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-primary-lime hover:bg-[#96E600] text-accent-text text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-95"
         >
           <PlusCircle size={15} strokeWidth={2.5} />

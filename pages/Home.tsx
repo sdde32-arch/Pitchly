@@ -224,14 +224,14 @@ export const Home: React.FC = () => {
 
   // Real Firestore pitches
   const allPitches = useMemo(() => {
-    return realPitches.map((p, idx) => ({
+    return realPitches.map((p) => ({
       ...p,
       images: p.images?.length ? p.images : [],
       pitchFormats: p.pitchFormats?.length ? p.pitchFormats : ["7-a-side"],
       status: p.status || PitchStatus.ACTIVE,
       rating: typeof (p as any).rating === "number" ? (p as any).rating : 0,
-      reviewsCount: (p as any).reviewsCount || 0,
-      distance: (p as any).distance || `${(1.2 + (idx * 0.7) % 4).toFixed(1)} km`,
+      reviewsCount: Number((p as any).reviewCount ?? (p as any).reviewsCount ?? 0),
+      distance: (p as any).distance || "",
     }));
   }, [realPitches]);
 
@@ -651,7 +651,6 @@ export const Home: React.FC = () => {
                           pitch={pitch}
                           isFavorite={!!favorites[pitch.id || ""]}
                           onToggleFavorite={toggleFavorite}
-                          onSelectSlot={handleOpenQuickBooking}
                           selectedDate={selectedDate}
                           distanceKm={(pitch as any)._computedDistanceKm}
                         />

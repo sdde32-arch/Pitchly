@@ -86,7 +86,7 @@ export const BookingConfirmation: React.FC = () => {
               name: foundBooking.turfName || foundBooking.pitchName || "Sports Arena Turf",
               location: foundBooking.location || "Kampala, Uganda",
               fullAddress: foundBooking.location || "Kampala, Uganda",
-              pricePerHour: foundBooking.price || 70000,
+              pricePerHour: foundBooking.price || 0,
               image: foundBooking.image || "",
               pitchFormats: [foundBooking.pitchFormat || "7-a-side AstroTurf"],
               contactPhone: foundBooking.contactPhone || ""

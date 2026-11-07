@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Turf, Booking, BookingStatus } from '../types';
 import { useUser } from './UserContext';
 import { db } from '../lib/firebase';
@@ -21,7 +21,17 @@ interface BookingContextType {
   toggleBlockDate: (turfId: string, date: string) => void;
   releasePendingBooking: (bookingId: string, reason?: string) => Promise<boolean>;
   autoReleasePendingBookings: (options?: { pitchId?: string; date?: string; userId?: string; bookingId?: string; forceNow?: boolean }) => Promise<{ releasedCount: number; releasedBookingIds: string[] }>;
-  upgradeTentativeBooking: (bookingId: string, tier: 'DEPOSIT' | 'FULL', paymentDetails: { paymentMethod: any; paymentProofUrl?: string; transactionRef?: string; depositAmount?: number; balanceDue?: number }) => Promise<Booking>;
+  upgradeTentativeBooking: (
+    bookingId: string,
+    tier: 'DEPOSIT' | 'FULL',
+    paymentDetails?: {
+      paymentMethod?: any;
+      paymentProofUrl?: string;
+      transactionRef?: string;
+      depositAmount?: number;
+      balanceDue?: number;
+    }
+  ) => Promise<Booking>;
   isPendingBookingExpired: (booking: Partial<Booking>) => boolean;
   getRemainingPaymentTimeMs: (booking: Partial<Booking>) => number;
 }
@@ -51,14 +61,25 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useUser();
 
+  const bookingsRef = useRef<Booking[]>(bookings);
+  useEffect(() => {
+    bookingsRef.current = bookings;
+  }, [bookings]);
+
   useEffect(() => {
     if (authLoading) return;
     loadData();
   }, [user, authLoading]);
 
-  // Background auto-release timer: checks every 30s to release any pending booking where payment wasn't completed in 15 mins
+  // Background auto-release timer & cutoff sweep: checks every 30s
   useEffect(() => {
     const stopInterval = bookingService.startAutoReleaseInterval(30000);
+
+    const sweepInterval = setInterval(() => {
+      if (user?.uid) {
+        bookingService.runCutoffSweep(bookingsRef.current, user.uid).catch(console.warn);
+      }
+    }, 30000);
 
     const handleBookingReleased = (e: any) => {
       const releasedId = e.detail?.bookingId;
@@ -97,12 +118,13 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     return () => {
       stopInterval();
+      clearInterval(sweepInterval);
       if (typeof window !== 'undefined') {
         window.removeEventListener('pitchly:pending_booking_released', handleBookingReleased);
         window.removeEventListener('pitchly:tentative_booking_preempted', handleBookingPreempted);
       }
     };
-  }, []);
+  }, [user?.uid]);
 
   const loadData = async () => {
     if (authLoading) return;
@@ -128,7 +150,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         image: p.images?.[0] || "",
         images: p.images,
         amenities: p.amenities,
-        distance: (p as any).distance || "2.5 km",
+        distance: (p as any).distance || "",
         openingHour: p.openingHour,
         closingHour: p.closingHour,
         blockedDates: [],
@@ -158,6 +180,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         unique.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()); 
         setBookings(unique);
         setCachedBookings(unique);
+        bookingService.runCutoffSweep(unique, user.uid).catch(console.warn);
       } else {
         const cached = getCachedBookings();
         setBookings(cached);
@@ -309,8 +332,8 @@ return { ...t, blockedDates: blocked }; })); };
   const upgradeTentativeBooking = async (
     bookingId: string,
     tier: 'DEPOSIT' | 'FULL',
-    paymentDetails: {
-      paymentMethod: any;
+    paymentDetails?: {
+      paymentMethod?: any;
       paymentProofUrl?: string;
       transactionRef?: string;
       depositAmount?: number;

@@ -17,6 +17,7 @@ import {
   Download,
   CheckCircle,
   PlayCircle,
+  HelpCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
@@ -27,7 +28,7 @@ import { Moon, Sun, Sparkles } from "lucide-react";
 import { useMatchReminder } from "../context/MatchReminderContext";
 import { PWAInstallButton } from "../components/PWAInstallButton";
 import { offlineCacheService } from "../services/offlineCacheService";
-import { Database, RefreshCw, Wifi } from "lucide-react";
+import { Database, RefreshCw, Wifi, Building2 } from "lucide-react";
 
 
 const SectionHeader = ({ title }: { title: string }) => (
@@ -42,8 +43,12 @@ const SettingItem = ({
   description,
   action,
   destructive = false,
+  onClick,
 }: any) => (
-  <div className="flex items-center justify-between p-4 bg-surface-card border-b border-border-subtle last:border-0 hover:bg-surface-raised/50 transition-colors">
+  <div
+    onClick={onClick}
+    className={`flex items-center justify-between p-4 bg-surface-card border-b border-border-subtle last:border-0 hover:bg-surface-raised/50 transition-colors ${onClick ? "cursor-pointer" : ""}`}
+  >
     <div className="flex items-center gap-4">
       <div
         className={`w-10 h-10 rounded-[14px] flex items-center justify-center ${destructive ? "bg-red-500/10 text-red-500 border border-red-500/20" : "bg-surface-raised border border-border-subtle text-text-secondary"}`}
@@ -77,6 +82,7 @@ export const Settings: React.FC = () => {
     isAdmin,
     signOut: contextSignOut,
     switchRole,
+    updateProfile,
   } = useUser();
   const navigate = useNavigate();
   const [showTutorial, setShowTutorial] = useState(false);
@@ -318,6 +324,28 @@ export const Settings: React.FC = () => {
           
           <SectionHeader title="Account" />
           <div className="overflow-hidden rounded-2xl border border-border-subtle shadow-sm">
+            {!isAdmin && (!userProfile?.roles || !userProfile.roles.includes("OWNER")) && (
+              <SettingItem
+                icon={Building2}
+                title="Become a pitch owner"
+                description="List your turf facility and manage match bookings"
+                action={
+                  <button
+                    onClick={async () => {
+                      try {
+                        await updateProfile({ roles: ["PLAYER", "OWNER"], role: "OWNER" });
+                        navigate("/owner");
+                      } catch (err: any) {
+                        showToast(err?.message || "Failed to upgrade to owner profile. Please try again.", "error");
+                      }
+                    }}
+                    className="px-4 py-2 bg-primary-lime text-accent-text rounded-full text-[12px] font-bold hover:bg-[#96E600] transition-colors cursor-pointer shadow-xs active:scale-95"
+                  >
+                    Become Owner
+                  </button>
+                }
+              />
+            )}
             {!isAdmin && userProfile?.roles?.includes("PLAYER") &&
               userProfile?.roles?.includes("OWNER") && (
                 <SettingItem
@@ -342,6 +370,15 @@ export const Settings: React.FC = () => {
             <SettingItem
               icon={Shield}
               title="Privacy & Security"
+              action={
+                <ChevronRight size={18} className="text-[#71717A]" />
+              }
+            />
+            <SettingItem
+              icon={HelpCircle}
+              title="Help & Support"
+              description="FAQs, contact support and platform guides"
+              onClick={() => navigate("/support")}
               action={
                 <ChevronRight size={18} className="text-[#71717A]" />
               }

@@ -56,7 +56,8 @@ export const CommunityActivityFeed: React.FC = () => {
   const [postMvp, setPostMvp] = useState("");
   const [postTeamName, setPostTeamName] = useState("");
   const [postCaptain, setPostCaptain] = useState("");
-  const [postMembersCount, setPostMembersCount] = useState(8);
+  const [postMembersCount, setPostMembersCount] = useState<number | "">("");
+  const [postError, setPostError] = useState("");
   const [postMotto, setPostMotto] = useState("");
   const [postChampion, setPostChampion] = useState("");
   const [postRunnerUp, setPostRunnerUp] = useState("");
@@ -174,6 +175,12 @@ export const CommunityActivityFeed: React.FC = () => {
           },
         });
       } else if (postType === "team_formed") {
+        if (typeof postMembersCount !== "number" || isNaN(postMembersCount) || postMembersCount < 5 || postMembersCount > 25) {
+          setPostError("Enter your squad size (5-25).");
+          setPostSubmitting(false);
+          return;
+        }
+
         const initials = (postTeamName || "New FC")
           .split(" ")
           .map((n) => n[0])
@@ -231,6 +238,9 @@ export const CommunityActivityFeed: React.FC = () => {
       setPostHomeTeam("");
       setPostAwayTeam("");
       setPostTeamName("");
+      setPostCaptain("");
+      setPostMembersCount("");
+      setPostError("");
       setPostChampion("");
       setPostRunnerUp("");
     } catch (err) {
@@ -642,11 +652,15 @@ export const CommunityActivityFeed: React.FC = () => {
                           {activity.teamData?.teamName || activity.title}
                         </h4>
                         <div className="flex items-center gap-2 text-xs text-text-secondary flex-wrap mt-0.5">
-                          <span className="flex items-center gap-1 font-medium">
-                            <Users size={12} className="text-sky-400" />
-                            {activity.teamData?.membersCount || 7} Registered Players
-                          </span>
-                          <span>•</span>
+                          {typeof activity.teamData?.membersCount === "number" && activity.teamData.membersCount > 0 && (
+                            <>
+                              <span className="flex items-center gap-1 font-medium">
+                                <Users size={12} className="text-sky-400" />
+                                {activity.teamData.membersCount} Registered Players
+                              </span>
+                              <span>•</span>
+                            </>
+                          )}
                           <span className="text-text-tertiary">
                             Captain: <strong className="text-text-primary">{activity.teamData?.captain}</strong>
                           </span>
@@ -844,6 +858,11 @@ export const CommunityActivityFeed: React.FC = () => {
 
               {/* Form */}
               <form onSubmit={handleCreateActivity} className="space-y-4 text-xs">
+                {postError && (
+                  <div className="p-2.5 rounded-xl bg-accent-crimson/10 border border-accent-crimson/20 text-accent-crimson text-xs font-bold">
+                    {postError}
+                  </div>
+                )}
                 {/* Type Selection */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider block">
@@ -984,7 +1003,17 @@ export const CommunityActivityFeed: React.FC = () => {
                           min="5"
                           max="25"
                           value={postMembersCount}
-                          onChange={(e) => setPostMembersCount(parseInt(e.target.value) || 7)}
+                          onChange={(e) => {
+                            setPostError("");
+                            const val = e.target.value;
+                            if (val === "") {
+                              setPostMembersCount("");
+                            } else {
+                              const num = parseInt(val, 10);
+                              setPostMembersCount(isNaN(num) ? "" : num);
+                            }
+                          }}
+                          placeholder="e.g. 11"
                           className="w-full px-3 py-2 rounded-xl bg-surface-card border border-border-subtle text-text-primary font-mono font-bold focus:border-primary-lime outline-hidden"
                         />
                       </div>

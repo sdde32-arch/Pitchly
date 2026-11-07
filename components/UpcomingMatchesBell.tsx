@@ -154,7 +154,9 @@ export const UpcomingMatchesBell: React.FC = () => {
     if (!n.isRead && !n.read) {
       notificationService.markAsRead(n.id).catch(console.warn);
     }
-    if (n.type === 'BOOKING_PREEMPTED' || n.bookingId) {
+    if (n.link && (n.link.startsWith('/owner') || n.link.startsWith('/admin'))) {
+      navigate(n.link);
+    } else if (n.type === 'BOOKING_PREEMPTED' || n.bookingId) {
       navigate(`/booking-confirmation/${n.bookingId}`);
     } else if (n.link) {
       navigate(n.link);

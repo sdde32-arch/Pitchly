@@ -250,13 +250,17 @@ export const ExploreMap: React.FC = () => {
                   {/* Bottom Action Row */}
                   <div className="mt-3 pt-2.5 border-t border-border-subtle/50 flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-text-tertiary block">Hourly Rate</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-sm font-black text-primary-lime">
-                          UGX {(pitch.pricePerHour || 120000).toLocaleString()}
-                        </span>
-                        <span className="text-[10px] text-text-tertiary">/ hr</span>
-                      </div>
+                      {typeof pitch.pricePerHour === 'number' && pitch.pricePerHour > 0 ? (
+                        <>
+                          <span className="text-[10px] text-text-tertiary block">Hourly Rate</span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-sm font-black text-primary-lime">
+                              UGX {pitch.pricePerHour.toLocaleString()}
+                            </span>
+                            <span className="text-[10px] text-text-tertiary">/ hr</span>
+                          </div>
+                        </>
+                      ) : null}
                     </div>
 
                     <button

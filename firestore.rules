@@ -140,7 +140,7 @@ service cloud.firestore {
     // Strictly restricts self-promotion to ADMIN/super_admin/OWNER escalation
     // ─────────────────────────────────────────────────────────────
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       
       // On creation: Normal signups can ONLY be PLAYER (or OWNER if registering via owner toggle)
       // Strictly BLOCKS self-assigning ADMIN or super_admin or writing privileged fields
@@ -152,23 +152,46 @@ service cloud.firestore {
             (request.resource.data.roles.hasOnly(['PLAYER', 'OWNER']) && !request.resource.data.roles.hasAny(['ADMIN', 'admin', 'super_admin'])))
         && !request.resource.data.keys().hasAny(['isAdmin', 'isSuperAdmin', 'permissions']);
       
-      // On update: Users cannot self-promote to ADMIN or OWNER roles without authorization,
-      // and cannot tamper with roles array or privileged flags. Only existing admins may promote.
+      // On update: Doc owner may update their own profile; can never elevate to admin;
+      // may change roles only to a list containing "PLAYER" and whose elements are only "PLAYER" or "OWNER";
+      // may change role only to "PLAYER" or "OWNER" matching the resulting roles list;
+      // supports legacy docs without id or role fields; isAdmin() keeps full update.
       allow update: if (
-        isOwner(userId) && 
-        // User cannot elevate roles array or write privileged flags
-        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['roles', 'isAdmin', 'isSuperAdmin', 'permissions'])) &&
-        // User cannot self-promote to ADMIN or OWNER if not already authorized in their existing roles array
+        isOwner(userId) &&
+        // Cannot change administrative privilege flags
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isSuperAdmin', 'permissions']) &&
+        // Check id only if it exists on legacy doc
+        (!resource.data.keys().hasAll(['id']) || request.resource.data.id == resource.data.id) &&
+        // Roles array may only be changed to a list that contains "PLAYER" and whose elements are only "PLAYER" or "OWNER"
         (
-          request.resource.data.get('role', resource.data.role) == resource.data.role ||
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['roles']) ||
           (
-            request.resource.data.get('role', resource.data.role) in ['PLAYER', 'OWNER'] &&
-            request.resource.data.get('role', resource.data.role) in resource.data.get('roles', ['PLAYER'])
+            request.resource.data.roles is list &&
+            request.resource.data.roles.hasAll(['PLAYER']) &&
+            request.resource.data.roles.hasOnly(['PLAYER', 'OWNER'])
+          )
+        ) &&
+        // Role may change only to "PLAYER" or "OWNER", and the new role must be in the resulting roles list
+        (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) ||
+          (
+            request.resource.data.role in ['PLAYER', 'OWNER'] &&
+            request.resource.data.role in request.resource.data.get('roles', resource.data.get('roles', ['PLAYER']))
           )
         )
       ) || isAdmin();
 
       allow delete: if isAdmin();
+    }
+
+    match /publicProfiles/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(userId)
+        && request.resource.data.id == userId
+        && request.resource.data.keys().hasOnly(['id','name','avatar','avatarId','updatedAt'])
+        && request.resource.data.get('name','') is string
+        && request.resource.data.name.size() <= 100;
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     // ─────────────────────────────────────────────────────────────

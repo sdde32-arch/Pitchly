@@ -12,6 +12,12 @@ import {
   Mail,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  SUPPORT_EMAIL,
+  getSupportMailto,
+  hasWhatsApp,
+  getWhatsAppUrl,
+} from "../utils/contact";
 export const Support: React.FC = () => {
   const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -38,6 +44,7 @@ export const Support: React.FC = () => {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
+    window.location.href = getSupportMailto("Support Inquiry", message.trim());
     setIsSent(true);
     setMessage("");
     setTimeout(() => setIsSent(false), 3000);
@@ -72,21 +79,25 @@ export const Support: React.FC = () => {
 
         <div className="p-4 max-w-xl mx-auto space-y-6">
           {/* Contact Cards */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className={`grid ${hasWhatsApp() ? "grid-cols-2" : "grid-cols-1"} gap-4`}>
+            {hasWhatsApp() && (
+              <a
+                href={getWhatsAppUrl("Hello Pitchly Support, I need help with...") || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-surface-card p-4 rounded-[16px] border border-border-subtle shadow-sm flex flex-col items-center justify-center text-center hover:border-primary-lime/50 transition-colors active:scale-95 cursor-pointer group"
+              >
+                <div className="w-12 h-12 bg-amber-50 dark:bg-primary-lime/10 text-amber-600 dark:text-primary-lime rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                  <Phone size={24} />
+                </div>
+                <h3 className="font-medium text-text-primary mb-1">WhatsApp</h3>
+                <p className="text-[11px] text-text-secondary">
+                  Chat with us
+                </p>
+              </a>
+            )}
             <a
-              href="tel:+256700000000"
-              className="bg-surface-card p-4 rounded-[16px] border border-border-subtle shadow-sm flex flex-col items-center justify-center text-center hover:border-primary-lime/50 transition-colors active:scale-95 cursor-pointer group"
-            >
-              <div className="w-12 h-12 bg-amber-50 dark:bg-primary-lime/10 text-amber-600 dark:text-primary-lime rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <Phone size={24} />
-              </div>
-              <h3 className="font-medium text-text-primary mb-1">Call Us</h3>
-              <p className="text-[11px] text-text-secondary">
-                Mon-Fri, 8am-8pm
-              </p>
-            </a>
-            <a
-              href="mailto:support@pitchly.com"
+              href={getSupportMailto("Pitchly Support Request")}
               className="bg-surface-card p-4 rounded-[16px] border border-border-subtle shadow-sm flex flex-col items-center justify-center text-center hover:border-primary-lime/50 transition-colors active:scale-95 cursor-pointer group"
             >
               <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -94,7 +105,7 @@ export const Support: React.FC = () => {
               </div>
               <h3 className="font-medium text-text-primary mb-1">Email Us</h3>
               <p className="text-[11px] text-text-secondary">
-                24/7 Support
+                {SUPPORT_EMAIL}
               </p>
             </a>
           </div>

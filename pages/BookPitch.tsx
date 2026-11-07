@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
+import { collection, doc, setDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
 import { 
   ArrowLeft, ArrowRight, CheckCircle2, Clock, UploadCloud, FileImage, CreditCard, ShieldCheck, Check, Wallet, Home,
   Zap, AlertCircle, Info, Shield, FileCheck, AlertTriangle
@@ -139,7 +141,7 @@ export const BookPitch: React.FC = () => {
     type: realPitch.pitchFormats?.[0] || "11-a-side",
     image: realPitch.images?.[0] || "",
     rating: typeof (realPitch as any).rating === 'number' ? (realPitch as any).rating : 0,
-    distance: "2.4km away",
+    distance: (realPitch as any).distance || "",
     status: realPitch.status as any,
     amenities: realPitch.amenities || [],
     openingHour: realPitch.openingHour || "06:00",
@@ -190,6 +192,7 @@ export const BookPitch: React.FC = () => {
   }, [turf]);
 
   const depositPercentage = (realPitch as any)?.depositPercentage ?? (turf as any)?.depositPercentage;
+  const hasValidPrice = !!turf && typeof turf.pricePerHour === 'number' && turf.pricePerHour > 0;
   const basePitchTotal = turf ? turf.pricePerHour * selectedTimes.length : 0;
   const depositCalc = useMemo(() => {
     return computeDeposit(basePitchTotal, depositPercentage);
@@ -252,14 +255,18 @@ export const BookPitch: React.FC = () => {
   }, [hasOpenUnpaidHold, selectedTier]);
 
   useEffect(() => {
-    if (!id || !selectedDate) return;
+    if (!turf?.id) {
+      setLoadingBookings(true);
+      return;
+    }
+    if (!selectedDate) return;
     setLoadingBookings(true);
     setHasError(false);
 
     // Auto-release any expired pending slots/bookings before loading availability
-    bookingService.autoReleasePendingBookings({ pitchId: id, date: selectedDate }).catch(console.warn);
+    bookingService.autoReleasePendingBookings({ pitchId: turf.id, date: selectedDate }).catch(console.warn);
 
-    const unsubscribe = bookingService.subscribeSlotAvailabilityByPitchAndDate(id, selectedDate, (slots) => {
+    const unsubscribe = bookingService.subscribeSlotAvailabilityByPitchAndDate(turf.id, selectedDate, (slots) => {
       setSlotAvailabilityList(slots);
       setLoadingBookings(false);
       setHasError(false);
@@ -270,7 +277,7 @@ export const BookPitch: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [id, selectedDate]);
+  }, [turf?.id, selectedDate]);
 
   // 15-minute auto-release payment window timer
   useEffect(() => {
@@ -319,6 +326,24 @@ export const BookPitch: React.FC = () => {
     const slotHour = parseInt(timeStr.split(':')[0]);
     return slotHour <= currentHour;
   };
+
+  const paramTimeCheckedRef = useRef(false);
+
+  useEffect(() => {
+    if (paramTime && !loadingPitch && !loadingBookings && !hasError && bookingStep === 1 && !paramTimeCheckedRef.current) {
+      paramTimeCheckedRef.current = true;
+      const status = getSlotStatus(paramTime);
+      const isPassed = isSlotPassed(paramTime, selectedDate);
+      const isBooked = status === 'booked' || status === 'blocked';
+      const isHeld = status === 'held';
+      const isDisabled = hasError || isBooked || isHeld || isPassed;
+
+      if (!timesList.includes(paramTime) || isPassed || isDisabled) {
+        setSelectedTimes((prev) => prev.filter((t) => t !== paramTime));
+        setErrorMsg("The time you picked is no longer available. Please choose another slot.");
+      }
+    }
+  }, [paramTime, loadingPitch, loadingBookings, hasError, bookingStep, timesList, selectedDate, slotAvailabilityList]);
 
   const handleSlotClick = (time: string) => {
     setErrorMsg("");
@@ -391,6 +416,10 @@ export const BookPitch: React.FC = () => {
   };
 
   const handleBookingSubmit = async () => {
+    if (!hasValidPrice) {
+      setErrorMsg("This pitch does not have pricing configured yet. Please contact the facility owner.");
+      return;
+    }
     if (!user) {
       setErrorMsg("Please log in to complete your booking.");
       return;
@@ -426,7 +455,14 @@ export const BookPitch: React.FC = () => {
         return;
       }
     }
-    
+
+    for (const time of selectedTimes) {
+      if (!timesList.includes(time) || isSlotPassed(time, selectedDate)) {
+        setErrorMsg("The time you picked is no longer available. Please choose another slot.");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setErrorMsg("");
     try {
@@ -482,6 +518,30 @@ export const BookPitch: React.FC = () => {
       };
       
       await bookingService.create(bookingData);
+
+      if (bookingData.ownerId) {
+        const notifRef = doc(collection(db, "notifications"));
+        const title = "New booking request";
+        const bodyMsg = `${bookingData.userName || "Player"} · ${bookingData.date} ${bookingData.time} · ${bookingData.pitchName}`;
+        const nowIso = new Date().toISOString();
+        setDoc(notifRef, {
+          id: notifRef.id,
+          userId: bookingData.ownerId,
+          type: "SYSTEM",
+          title,
+          body: bodyMsg,
+          message: bodyMsg,
+          bookingId: bookingId,
+          pitchId: bookingData.pitchId,
+          link: "/owner",
+          read: false,
+          isRead: false,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        }).catch((notifErr) => {
+          console.warn("Failed to notify owner about new booking:", notifErr);
+        });
+      }
       
       if (proposalId) {
         try {
@@ -536,6 +596,10 @@ export const BookPitch: React.FC = () => {
   };
 
   const handleNextStep = (nextStep: 1 | 2 | 3 | 4) => {
+    if (!hasValidPrice) {
+      setErrorMsg("This pitch does not have pricing configured yet. Please contact the facility owner.");
+      return;
+    }
     if (nextStep > 1 && ownOpenReservationForSelectedSlot) {
       setErrorMsg("This is your reservation. Secure it from My Bookings.");
       return;
@@ -806,7 +870,7 @@ export const BookPitch: React.FC = () => {
                   whileHover={selectedTimes.length > 0 && !ownOpenReservationForSelectedSlot ? { scale: 1.01, boxShadow: "0 0 25px rgba(168,255,0,0.3)" } : undefined}
                   whileTap={selectedTimes.length > 0 && !ownOpenReservationForSelectedSlot ? { scale: 0.98 } : undefined}
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  disabled={selectedTimes.length === 0 || Boolean(ownOpenReservationForSelectedSlot)}
+                  disabled={!hasValidPrice || selectedTimes.length === 0 || Boolean(ownOpenReservationForSelectedSlot)}
                   onClick={() => {
                     if (ownOpenReservationForSelectedSlot) {
                       setErrorMsg("This is your reservation. Secure it from My Bookings.");
@@ -818,6 +882,11 @@ export const BookPitch: React.FC = () => {
                 >
                   Continue ({selectedTimes.length} slots)
                 </motion.button>
+                {!hasValidPrice && (
+                  <p className="text-xs text-red-400 text-center font-bold mt-2">
+                    This pitch does not have pricing configured yet. Please contact the facility owner.
+                  </p>
+                )}
               </div>
             </motion.div>
           )}
@@ -1059,7 +1128,7 @@ export const BookPitch: React.FC = () => {
                   whileHover={!ownOpenReservationForSelectedSlot ? { scale: 1.01, boxShadow: "0 0 25px rgba(168,255,0,0.3)" } : undefined}
                   whileTap={!ownOpenReservationForSelectedSlot ? { scale: 0.98 } : undefined}
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  disabled={Boolean(ownOpenReservationForSelectedSlot)}
+                  disabled={!hasValidPrice || Boolean(ownOpenReservationForSelectedSlot)}
                   onClick={() => {
                     if (ownOpenReservationForSelectedSlot) {
                       setErrorMsg("This is your reservation. Secure it from My Bookings.");
@@ -1077,6 +1146,11 @@ export const BookPitch: React.FC = () => {
                     ? 'Review reservation'
                     : (selectedTier === 'DEPOSIT' ? `Secure with Deposit (UGX ${(depositAmount + PLATFORM_FEE_UGX).toLocaleString()})` : 'Secure with Full Payment')}
                 </motion.button>
+                {!hasValidPrice && (
+                  <p className="text-xs text-red-400 text-center font-bold mt-2">
+                    This pitch does not have pricing configured yet. Please contact the facility owner.
+                  </p>
+                )}
               </div>
             </motion.div>
           )}
@@ -1176,12 +1250,17 @@ export const BookPitch: React.FC = () => {
                       whileHover={!isSubmitting ? { scale: 1.01, boxShadow: "0 0 25px rgba(245,158,11,0.3)" } : undefined}
                       whileTap={!isSubmitting ? { scale: 0.98 } : undefined}
                       transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                      disabled={isSubmitting}
+                      disabled={!hasValidPrice || isSubmitting}
                       onClick={handleBookingSubmit}
-                      className="w-full h-14 bg-amber-500 hover:bg-amber-400 text-black font-extrabold rounded-xl flex items-center justify-center transition-all shadow-[0_0_20px_rgba(245,158,11,0.25)] tracking-wide active:scale-[0.98] cursor-pointer"
+                      className="w-full h-14 bg-amber-500 hover:bg-amber-400 text-black font-extrabold rounded-xl flex items-center justify-center transition-all shadow-[0_0_20px_rgba(245,158,11,0.25)] tracking-wide active:scale-[0.98] cursor-pointer disabled:opacity-50"
                     >
                       {isSubmitting ? <><Loader2 size={18} className="animate-spin mr-2" /> Reserving slot...</> : 'Reserve slot (pay at the pitch)'}
                     </motion.button>
+                    {!hasValidPrice && (
+                      <p className="text-xs text-red-400 text-center font-bold mt-2">
+                        This pitch does not have pricing configured yet. Please contact the facility owner.
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : !pitchPaymentPhone ? (
@@ -1322,12 +1401,15 @@ export const BookPitch: React.FC = () => {
                   )}
 
                   <div className="fixed bottom-0 left-0 right-0 p-4 bg-app-base border-t border-border-subtle z-40 max-w-2xl mx-auto">
+                    <p className="text-[11px] text-text-secondary text-center mb-2 font-medium">
+                      Your slot is confirmed once the pitch owner verifies your payment. If it is not confirmed 1 hour before kickoff, the booking is cancelled automatically.
+                    </p>
                     <motion.button
                       type="button"
                       whileHover={!isSubmitting && (proofUrl || isValidTransactionRef(transactionRef)) && pitchPaymentPhone ? { scale: 1.01, boxShadow: "0 0 25px rgba(168,255,0,0.3)" } : undefined}
                       whileTap={!isSubmitting && (proofUrl || isValidTransactionRef(transactionRef)) && pitchPaymentPhone ? { scale: 0.98 } : undefined}
                       transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                      disabled={isSubmitting || (!proofUrl && !isValidTransactionRef(transactionRef)) || !pitchPaymentPhone}
+                      disabled={!hasValidPrice || isSubmitting || (!proofUrl && !isValidTransactionRef(transactionRef)) || !pitchPaymentPhone}
                       onClick={handleBookingSubmit}
                       className="w-full h-14 bg-primary-lime hover:bg-[#96E600] disabled:opacity-50 disabled:hover:bg-primary-lime text-accent-text rounded-xl flex items-center justify-center transition-all shadow-[0_0_20px_rgba(168,255,0,0.2)] disabled:shadow-none font-bold tracking-wide active:scale-[0.98] cursor-pointer"
                     >
@@ -1339,6 +1421,11 @@ export const BookPitch: React.FC = () => {
                         'Confirm Full Payment & Secure Slot'
                       )}
                     </motion.button>
+                    {!hasValidPrice && (
+                      <p className="text-xs text-red-400 text-center font-bold mt-2">
+                        This pitch does not have pricing configured yet. Please contact the facility owner.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

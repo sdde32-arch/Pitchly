@@ -130,12 +130,14 @@ export const SpotlightCarousel: React.FC<SpotlightCarouselProps> = ({
 
                 {/* Price and Book Action */}
                 <div className="pt-2 border-t border-white/15 flex items-center justify-between">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-sm sm:text-base font-black text-white">
-                      UGX {(pitch.pricePerHour || 80000).toLocaleString()}
-                    </span>
-                    <span className="text-[10px] text-white/60">/hr</span>
-                  </div>
+                  {typeof pitch.pricePerHour === "number" && pitch.pricePerHour > 0 ? (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-sm sm:text-base font-black text-white">
+                        UGX {pitch.pricePerHour.toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-white/60">/hr</span>
+                    </div>
+                  ) : <div />}
 
                   <button
                     type="button"

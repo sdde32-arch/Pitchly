@@ -11,6 +11,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { BookingCardSkeleton } from "../components/ui/Skeleton";
 import { formatBookingDate, formatBookingTime } from "../lib/dateUtils";
 import { bookingService } from "../services/bookingService";
+import { formatCutoffLabel, formatKampalaTime } from "../utils/paymentCutoff";
 import { PhotoPlaceholder } from "../components/ui/PhotoPlaceholder";
 
 export const Bookings: React.FC = () => {
@@ -38,9 +39,12 @@ export const Bookings: React.FC = () => {
   const filteredBookings = allBookings.filter((b) => {
     const rawStatus = (b.status || "").toString().toUpperCase();
     const isHoldExpired = bookingService.isHoldExpired(b);
+    const isCutoffPassed = bookingService.isPaymentCutoffPassed(b);
     const isTentative = rawStatus === "TENTATIVE";
 
     if (activeTab === "upcoming") {
+      // Unconfirmed payment proof past cutoff moves to cancelled
+      if (isCutoffPassed) return false;
       // Open unpaid reservation (TENTATIVE and not isHoldExpired) appears under Upcoming
       if (isTentative) {
         return !isHoldExpired;
@@ -60,12 +64,13 @@ export const Bookings: React.FC = () => {
         rawStatus === "DISPUTED"
       );
     } else {
-      // Cancelled tab: PREEMPTED, CANCELLED, REJECTED, or expired TENTATIVE holds
+      // Cancelled tab: PREEMPTED, CANCELLED, REJECTED, expired TENTATIVE holds, or unconfirmed payment cutoffs
       return (
         rawStatus === "CANCELLED" ||
         rawStatus === "REJECTED" ||
         rawStatus === "PREEMPTED" ||
-        (isTentative && isHoldExpired)
+        (isTentative && isHoldExpired) ||
+        (rawStatus === "PAYMENT_SUBMITTED" && isCutoffPassed)
       );
     }
   });
@@ -357,7 +362,19 @@ export const Bookings: React.FC = () => {
                           <CheckCircle2 size={12} className="shrink-0" />
                           <span>Deposit Paid · Balance: UGX {((b as any).balanceDue || Math.max(0, ((b as any).totalPrice || (b as any).price || 0) - ((b as any).depositAmount || 0))).toLocaleString()}</span>
                         </div>
-                      ) : ((b.status === BookingStatus.PAYMENT_SUBMITTED || b.status === BookingStatus.PENDING_PAYMENT) && (b as any).bookingTier === 'DEPOSIT') ? (
+                      ) : (b.status === BookingStatus.PAYMENT_SUBMITTED || (b.status as any) === 'PAYMENT_SUBMITTED') ? (
+                        bookingService.isPaymentCutoffPassed(b) ? (
+                          <div className="flex items-center gap-1.5 text-[11px] text-[#EF4444] bg-[#EF4444]/10 px-2.5 py-1.5 rounded-md border border-[#EF4444]/20 mt-2">
+                            <AlertTriangle size={12} className="shrink-0" />
+                            <span>Not confirmed in time. This booking has been cancelled.</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-[11px] text-[#FACC15] bg-[#FACC15]/10 px-2.5 py-1.5 rounded-md border border-[#FACC15]/20 mt-2">
+                            <Clock size={12} className="shrink-0 text-amber-400" />
+                            <span>Waiting for the owner to confirm. Cancelled automatically at {formatCutoffLabel(bookingService.getPaymentCutoffMs(b))} if not confirmed.</span>
+                          </div>
+                        )
+                      ) : (b.status === BookingStatus.PENDING_PAYMENT && (b as any).bookingTier === 'DEPOSIT') ? (
                         <div className="flex items-center gap-1.5 text-[11px] text-[#FACC15] bg-[#FACC15]/10 px-2.5 py-1 rounded-md border border-[#FACC15]/20 mt-2">
                           <Clock size={12} className="shrink-0" />
                           <span>Deposit Payment Submitted · Awaiting Verification</span>

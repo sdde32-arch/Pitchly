@@ -78,7 +78,7 @@ export const turfToPitch = (t: Turf): Pitch => ({
   surfaceType: t.surfaceType || 'Synthetic Grass (AstroTurf)',
   ...({
     rating: t.rating || 0,
-    distance: t.distance || '2.5 km',
+    distance: t.distance || '',
   } as any),
 } as Pitch);
 

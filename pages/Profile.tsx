@@ -22,8 +22,16 @@ import {
   MessageSquare,
   Sparkles,
   Compass,
+  Copy,
+  Mail,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  SUPPORT_EMAIL,
+  getSupportMailto,
+  hasWhatsApp,
+  getWhatsAppUrl,
+} from "../utils/contact";
 
 export const Profile: React.FC = () => {
   const navigate = useNavigate();
@@ -61,11 +69,15 @@ export const Profile: React.FC = () => {
 
   // Help & Support faq index
   const [faqOpenIndex, setFaqOpenIndex] = useState<number | null>(null);
-  const [supportSubject, setSupportSubject] = useState("");
-  const [supportMessage, setSupportMessage] = useState("");
-  const [supportSeverity, setSupportSeverity] = useState("Medium");
-  const [supportSuccess, setSupportSuccess] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
+  const handleCopyEmail = () => {
+    navigator.clipboard.writeText(SUPPORT_EMAIL);
+    setCopiedEmail(true);
+    showToast("Support email copied to clipboard", "success");
+    setTimeout(() => setCopiedEmail(false), 2000);
+  };
 
   const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
     setToast({ message, type });
@@ -135,19 +147,6 @@ export const Profile: React.FC = () => {
   const handleSavePrivacy = (e: React.FormEvent) => {
     e.preventDefault();
     setActiveModal(null);
-  };
-
-  const handleSendTicket = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!supportSubject || !supportMessage) return;
-    setSupportSuccess(true);
-    setTimeout(() => {
-      setSupportSuccess(false);
-      setSupportSubject("");
-      setSupportMessage("");
-      setActiveModal(null);
-      showToast("Your support ticket has been submitted. We will contact you shortly.", "success");
-    }, 1000);
   };
 
   return (
@@ -799,35 +798,60 @@ export const Profile: React.FC = () => {
                 })}
               </div>
 
-              {/* Submit Ticket */}
-              <form onSubmit={handleSendTicket} className="space-y-2 pt-2 border-t border-border-subtle">
-                <span className="text-xs font-medium text-text-secondary block">
-                  Contact support team
-                </span>
-                <input
-                  type="text"
-                  placeholder="Subject"
-                  value={supportSubject}
-                  onChange={(e) => setSupportSubject(e.target.value)}
-                  required
-                  className="w-full h-11 min-h-11 px-3 rounded-xl bg-surface-raised border border-border-subtle text-base"
-                />
-                <textarea
-                  placeholder="Describe your question or issue..."
-                  value={supportMessage}
-                  onChange={(e) => setSupportMessage(e.target.value)}
-                  required
-                  rows={2}
-                  className="w-full min-h-11 p-2.5 rounded-xl bg-surface-raised border border-border-subtle text-base"
-                />
-                <button
-                  type="submit"
-                  disabled={supportSuccess}
-                  className="w-full py-2 rounded-full bg-primary-lime hover:bg-[#96E600] text-accent-text text-xs font-bold transition-colors"
-                >
-                  {supportSuccess ? "Submitting..." : "Send message"}
-                </button>
-              </form>
+              {/* Contact Support */}
+              <div className="pt-2 border-t border-border-subtle space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-text-secondary">
+                    Contact support team
+                  </span>
+                  <span className="text-[11px] text-text-tertiary">
+                    We usually reply within a day.
+                  </span>
+                </div>
+
+                <div className="p-3 bg-surface-raised rounded-xl border border-border-subtle space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Mail size={16} className="text-primary-lime shrink-0" />
+                      <span className="text-xs font-medium text-text-primary truncate">
+                        {SUPPORT_EMAIL}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleCopyEmail}
+                        className="px-2.5 py-1 text-[11px] font-medium rounded-lg bg-surface-card border border-border-subtle hover:border-primary-lime/40 transition-colors flex items-center gap-1 text-text-secondary hover:text-text-primary cursor-pointer"
+                        title="Copy email address"
+                      >
+                        <Copy size={12} />
+                        {copiedEmail ? "Copied" : "Copy"}
+                      </button>
+                      <a
+                        href={getSupportMailto("Pitchly Support Request")}
+                        className="px-2.5 py-1 text-[11px] font-medium rounded-lg bg-primary-lime text-accent-text hover:bg-[#96E600] transition-colors flex items-center gap-1 cursor-pointer font-bold"
+                      >
+                        <Mail size={12} />
+                        Email
+                      </a>
+                    </div>
+                  </div>
+
+                  {hasWhatsApp() && (
+                    <div className="pt-2 border-t border-border-subtle flex items-center justify-between">
+                      <span className="text-xs text-text-secondary">WhatsApp</span>
+                      <a
+                        href={getWhatsAppUrl("Hello Pitchly Support, I need help with...") || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1 text-[11px] font-medium rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
+                      >
+                        Chat on WhatsApp
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}

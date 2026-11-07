@@ -25,15 +25,19 @@ export const ManagePitches: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [pitches, setPitches] = useState<Turf[]>([]);
+  const [pitches, setPitches] = useState<(Turf & { changeRequestMessage?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [failedPitchIds, setFailedPitchIds] = useState<Set<string>>(new Set());
 
+  const [showSubmittedForReview, setShowSubmittedForReview] = useState(false);
   const [showReReviewBanner, setShowReReviewBanner] = useState(false);
   const [showUpdateSuccess, setShowUpdateSuccess] = useState(false);
 
   useEffect(() => {
-    if (location.state?.showReReviewBanner) {
+    if (location.state?.showSubmittedForReview) {
+      setShowSubmittedForReview(true);
+      window.history.replaceState({}, document.title);
+    } else if (location.state?.showReReviewBanner) {
       setShowReReviewBanner(true);
       window.history.replaceState({}, document.title);
     } else if (location.state?.showUpdateSuccess) {
@@ -60,11 +64,12 @@ export const ManagePitches: React.FC = () => {
           openingHour: p.openingHour || '07:00',
           closingHour: p.closingHour || '23:00',
           status: p.status as any,
-          rejectionReason: 'changeRequestMessage' in p ? (p as any).changeRequestMessage : undefined,
+          rejectionReason: (p as any).rejectionReason,
+          changeRequestMessage: (p as any).changeRequestMessage,
           pitchFormats: p.pitchFormats || [],
           rating: typeof (p as any).rating === 'number' ? (p as any).rating : 0,
           blockedDates: [],
-          distance: '0 km',
+          distance: '',
           staff: [],
           isVerified: p.isVerified || false
         }));
@@ -147,6 +152,18 @@ export const ManagePitches: React.FC = () => {
         </div>
 
         {/* Informative Banners */}
+        {showSubmittedForReview && (
+          <div className="bg-[#FACC15]/10 border border-[#FACC15]/30 text-text-primary p-4 rounded-2xl mb-6 text-xs space-y-1.5 animate-fadeIn">
+            <div className="flex items-center gap-2 font-extrabold text-[#FACC15] text-sm">
+              <AlertCircle size={16} />
+              <span>Pitch submitted for review</span>
+            </div>
+            <p className="text-text-secondary leading-relaxed">
+              Your pitch will go live for players once it is approved. You will get a notification when it is.
+            </p>
+          </div>
+        )}
+
         {showReReviewBanner && (
           <div className="bg-[#FACC15]/10 border border-[#FACC15]/30 text-text-primary p-4 rounded-2xl mb-6 text-xs space-y-1.5 animate-fadeIn">
             <div className="flex items-center gap-2 font-extrabold text-[#FACC15] text-sm">
@@ -253,6 +270,13 @@ export const ManagePitches: React.FC = () => {
                       <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg p-3 text-xs text-[#EF4444] space-y-1">
                         <p className="font-extrabold">Action needed:</p>
                         <p className="leading-relaxed">{pitch.rejectionReason}</p>
+                      </div>
+                    )}
+
+                    {(String(pitch.status).toLowerCase() === 'changes_requested' || String(pitch.status).toLowerCase() === 'pending_review') && Boolean(pitch.changeRequestMessage?.trim()) && (
+                      <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg p-3 text-xs text-[#EF4444] space-y-1">
+                        <p className="font-extrabold">Changes requested</p>
+                        <p className="leading-relaxed">{pitch.changeRequestMessage}</p>
                       </div>
                     )}
 

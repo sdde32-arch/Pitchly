@@ -762,6 +762,33 @@ export const adminService = {
         targetType: "Pitch",
         targetId: pitchId
       });
+
+      try {
+        const pitchSnap = await getDoc(doc(db, "pitches", pitchId));
+        const pitchData = pitchSnap.data();
+        if (pitchData?.ownerId) {
+          const notifRef = doc(collection(db, "notifications"));
+          const pitchName = pitchData.name || "Your pitch";
+          const msg = `${pitchName} has been approved and is now active for player reservations.`;
+          const nowIso = new Date().toISOString();
+          await setDoc(notifRef, {
+            id: notifRef.id,
+            userId: pitchData.ownerId,
+            type: "SYSTEM",
+            title: "Your pitch is live",
+            body: msg,
+            message: msg,
+            pitchId,
+            link: "/owner/pitches",
+            read: false,
+            isRead: false,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          });
+        }
+      } catch (notifErr) {
+        console.warn("Failed to notify owner about pitch approval:", notifErr);
+      }
     } catch (error) {
       console.error("Failed to approve pitch", error);
       throw error;
@@ -790,6 +817,33 @@ export const adminService = {
         targetId: pitchId,
         metadata: { reason }
       });
+
+      try {
+        const pitchSnap = await getDoc(doc(db, "pitches", pitchId));
+        const pitchData = pitchSnap.data();
+        if (pitchData?.ownerId) {
+          const notifRef = doc(collection(db, "notifications"));
+          const pitchName = pitchData.name || "Your pitch";
+          const msg = `${pitchName} was not approved: ${reason || "No reason provided"}.`;
+          const nowIso = new Date().toISOString();
+          await setDoc(notifRef, {
+            id: notifRef.id,
+            userId: pitchData.ownerId,
+            type: "SYSTEM",
+            title: "Pitch not approved",
+            body: msg,
+            message: msg,
+            pitchId,
+            link: "/owner/pitches",
+            read: false,
+            isRead: false,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          });
+        }
+      } catch (notifErr) {
+        console.warn("Failed to notify owner about pitch rejection:", notifErr);
+      }
     } catch (error) {
       console.error("Failed to reject pitch", error);
       throw error;
@@ -818,6 +872,33 @@ export const adminService = {
         targetId: pitchId,
         metadata: { message }
       });
+
+      try {
+        const pitchSnap = await getDoc(doc(db, "pitches", pitchId));
+        const pitchData = pitchSnap.data();
+        if (pitchData?.ownerId) {
+          const notifRef = doc(collection(db, "notifications"));
+          const pitchName = pitchData.name || "Your pitch";
+          const msg = `Changes were requested for ${pitchName}: ${message || "Please update pitch details"}.`;
+          const nowIso = new Date().toISOString();
+          await setDoc(notifRef, {
+            id: notifRef.id,
+            userId: pitchData.ownerId,
+            type: "SYSTEM",
+            title: "Changes requested",
+            body: msg,
+            message: msg,
+            pitchId,
+            link: "/owner/pitches",
+            read: false,
+            isRead: false,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          });
+        }
+      } catch (notifErr) {
+        console.warn("Failed to notify owner about changes requested:", notifErr);
+      }
     } catch (error) {
       console.error("Failed to request changes for pitch", error);
       throw error;

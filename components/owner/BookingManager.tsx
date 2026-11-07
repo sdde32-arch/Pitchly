@@ -1,7 +1,12 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Booking, BookingStatus, PaymentMethod, ReportTargetType } from "../../types";
+import { formatCutoffLabel, formatKampalaTime } from "../../utils/paymentCutoff";
+import { bookingService } from "../../services/bookingService";
 
 export const isBookingStale = (booking: Booking): boolean => {
+  if (bookingService.isPaymentCutoffPassed(booking)) {
+    return true;
+  }
   const isPending =
     booking.status === BookingStatus.PENDING_PAYMENT ||
     booking.status === BookingStatus.PENDING ||
@@ -15,7 +20,6 @@ export const isBookingStale = (booking: Booking): boolean => {
 };
 import { ReportModal } from "../ReportModal";
 import { OwnerService } from "../../services/owner";
-import { bookingService } from "../../services/bookingService";
 import { chatService } from "../../services/chatService";
 import { useUser } from "../../context/UserContext";
 import { useNavigate } from "react-router-dom";
@@ -172,6 +176,15 @@ export const BookingManager: React.FC = () => {
     return () => clearTimeout(timer);
   }, [toast]);
 
+  // Periodic 30-second sweep for unconfirmed payment cutoffs on owner bookings
+  useEffect(() => {
+    if (!user?.uid) return;
+    const interval = setInterval(() => {
+      bookingService.runCutoffSweep(bookings, user.uid).catch(console.warn);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user?.uid, bookings]);
+
   const loadBookings = async () => {
     const data = await OwnerService.getBookings();
     setBookings(data);
@@ -185,6 +198,15 @@ export const BookingManager: React.FC = () => {
     customReason?: string
   ) => {
     if (action === "CONFIRMED") {
+      if (bookingService.isPaymentCutoffPassed(booking)) {
+        setToast({
+          type: "error",
+          title: "Cutoff Expired",
+          message: "The confirmation cutoff has passed. The slot was released."
+        });
+        bookingService.autoCancelUnconfirmedPayment(booking.id).catch(console.warn);
+        return;
+      }
       if (isBookingStale(booking)) {
         setToast({
           type: "error",
@@ -1029,41 +1051,46 @@ export const BookingManager: React.FC = () => {
 
                         {/* Payment Verification Review */}
                         {isPaymentReview && (
-                          <div className="flex items-center gap-2">
-                            {booking.paymentProofUrl && (
-                              <button
-                                onClick={() => setPreviewReceiptUrl(booking.paymentProofUrl!)}
-                                className="px-3 h-9 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-xl text-xs font-bold text-[#38BDF8] flex items-center gap-1.5 active:scale-95"
-                              >
-                                <Image size={14} />
-                                <span>Receipt</span>
-                              </button>
-                            )}
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className="text-[11px] text-text-secondary font-medium">
+                              Confirm by {formatCutoffLabel(bookingService.getPaymentCutoffMs(booking))} or this booking is cancelled automatically
+                            </span>
+                            <div className="flex items-center gap-2">
+                              {booking.paymentProofUrl && (
+                                <button
+                                  onClick={() => setPreviewReceiptUrl(booking.paymentProofUrl!)}
+                                  className="px-3 h-9 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-xl text-xs font-bold text-[#38BDF8] flex items-center gap-1.5 active:scale-95"
+                                >
+                                  <Image size={14} />
+                                  <span>Receipt</span>
+                                </button>
+                              )}
 
-                            {!isStale && (
+                              {!isStale && (
+                                <button
+                                  onClick={() => handleAction(booking, "CONFIRMED")}
+                                  disabled={processingId === booking.id}
+                                  className="px-3.5 h-9 bg-primary-lime hover:bg-[#96E600] text-accent-text font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50 shadow-sm"
+                                >
+                                  {processingId === booking.id ? (
+                                    <Loader2 size={14} className="animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Check size={14} strokeWidth={3} />
+                                      <span>Approve MoMo</span>
+                                    </>
+                                  )}
+                                </button>
+                              )}
+
                               <button
-                                onClick={() => handleAction(booking, "CONFIRMED")}
+                                onClick={() => setDeclineModalBooking(booking)}
                                 disabled={processingId === booking.id}
-                                className="px-3.5 h-9 bg-primary-lime hover:bg-[#96E600] text-accent-text font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50 shadow-sm"
+                                className="px-3 h-9 bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30 rounded-xl text-xs font-bold hover:bg-[#EF4444]/20 cursor-pointer active:scale-95"
                               >
-                                {processingId === booking.id ? (
-                                  <Loader2 size={14} className="animate-spin" />
-                                ) : (
-                                  <>
-                                    <Check size={14} strokeWidth={3} />
-                                    <span>Approve MoMo</span>
-                                  </>
-                                )}
+                                Decline
                               </button>
-                            )}
-
-                            <button
-                              onClick={() => setDeclineModalBooking(booking)}
-                              disabled={processingId === booking.id}
-                              className="px-3 h-9 bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30 rounded-xl text-xs font-bold hover:bg-[#EF4444]/20 cursor-pointer active:scale-95"
-                            >
-                              Decline
-                            </button>
+                            </div>
                           </div>
                         )}
 
@@ -1259,6 +1286,12 @@ export const BookingManager: React.FC = () => {
                       }`}>
                         {booking.paymentStatus || "UNPAID"}
                       </span>
+
+                      {booking.status === BookingStatus.PAYMENT_SUBMITTED && (
+                        <span className="text-[11px] text-text-secondary font-medium">
+                          Confirm by {formatCutoffLabel(bookingService.getPaymentCutoffMs(booking))} or this booking is cancelled automatically
+                        </span>
+                      )}
 
                       <div className="flex items-center gap-2">
                         {booking.paymentProofUrl && (

@@ -43,6 +43,8 @@ export interface Pitch {
   additionalImages?: string[];
   openingHour: string;
   closingHour: string;
+  rating?: number;
+  reviewCount?: number;
   isVerified: boolean;
   latitude: number;
   longitude: number;

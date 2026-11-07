@@ -294,7 +294,7 @@ export const PlatformSettings: React.FC = () => {
               <input
                 type="email"
                 name="supportEmail"
-                placeholder="support@pitchly.ug"
+                placeholder="support@pitchly.live"
                 value={settings.supportEmail || ""}
                 onChange={handleChange}
                 disabled={!isSuperAdmin}

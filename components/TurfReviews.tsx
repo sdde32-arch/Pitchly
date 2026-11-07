@@ -161,8 +161,11 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
 
   // Aggregated ratings calculations
   const totalCount = reviews.length;
-  const averageRating = totalCount > 0
-    ? Number((reviews.reduce((acc, r) => acc + (r.rating || 5), 0) / totalCount).toFixed(1))
+  const validReviews = reviews.filter(
+    (r) => typeof r.rating === 'number' && r.rating >= 1 && r.rating <= 5
+  );
+  const averageRating = validReviews.length > 0
+    ? Number((validReviews.reduce((acc, r) => acc + r.rating, 0) / validReviews.length).toFixed(1))
     : 0;
 
   // Rating breakdown counts (5 stars down to 1)
@@ -233,9 +236,12 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
 
       // Callback to update parent component rating
       if (onReviewAdded) {
+        const nextValid = updatedReviews.filter(
+          (r) => typeof r.rating === 'number' && r.rating >= 1 && r.rating <= 5
+        );
         const nextTotal = updatedReviews.length;
-        const nextAvg = nextTotal > 0
-          ? Number((updatedReviews.reduce((acc, r) => acc + (r.rating || 5), 0) / nextTotal).toFixed(1))
+        const nextAvg = nextValid.length > 0
+          ? Number((nextValid.reduce((acc, r) => acc + r.rating, 0) / nextValid.length).toFixed(1))
           : 0;
         onReviewAdded(nextAvg, nextTotal);
       }
@@ -255,9 +261,12 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
       setReviews(updatedReviews);
       
       if (onReviewAdded) {
+        const nextValid = updatedReviews.filter(
+          (r) => typeof r.rating === 'number' && r.rating >= 1 && r.rating <= 5
+        );
         const nextTotal = updatedReviews.length;
-        const nextAvg = nextTotal > 0
-          ? Number((updatedReviews.reduce((acc, r) => acc + (r.rating || 5), 0) / nextTotal).toFixed(1))
+        const nextAvg = nextValid.length > 0
+          ? Number((nextValid.reduce((acc, r) => acc + r.rating, 0) / nextValid.length).toFixed(1))
           : 0;
         onReviewAdded(nextAvg, nextTotal);
       }
@@ -287,8 +296,8 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Aggregated Score Card */}
         <Card className="flex flex-col items-center justify-center text-center p-4 bg-surface-card border-border-subtle shadow-2xs">
-          <span className="text-4xl sm:text-5xl font-display font-black text-text-primary mb-1">
-            {averageRating > 0 ? averageRating.toFixed(1) : "4.9"}
+          <span className={averageRating > 0 ? "text-4xl sm:text-5xl font-display font-black text-text-primary mb-1" : "text-base font-bold text-text-tertiary mb-1"}>
+            {averageRating > 0 ? averageRating.toFixed(1) : "No reviews yet"}
           </span>
           <div className="flex items-center gap-1 mb-1.5">
             {[1, 2, 3, 4, 5].map((star) => (
@@ -296,7 +305,7 @@ export const TurfReviews: React.FC<TurfReviewsProps> = ({ pitchId, onReviewAdded
                 key={star}
                 size={16}
                 className={
-                  star <= Math.round(averageRating > 0 ? averageRating : 4.9)
+                  averageRating > 0 && star <= Math.round(averageRating)
                     ? "fill-[#FACC15] text-[#FACC15]"
                     : "text-zinc-700"
                 }

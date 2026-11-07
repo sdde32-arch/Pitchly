@@ -148,7 +148,7 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
         const hour = `${match[1].padStart(2, '0')}:00`;
         if (counts[hour]) {
           counts[hour].count += 1;
-          counts[hour].revenue += b.price || b.totalPrice || 120000;
+          counts[hour].revenue += b.price || b.totalPrice || 0;
           realBookingCountInHours += 1;
         }
       }
@@ -243,7 +243,7 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
       if (b.date) {
         const monthKey = b.date.slice(0, 7);
         if (realByMonth[monthKey]) {
-          const val = b.price || b.totalPrice || 120000;
+          const val = b.price || b.totalPrice || 0;
           realByMonth[monthKey].rev += val;
           realByMonth[monthKey].count += 1;
           totalRealRevenue += val;
@@ -695,7 +695,7 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
             {pitches.map((pitch, idx) => {
               const pitchBookings = bookings.filter((b) => b.pitchId === pitch.id && b.status !== 'CANCELLED');
-              const pitchRev = pitchBookings.reduce((sum, b) => sum + (b.price || b.totalPrice || pitch.pricePerHour || 120000), 0);
+              const pitchRev = pitchBookings.reduce((sum, b) => sum + (b.price || b.totalPrice || pitch.pricePerHour || 0), 0);
               const isSelected = activePitchId === pitch.id;
 
               return (

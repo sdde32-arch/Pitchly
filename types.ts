@@ -40,6 +40,7 @@ export interface Turf {
   location: string;
   coordinates?: [number, number];
   rating: number;
+  reviewCount?: number;
   pricePerHour: number;
   image: string;
   amenities: string[];

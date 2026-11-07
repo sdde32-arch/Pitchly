@@ -726,26 +726,28 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                         Format: {act.bookingData.format || "7-a-side"}
                       </span>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onSelectSlot) {
-                            onSelectSlot(
-                              {
-                                id: act.bookingData?.pitchId || "lugogo-arena",
-                                name: act.bookingData?.pitchName,
-                              },
-                              act.bookingData?.time?.split("-")[0]?.trim() || "19:00"
-                            );
-                          } else {
-                            navigate("/bookings");
-                          }
-                        }}
-                        className="px-3.5 py-1.5 rounded-xl bg-primary-lime hover:bg-[#b8ff1a] text-accent-text font-black text-xs transition-transform active:scale-95 shadow-xs cursor-pointer flex items-center gap-1.5"
-                      >
-                        <span>Join / Book Similar</span>
-                        <ChevronRight size={13} strokeWidth={3} />
-                      </button>
+                      {act.bookingData?.pitchId ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onSelectSlot) {
+                              onSelectSlot(
+                                {
+                                  id: act.bookingData?.pitchId!,
+                                  name: act.bookingData?.pitchName,
+                                },
+                                act.bookingData?.time?.split("-")[0]?.trim() || "19:00"
+                              );
+                            } else {
+                              navigate("/bookings");
+                            }
+                          }}
+                          className="px-3.5 py-1.5 rounded-xl bg-primary-lime hover:bg-[#b8ff1a] text-accent-text font-black text-xs transition-transform active:scale-95 shadow-xs cursor-pointer flex items-center gap-1.5"
+                        >
+                          <span>Join / Book Similar</span>
+                          <ChevronRight size={13} strokeWidth={3} />
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 )}
