@@ -1,0 +1,326 @@
+{
+  "page": "tournament",
+  "route": "/#/tournament/wehat-s2-w2",
+  "width": 768,
+  "theme": "dark",
+  "url": "http://localhost:3000/#/tournament/wehat-s2-w2",
+  "metrics": {
+    "docScrollWidth": 768,
+    "hasOverflow": false,
+    "overflowElements": [],
+    "smallTextCount": 27,
+    "smallText": [
+      {
+        "selector": "div.max-w-4xl.mx-auto > div.flex.items-center > span.hidden.sm\\:inline-block",
+        "fontSize": 10,
+        "text": "Tournament"
+      },
+      {
+        "selector": "div.flex.items-baseline > div.flex.items-center > span.text-\\[11px\\].text-text-tertiary:nth-of-type(2)",
+        "fontSize": 11,
+        "text": "· Sat 26 Sept"
+      },
+      {
+        "selector": "div.space-y-2 > div.flex.items-baseline > span.text-\\[11px\\].text-text-tertiary",
+        "fontSize": 11,
+        "text": "upcoming"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > span.font-semibold.text-text-secondary",
+        "fontSize": 11,
+        "text": "Group B"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > span.truncate:nth-of-type(3)",
+        "fontSize": 11,
+        "text": "Matchday 3 • Group B"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center:nth-of-type(2) > span.text-\\[10px\\].text-text-tertiary",
+        "fontSize": 10,
+        "text": "FT"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > div.w-5.h-5",
+        "fontSize": 8,
+        "text": "SP"
+      },
+      {
+        "selector": "div.flex.items-center:nth-of-type(2) > div.flex.items-center > div.w-5.h-5",
+        "fontSize": 8,
+        "text": "BF"
+      },
+      {
+        "selector": "div.rounded-xl.border > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Senior Player"
+      },
+      {
+        "selector": "div.rounded-xl.border > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "Semalulu Paul (2), Mark Jordan"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(2) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Yawe"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(2) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "Paco (2), Nico, Travis"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(3) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "Nyanzi Shafik (5), Bacola, Boyz"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(5) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "Bwanika Shafik, Muguza Collin"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(6) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Ebong Mark"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(6) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "Raymond Junior"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(7) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Jackson, Kabenge"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(7) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "David, Ssembatya Sharif"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(8) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Ntege Peter"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(8) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "Rodger, Ssali Arafat"
+      },
+      {
+        "selector": "div.space-y-2.pt-2:nth-of-type(2) > div.flex.items-baseline > span.text-\\[11px\\].text-text-tertiary",
+        "fontSize": 11,
+        "text": "played"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(4) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Shehu, Salim"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(5) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Nsubuga Mark (4)"
+      },
+      {
+        "selector": "div.space-y-2.pt-2:nth-of-type(3) > div.flex.items-baseline > span.text-\\[11px\\].text-text-tertiary",
+        "fontSize": 11,
+        "text": "played"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(3) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Mark Jordan, Magala Hassan, Walusimbi, S"
+      },
+      {
+        "selector": "div.min-h-screen.w-full > footer.max-w-4xl.mx-auto > p.text-\\[11px\\].text-text-tertiary:nth-of-type(2)",
+        "fontSize": 11,
+        "text": "Respect • Fair Play • Team Spirit • Grea"
+      },
+      {
+        "selector": "div.min-h-screen.w-full > footer.max-w-4xl.mx-auto > p.text-\\[11px\\].text-text-tertiary:nth-of-type(3)",
+        "fontSize": 11,
+        "text": "WEHAT Soccer Tournament • Second Edition"
+      }
+    ],
+    "smallTapCount": 12,
+    "smallTapTargets": [
+      {
+        "selector": "div.max-w-4xl.mx-auto > div.flex.items-center > button.w-7.h-7",
+        "width": 28,
+        "height": 28,
+        "label": "button"
+      },
+      {
+        "selector": "div.max-w-4xl.mx-auto > div.flex.items-center:nth-of-type(2) > button.inline-flex.items-center",
+        "width": 73,
+        "height": 24,
+        "label": "Admin"
+      },
+      {
+        "selector": "div.max-w-4xl.mx-auto > div.flex.items-center:nth-of-type(2) > button.inline-flex.items-center:nth-of-type(2)",
+        "width": 71,
+        "height": 26,
+        "label": "Share"
+      },
+      {
+        "selector": "#tab-fixtures",
+        "width": 180,
+        "height": 30,
+        "label": "Matches"
+      },
+      {
+        "selector": "#tab-standings",
+        "width": 178,
+        "height": 28,
+        "label": "Standings"
+      },
+      {
+        "selector": "#tab-scorers",
+        "width": 178,
+        "height": 28,
+        "label": "Scorers"
+      },
+      {
+        "selector": "#tab-rosters",
+        "width": 178,
+        "height": 28,
+        "label": "Squads"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > button.px-2\\.5.py-1",
+        "width": 37,
+        "height": 26,
+        "label": "All"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > button.px-2\\.5.py-1:nth-of-type(2)",
+        "width": 86,
+        "height": 24,
+        "label": "Matchday 3"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > button.px-2\\.5.py-1:nth-of-type(3)",
+        "width": 62,
+        "height": 24,
+        "label": "Results"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > button.px-2\\.5.py-1:nth-of-type(4)",
+        "width": 42,
+        "height": 24,
+        "label": "Live"
+      },
+      {
+        "selector": "div.flex.items-center > div.relative.w-36:nth-of-type(2) > input.w-full.h-7",
+        "width": 192,
+        "height": 28,
+        "label": "Filter club..."
+      }
+    ],
+    "fontSizesCount": 7,
+    "fontSizesList": [
+      "16px",
+      "21px",
+      "20px",
+      "10px",
+      "12px",
+      "11px",
+      "8px"
+    ],
+    "fontFamiliesCount": 3,
+    "fontFamiliesList": [
+      "Plus Jakarta Sans",
+      "Sora",
+      "JetBrains Mono"
+    ],
+    "borderRadiiCount": 4,
+    "borderRadiiList": [
+      "8px",
+      "3.35544e+07px",
+      "4px",
+      "12px"
+    ],
+    "textColorsCount": 21,
+    "textColorsList": [
+      "rgb(244, 244, 245)",
+      "rgb(161, 161, 170)",
+      "rgb(168, 255, 0)",
+      "rgb(13, 13, 13)",
+      "rgb(148, 148, 158)",
+      "oklch(0.75 0.183 55.934)",
+      "oklch(0.765 0.177 163.223)",
+      "oklch(0.828 0.189 84.429)",
+      "oklch(0.841 0.238 128.85)",
+      "oklch(0.702 0.183 293.541)",
+      "oklch(0.712 0.194 13.428)",
+      "oklch(0.855 0.138 181.071)",
+      "oklch(0.704 0.191 22.216)",
+      "oklch(0.714 0.203 305.504)",
+      "oklch(0.852 0.199 91.936)",
+      "oklch(0.789 0.154 211.53)",
+      "oklch(0.707 0.165 254.624)",
+      "oklch(0.673 0.182 276.935)",
+      "oklch(0.746 0.16 232.661)",
+      "oklch(0.74 0.238 322.16)",
+      "oklch(0.718 0.202 349.761)"
+    ],
+    "cardRowMismatches": [],
+    "gapMismatches": [],
+    "imageIssuesCount": 0,
+    "imageIssues": [],
+    "clippedTextCount": 3,
+    "clippedText": [
+      {
+        "selector": "div.rounded-xl.border > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "scrollW": 185,
+        "clientW": 165,
+        "scrollH": 15,
+        "clientH": 15,
+        "text": "Raymond Junior, Kavuma Dennis, Isaac"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(3) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "scrollW": 290,
+        "clientW": 165,
+        "scrollH": 15,
+        "clientH": 15,
+        "text": "Mark Jordan, Magala Hassan, Walusimbi, Ssempijja, "
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(5) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "scrollW": 263,
+        "clientW": 165,
+        "scrollH": 15,
+        "clientH": 15,
+        "text": "David (2), Walele Tabani, Ssembatya Sharif, Bogere"
+      }
+    ],
+    "priceElementsCount": 0,
+    "priceElements": [],
+    "pitchCardImages": {
+      "cardsCount": 0,
+      "aspectRatiosFound": [],
+      "brokenOrMissingImagesCount": 0,
+      "details": []
+    }
+  },
+  "axe": [
+    {
+      "id": "region",
+      "impact": "moderate",
+      "description": "Ensure all page content is contained by landmarks",
+      "nodesCount": 1,
+      "nodes": [
+        {
+          "target": ".pt-4",
+          "html": "<div class=\"max-w-4xl mx-auto px-4 pt-4 pb-2\">",
+          "failureSummary": "Fix any of the following:\n  Some page content is not contained by landmarks"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,560 @@
+{
+  "page": "tournament",
+  "route": "/#/tournament/wehat-s2-w2",
+  "width": 360,
+  "theme": "light",
+  "url": "http://localhost:3000/#/tournament/wehat-s2-w2",
+  "metrics": {
+    "docScrollWidth": 360,
+    "hasOverflow": false,
+    "overflowElements": [],
+    "smallTextCount": 26,
+    "smallText": [
+      {
+        "selector": "div.flex.items-baseline > div.flex.items-center > span.text-\\[11px\\].text-text-tertiary:nth-of-type(2)",
+        "fontSize": 11,
+        "text": "· Sat 26 Sept"
+      },
+      {
+        "selector": "div.space-y-2 > div.flex.items-baseline > span.text-\\[11px\\].text-text-tertiary",
+        "fontSize": 11,
+        "text": "upcoming"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > span.font-semibold.text-text-secondary",
+        "fontSize": 11,
+        "text": "Group B"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > span.truncate:nth-of-type(3)",
+        "fontSize": 11,
+        "text": "Matchday 3 • Group B"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center:nth-of-type(2) > span.text-\\[10px\\].text-text-tertiary",
+        "fontSize": 10,
+        "text": "FT"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > div.w-5.h-5",
+        "fontSize": 8,
+        "text": "SP"
+      },
+      {
+        "selector": "div.flex.items-center:nth-of-type(2) > div.flex.items-center > div.w-5.h-5",
+        "fontSize": 8,
+        "text": "BF"
+      },
+      {
+        "selector": "div.rounded-xl.border > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Senior Player"
+      },
+      {
+        "selector": "div.rounded-xl.border > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "Semalulu Paul (2), Mark Jordan"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(2) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Yawe"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(2) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "Paco (2), Nico, Travis"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(3) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "Nyanzi Shafik (5), Bacola, Boyz"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(5) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "Bwanika Shafik, Muguza Collin"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(6) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Ebong Mark"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(6) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "Raymond Junior"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(7) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Jackson, Kabenge"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(7) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "David, Ssembatya Sharif"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(8) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Ntege Peter"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(8) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "Rodger, Ssali Arafat"
+      },
+      {
+        "selector": "div.space-y-2.pt-2:nth-of-type(2) > div.flex.items-baseline > span.text-\\[11px\\].text-text-tertiary",
+        "fontSize": 11,
+        "text": "played"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(4) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Shehu, Salim"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(5) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Nsubuga Mark (4)"
+      },
+      {
+        "selector": "div.space-y-2.pt-2:nth-of-type(3) > div.flex.items-baseline > span.text-\\[11px\\].text-text-tertiary",
+        "fontSize": 11,
+        "text": "played"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(3) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "fontSize": 10,
+        "text": "Mark Jordan, Magala Hassan, Walusimbi, S"
+      },
+      {
+        "selector": "div.min-h-screen.w-full > footer.max-w-4xl.mx-auto > p.text-\\[11px\\].text-text-tertiary:nth-of-type(2)",
+        "fontSize": 11,
+        "text": "Respect • Fair Play • Team Spirit • Grea"
+      },
+      {
+        "selector": "div.min-h-screen.w-full > footer.max-w-4xl.mx-auto > p.text-\\[11px\\].text-text-tertiary:nth-of-type(3)",
+        "fontSize": 11,
+        "text": "WEHAT Soccer Tournament • Second Edition"
+      }
+    ],
+    "smallTapCount": 12,
+    "smallTapTargets": [
+      {
+        "selector": "div.max-w-4xl.mx-auto > div.flex.items-center > button.w-7.h-7",
+        "width": 28,
+        "height": 28,
+        "label": "button"
+      },
+      {
+        "selector": "div.max-w-4xl.mx-auto > div.flex.items-center:nth-of-type(2) > button.inline-flex.items-center",
+        "width": 73,
+        "height": 24,
+        "label": "Admin"
+      },
+      {
+        "selector": "div.max-w-4xl.mx-auto > div.flex.items-center:nth-of-type(2) > button.inline-flex.items-center:nth-of-type(2)",
+        "width": 34,
+        "height": 22,
+        "label": "button"
+      },
+      {
+        "selector": "#tab-fixtures",
+        "width": 94,
+        "height": 30,
+        "label": "Matches"
+      },
+      {
+        "selector": "#tab-standings",
+        "width": 102,
+        "height": 28,
+        "label": "Standings"
+      },
+      {
+        "selector": "#tab-scorers",
+        "width": 87,
+        "height": 28,
+        "label": "Scorers"
+      },
+      {
+        "selector": "#tab-rosters",
+        "width": 87,
+        "height": 28,
+        "label": "Squads"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > button.px-2\\.5.py-1",
+        "width": 37,
+        "height": 26,
+        "label": "All"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > button.px-2\\.5.py-1:nth-of-type(2)",
+        "width": 86,
+        "height": 24,
+        "label": "Matchday 3"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > button.px-2\\.5.py-1:nth-of-type(3)",
+        "width": 62,
+        "height": 24,
+        "label": "Results"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > button.px-2\\.5.py-1:nth-of-type(4)",
+        "width": 42,
+        "height": 24,
+        "label": "Live"
+      },
+      {
+        "selector": "div.flex.items-center > div.relative.w-36:nth-of-type(2) > input.w-full.h-7",
+        "width": 144,
+        "height": 28,
+        "label": "Filter club..."
+      }
+    ],
+    "fontSizesCount": 8,
+    "fontSizesList": [
+      "16px",
+      "21px",
+      "20px",
+      "12px",
+      "18px",
+      "11px",
+      "10px",
+      "8px"
+    ],
+    "fontFamiliesCount": 3,
+    "fontFamiliesList": [
+      "Plus Jakarta Sans",
+      "Sora",
+      "JetBrains Mono"
+    ],
+    "borderRadiiCount": 4,
+    "borderRadiiList": [
+      "8px",
+      "3.35544e+07px",
+      "12px",
+      "4px"
+    ],
+    "textColorsCount": 21,
+    "textColorsList": [
+      "rgb(15, 23, 42)",
+      "rgb(71, 85, 105)",
+      "rgb(255, 255, 255)",
+      "rgb(22, 163, 74)",
+      "rgb(100, 116, 139)",
+      "oklch(0.75 0.183 55.934)",
+      "oklch(0.765 0.177 163.223)",
+      "oklch(0.828 0.189 84.429)",
+      "oklch(0.841 0.238 128.85)",
+      "oklch(0.702 0.183 293.541)",
+      "oklch(0.712 0.194 13.428)",
+      "oklch(0.855 0.138 181.071)",
+      "oklch(0.704 0.191 22.216)",
+      "oklch(0.714 0.203 305.504)",
+      "oklch(0.852 0.199 91.936)",
+      "oklch(0.789 0.154 211.53)",
+      "oklch(0.707 0.165 254.624)",
+      "oklch(0.673 0.182 276.935)",
+      "oklch(0.746 0.16 232.661)",
+      "oklch(0.74 0.238 322.16)",
+      "oklch(0.718 0.202 349.761)"
+    ],
+    "cardRowMismatches": [],
+    "gapMismatches": [],
+    "imageIssuesCount": 0,
+    "imageIssues": [],
+    "clippedTextCount": 3,
+    "clippedText": [
+      {
+        "selector": "div.rounded-xl.border > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "scrollW": 185,
+        "clientW": 151,
+        "scrollH": 15,
+        "clientH": 15,
+        "text": "Raymond Junior, Kavuma Dennis, Isaac"
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(3) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1",
+        "scrollW": 290,
+        "clientW": 151,
+        "scrollH": 15,
+        "clientH": 15,
+        "text": "Mark Jordan, Magala Hassan, Walusimbi, Ssempijja, "
+      },
+      {
+        "selector": "div.rounded-xl.border:nth-of-type(5) > div.mt-2.pt-1\\.5:nth-of-type(3) > span.truncate.flex-1:nth-of-type(2)",
+        "scrollW": 263,
+        "clientW": 151,
+        "scrollH": 15,
+        "clientH": 15,
+        "text": "David (2), Walele Tabani, Ssembatya Sharif, Bogere"
+      }
+    ],
+    "priceElementsCount": 0,
+    "priceElements": [],
+    "pitchCardImages": {
+      "cardsCount": 0,
+      "aspectRatiosFound": [],
+      "brokenOrMissingImagesCount": 0,
+      "details": []
+    }
+  },
+  "axe": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "nodesCount": 46,
+      "nodes": [
+        {
+          "target": ".text-black > span",
+          "html": "<span>Admin</span>",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.29 (foreground color: #ffffff, background color: #16a34a, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-orange-600\\/15.text-orange-400.border-orange-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.95 (foreground color: #ff8904, background color: #fde4d9, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-emerald-600\\/15.text-emerald-400.border-emerald-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.62 (foreground color: #00d492, background color: #d9f0e8, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".space-y-2:nth-child(1) > .grid.grid-cols-1.md\\:grid-cols-2 > .p-3.hover\\:border-border-prominent.rounded-xl:nth-child(2) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-amber-600\\/15.text-amber-400.border-amber-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.46 (foreground color: #ffb900, background color: #fbead9, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-lime-500\\/15.text-lime-400.border-lime-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.38 (foreground color: #9ae600, background color: #ebf8d9, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(3) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-rose-600\\/15.text-rose-400.border-rose-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.2 (foreground color: #ff637e, background color: #fcd9e2, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(4) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-teal-500\\/15.text-teal-300.border-teal-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.28 (foreground color: #46ecd5, background color: #d9f5f2, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(4) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-red-600\\/15.text-red-400.border-red-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.2 (foreground color: #ff6467, background color: #fbd9da, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(5) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-purple-600\\/15.text-purple-400.border-purple-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.16 (foreground color: #c27aff, background color: #f0dbfe, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(5) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-yellow-500\\/15.text-yellow-400.border-yellow-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.42 (foreground color: #fdc700, background color: #fdf3d9, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(6) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-cyan-600\\/15.text-cyan-400.border-cyan-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.51 (foreground color: #00d3f2, background color: #d9eff4, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-blue-600\\/15.text-blue-400.border-blue-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.12 (foreground color: #51a2ff, background color: #dce7fe, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(7) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-indigo-600\\/15.text-indigo-400.border-indigo-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.46 (foreground color: #7c86ff, background color: #e5e1fe, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(7) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-sky-600\\/15.text-sky-400.border-sky-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.8 (foreground color: #00bcff, background color: #d9edf8, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(8) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-fuchsia-600\\/15.text-fuchsia-400.border-fuchsia-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2 (foreground color: #ed6aff, background color: #f7d9fa, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(8) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-pink-600\\/15.text-pink-400.border-pink-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.13 (foreground color: #fb64b6, background color: #fbd9ea, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".pt-2.space-y-2:nth-child(2) > .grid.grid-cols-1.md\\:grid-cols-2 > .p-3.hover\\:border-border-prominent.rounded-xl:nth-child(1) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-blue-600\\/15.text-blue-400.border-blue-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.12 (foreground color: #51a2ff, background color: #dce7fe, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-teal-500\\/15.text-teal-300.border-teal-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.28 (foreground color: #46ecd5, background color: #d9f5f2, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-rose-600\\/15.text-rose-400.border-rose-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.2 (foreground color: #ff637e, background color: #fcd9e2, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".pt-2.space-y-2:nth-child(2) > .grid.grid-cols-1.md\\:grid-cols-2 > .p-3.hover\\:border-border-prominent.rounded-xl:nth-child(3) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-emerald-600\\/15.text-emerald-400.border-emerald-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.62 (foreground color: #00d492, background color: #d9f0e8, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(3) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-yellow-500\\/15.text-yellow-400.border-yellow-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.42 (foreground color: #fdc700, background color: #fdf3d9, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(4) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-purple-600\\/15.text-purple-400.border-purple-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.16 (foreground color: #c27aff, background color: #f0dbfe, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".pt-2.space-y-2:nth-child(2) > .grid.grid-cols-1.md\\:grid-cols-2 > .p-3.hover\\:border-border-prominent.rounded-xl:nth-child(4) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-orange-600\\/15.text-orange-400.border-orange-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.95 (foreground color: #ff8904, background color: #fde4d9, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(5) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-indigo-600\\/15.text-indigo-400.border-indigo-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.46 (foreground color: #7c86ff, background color: #e5e1fe, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-fuchsia-600\\/15.text-fuchsia-400.border-fuchsia-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2 (foreground color: #ed6aff, background color: #f7d9fa, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-sky-600\\/15.text-sky-400.border-sky-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.8 (foreground color: #00bcff, background color: #d9edf8, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".pt-2.space-y-2:nth-child(2) > .grid.grid-cols-1.md\\:grid-cols-2 > .p-3.hover\\:border-border-prominent.rounded-xl:nth-child(6) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-pink-600\\/15.text-pink-400.border-pink-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.13 (foreground color: #fb64b6, background color: #fbd9ea, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".pt-2.space-y-2:nth-child(2) > .grid.grid-cols-1.md\\:grid-cols-2 > .p-3.hover\\:border-border-prominent.rounded-xl:nth-child(7) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-lime-500\\/15.text-lime-400.border-lime-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.38 (foreground color: #9ae600, background color: #ebf8d9, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-amber-600\\/15.text-amber-400.border-amber-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.46 (foreground color: #ffb900, background color: #fbead9, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(8) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-cyan-600\\/15.text-cyan-400.border-cyan-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.51 (foreground color: #00d3f2, background color: #d9eff4, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(8) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-red-600\\/15.text-red-400.border-red-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.2 (foreground color: #ff6467, background color: #fbd9da, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".pt-2.space-y-2:nth-child(3) > .grid.grid-cols-1.md\\:grid-cols-2 > .p-3.hover\\:border-border-prominent.rounded-xl:nth-child(1) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-blue-600\\/15.text-blue-400.border-blue-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.12 (foreground color: #51a2ff, background color: #dce7fe, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(1) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-red-600\\/15.text-red-400.border-red-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.2 (foreground color: #ff6467, background color: #fbd9da, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".pt-2.space-y-2:nth-child(3) > .grid.grid-cols-1.md\\:grid-cols-2 > .p-3.hover\\:border-border-prominent.rounded-xl:nth-child(2) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-amber-600\\/15.text-amber-400.border-amber-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.46 (foreground color: #ffb900, background color: #fbead9, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(2) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-rose-600\\/15.text-rose-400.border-rose-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.2 (foreground color: #ff637e, background color: #fcd9e2, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".pt-2.space-y-2:nth-child(3) > .grid.grid-cols-1.md\\:grid-cols-2 > .p-3.hover\\:border-border-prominent.rounded-xl:nth-child(3) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-emerald-600\\/15.text-emerald-400.border-emerald-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.62 (foreground color: #00d492, background color: #d9f0e8, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-purple-600\\/15.text-purple-400.border-purple-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.16 (foreground color: #c27aff, background color: #f0dbfe, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-yellow-500\\/15.text-yellow-400.border-yellow-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.42 (foreground color: #fdc700, background color: #fdf3d9, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".pt-2.space-y-2:nth-child(3) > .grid.grid-cols-1.md\\:grid-cols-2 > .p-3.hover\\:border-border-prominent.rounded-xl:nth-child(4) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-orange-600\\/15.text-orange-400.border-orange-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.95 (foreground color: #ff8904, background color: #fde4d9, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(5) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-fuchsia-600\\/15.text-fuchsia-400.border-fuchsia-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2 (foreground color: #ed6aff, background color: #f7d9fa, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(5) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-sky-600\\/15.text-sky-400.border-sky-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.8 (foreground color: #00bcff, background color: #d9edf8, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(6) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-indigo-600\\/15.text-indigo-400.border-indigo-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.46 (foreground color: #7c86ff, background color: #e5e1fe, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".pt-2.space-y-2:nth-child(3) > .grid.grid-cols-1.md\\:grid-cols-2 > .p-3.hover\\:border-border-prominent.rounded-xl:nth-child(6) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-pink-600\\/15.text-pink-400.border-pink-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.13 (foreground color: #fb64b6, background color: #fbd9ea, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".pt-2.space-y-2:nth-child(3) > .grid.grid-cols-1.md\\:grid-cols-2 > .p-3.hover\\:border-border-prominent.rounded-xl:nth-child(7) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-lime-500\\/15.text-lime-400.border-lime-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.38 (foreground color: #9ae600, background color: #ebf8d9, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3.hover\\:border-border-prominent.rounded-xl:nth-child(8) > .space-y-1\\.5.py-0\\.5 > .justify-between.gap-2.items-center:nth-child(1) > .min-w-0.gap-2.items-center > .bg-teal-500\\/15.text-teal-300.border-teal-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.28 (foreground color: #46ecd5, background color: #d9f5f2, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".justify-between.gap-2.items-center:nth-child(2) > .min-w-0.gap-2.items-center > .bg-cyan-600\\/15.text-cyan-400.border-cyan-500\\/30",
+          "html": "<div class=\"w-5 h-5 rounded flex items-center justify-center text-[8px] font-bold shrink-0 border bg",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.51 (foreground color: #00d3f2, background color: #d9eff4, font size: 6.0pt (8px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ]
+    },
+    {
+      "id": "region",
+      "impact": "moderate",
+      "description": "Ensure all page content is contained by landmarks",
+      "nodesCount": 1,
+      "nodes": [
+        {
+          "target": ".pt-4",
+          "html": "<div class=\"max-w-4xl mx-auto px-4 pt-4 pb-2\">",
+          "failureSummary": "Fix any of the following:\n  Some page content is not contained by landmarks"
+        }
+      ]
+    }
+  ]
+}

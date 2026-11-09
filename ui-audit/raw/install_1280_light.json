@@ -1,0 +1,241 @@
+{
+  "page": "install",
+  "route": "/#/install",
+  "width": 1280,
+  "theme": "light",
+  "url": "http://localhost:3000/#/install",
+  "metrics": {
+    "docScrollWidth": 1280,
+    "hasOverflow": false,
+    "overflowElements": [],
+    "smallTextCount": 9,
+    "smallText": [
+      {
+        "selector": "div.text-center.space-y-3 > div.relative.inline-block > span.absolute.-bottom-2",
+        "fontSize": 10,
+        "text": "PWA"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > button.px-2\\.5.py-1",
+        "fontSize": 11,
+        "text": "iOS Safari"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > button.px-2\\.5.py-1:nth-of-type(2)",
+        "fontSize": 11,
+        "text": "Android / Chrome"
+      },
+      {
+        "selector": "div.flex.flex-col:nth-of-type(2) > div.mt-3\\.5.w-full:nth-of-type(2) > span.font-mono.text-\\[11px\\]",
+        "fontSize": 11,
+        "text": "https://ais-pre-e35syz3bvfqlhjdx424sss-2"
+      },
+      {
+        "selector": "div.mt-3\\.5.w-full:nth-of-type(2) > button.px-2\\.5.py-1 > span",
+        "fontSize": 11,
+        "text": "Copy"
+      },
+      {
+        "selector": "div.bg-surface-card.rounded-2xl:nth-of-type(3) > div.pt-2:nth-of-type(3) > p.text-\\[11px\\].text-text-tertiary",
+        "fontSize": 11,
+        "text": "High-resolution 1024x1024 format with ma"
+      },
+      {
+        "selector": "div.grid.grid-cols-1:nth-of-type(4) > div.p-3\\.5.rounded-xl > p.text-\\[11px\\].text-text-secondary",
+        "fontSize": 11,
+        "text": "Launches instantly from your home screen"
+      },
+      {
+        "selector": "div.grid.grid-cols-1:nth-of-type(4) > div.p-3\\.5.rounded-xl:nth-of-type(2) > p.text-\\[11px\\].text-text-secondary",
+        "fontSize": 11,
+        "text": "Browse pitches, match vouchers, and tour"
+      },
+      {
+        "selector": "div.grid.grid-cols-1:nth-of-type(4) > div.p-3\\.5.rounded-xl:nth-of-type(3) > p.text-\\[11px\\].text-text-secondary",
+        "fontSize": 11,
+        "text": "Immersive full-screen experience with no"
+      }
+    ],
+    "smallTapCount": 6,
+    "smallTapTargets": [
+      {
+        "selector": "header.sticky.top-0 > div.max-w-2xl.mx-auto > button.w-10.h-10",
+        "width": 40,
+        "height": 40,
+        "label": "Go back"
+      },
+      {
+        "selector": "header.sticky.top-0 > div.max-w-2xl.mx-auto > button.w-10.h-10:nth-of-type(2)",
+        "width": 40,
+        "height": 40,
+        "label": "Go to Home"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > button.px-2\\.5.py-1",
+        "width": 72,
+        "height": 25,
+        "label": "iOS Safari"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > button.px-2\\.5.py-1:nth-of-type(2)",
+        "width": 117,
+        "height": 25,
+        "label": "Android / Chrome"
+      },
+      {
+        "selector": "div.flex.flex-col:nth-of-type(2) > div.mt-3\\.5.w-full:nth-of-type(2) > button.px-2\\.5.py-1",
+        "width": 65,
+        "height": 23,
+        "label": "Copy"
+      },
+      {
+        "selector": "div.bg-surface-card.rounded-2xl:nth-of-type(3) > div.pt-2:nth-of-type(3) > button.w-full.py-3",
+        "width": 494,
+        "height": 42,
+        "label": "DOWNLOAD QR CODE (1024X1024 PN"
+      }
+    ],
+    "fontSizesCount": 7,
+    "fontSizesList": [
+      "16px",
+      "14px",
+      "10px",
+      "30px",
+      "12px",
+      "11px",
+      "18px"
+    ],
+    "fontFamiliesCount": 2,
+    "fontFamiliesList": [
+      "Plus Jakarta Sans",
+      "JetBrains Mono"
+    ],
+    "borderRadiiCount": 7,
+    "borderRadiiList": [
+      "3.35544e+07px",
+      "6px",
+      "24px",
+      "16px",
+      "8px",
+      "12px",
+      "4px"
+    ],
+    "textColorsCount": 5,
+    "textColorsList": [
+      "rgb(15, 23, 42)",
+      "rgb(71, 85, 105)",
+      "rgb(255, 255, 255)",
+      "rgb(22, 163, 74)",
+      "rgb(100, 116, 139)"
+    ],
+    "cardRowMismatches": [],
+    "gapMismatches": [],
+    "imageIssuesCount": 3,
+    "imageIssues": [
+      {
+        "selector": "div.max-w-2xl.mx-auto > div.flex.items-center > img.w-6.h-6",
+        "src": "http://localhost:3000/icon-192.png",
+        "missingAlt": false,
+        "missingFixedAspect": true
+      },
+      {
+        "selector": "div.relative.inline-block > div.w-24.h-24 > img.w-full.h-full",
+        "src": "http://localhost:3000/icon-192.png",
+        "missingAlt": false,
+        "missingFixedAspect": true
+      },
+      {
+        "selector": "div.flex.flex-col:nth-of-type(2) > div.p-4.bg-white > img.w-48.h-48",
+        "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXwAAAF8CAYAAA",
+        "missingAlt": false,
+        "missingFixedAspect": true
+      }
+    ],
+    "clippedTextCount": 1,
+    "clippedText": [
+      {
+        "selector": "div.flex.flex-col:nth-of-type(2) > div.mt-3\\.5.w-full:nth-of-type(2) > span.font-mono.text-\\[11px\\]",
+        "scrollW": 568,
+        "clientW": 293,
+        "scrollH": 15,
+        "clientH": 15,
+        "text": "https://ais-pre-e35syz3bvfqlhjdx424sss-24895992886"
+      }
+    ],
+    "priceElementsCount": 0,
+    "priceElements": [],
+    "pitchCardImages": {
+      "cardsCount": 2,
+      "aspectRatiosFound": [
+        "1.00"
+      ],
+      "brokenOrMissingImagesCount": 0,
+      "details": [
+        {
+          "selector": "div.flex.flex-col:nth-of-type(2) > div.p-4.bg-white > img.w-48.h-48",
+          "renderedDimensions": "224x224",
+          "aspectRatio": "1.00",
+          "isBroken": false,
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXwAAAF8CAYAAA",
+          "alt": "Pitchly Install QR Code"
+        },
+        {
+          "selector": "div.flex.flex-col:nth-of-type(2) > div.p-4.bg-white > img.w-48.h-48",
+          "renderedDimensions": "224x224",
+          "aspectRatio": "1.00",
+          "isBroken": false,
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXwAAAF8CAYAAA",
+          "alt": "Pitchly Install QR Code"
+        }
+      ]
+    }
+  },
+  "axe": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "nodesCount": 4,
+      "nodes": [
+        {
+          "target": ".absolute",
+          "html": "<span class=\"absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full bg-primary-lime text-accent-text t",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.29 (foreground color: #ffffff, background color: #16a34a, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".bg-primary-lime.text-accent-text.px-2\\.5",
+          "html": "<button class=\"px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors cursor-pointer bg-prim",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.29 (foreground color: #ffffff, background color: #16a34a, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".ml-1",
+          "html": "<div class=\"inline-flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded bg-surface-raised text-primary",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.14 (foreground color: #16a34a, background color: #f8fafc, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".mb-0\\.5 > span",
+          "html": "<span>Mobile QR Scanner</span>",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.29 (foreground color: #16a34a, background color: #ffffff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ]
+    },
+    {
+      "id": "heading-order",
+      "impact": "moderate",
+      "description": "Ensure the order of headings is semantically correct",
+      "nodesCount": 2,
+      "nodes": [
+        {
+          "target": "h3",
+          "html": "<h3 class=\"text-sm font-bold text-text-primary\">How to Install on Your Phone</h3>",
+          "failureSummary": "Fix any of the following:\n  Heading order invalid"
+        },
+        {
+          "target": ".p-3\\.5.sm\\:text-left.space-y-1:nth-child(1) > h4",
+          "html": "<h4 class=\"text-xs font-bold text-text-primary\">Instant Launch</h4>",
+          "failureSummary": "Fix any of the following:\n  Heading order invalid"
+        }
+      ]
+    }
+  ]
+}

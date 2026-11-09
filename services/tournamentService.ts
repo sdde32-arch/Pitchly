@@ -11,8 +11,10 @@ import {
   onSnapshot,
   runTransaction,
   writeBatch,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { auth } from "../lib/firebase";
 import {
   TournamentFixture,
   TournamentScorer,
@@ -20,8 +22,11 @@ import {
   TournamentPlayer,
   TournamentTeam,
   TournamentTeamStanding,
+  TournamentContact,
   DEFAULT_TOURNAMENT,
 } from "../types/tournament";
+import type { Tournament, TournamentStatus } from "../types/tournament";
+import type { TournamentPhase } from "../types/tournament";
 
 const FIXTURES_COLLECTION = "tournamentFixtures";
 const SCORERS_COLLECTION = "tournamentScorers";
@@ -29,6 +34,30 @@ const NOMINEES_COLLECTION = "tournamentNominees";
 const TEAMS_COLLECTION = "tournamentTeams";
 const PLAYERS_COLLECTION = "tournamentPlayers";
 const STANDINGS_COLLECTION = "tournamentStandings";
+const TOURNAMENTS_COLLECTION = "tournaments";
+const CONTACTS_COLLECTION = "tournamentContacts";
+
+function buildDefaultWehatTournament(): Tournament {
+  return {
+    id: DEFAULT_TOURNAMENT.id,
+    name: DEFAULT_TOURNAMENT.name,
+    description: DEFAULT_TOURNAMENT.description,
+    bannerUrl: undefined,
+    organizerId: "platform",
+    organizerName: "Pitchly",
+    startDate: "2026-10-03",
+    format: "knockout",
+    venueText: DEFAULT_TOURNAMENT.venue,
+    pitchId: undefined,
+    status: "approved",
+    rejectionReason: undefined,
+    createdAt: "", // built-in entry, no stored dates
+    updatedAt: "", // built-in entry, no stored dates
+    season: DEFAULT_TOURNAMENT.season,
+    week: DEFAULT_TOURNAMENT.week,
+    phase: "completed",
+  };
+}
 
 // Comprehensive data for WEHAT Soccer Tournament (Season 2, Matchdays 1 & 2 Results + Matchday 3 Upcoming)
 const DEFAULT_WEHAT_FIXTURES: TournamentFixture[] = [
@@ -648,13 +677,28 @@ const memoryStore = {
   teams: new Map<string, TournamentTeam[]>(),
   players: new Map<string, TournamentPlayer[]>(),
   standings: new Map<string, TournamentTeamStanding[]>(),
+  contacts: new Map<string, Map<string, string>>(),
   fixtureSubscribers: new Map<string, Set<(fixtures: TournamentFixture[]) => void>>(),
   scorerSubscribers: new Map<string, Set<(scorers: TournamentScorer[]) => void>>(),
   nomineeSubscribers: new Map<string, Set<(nominees: TournamentNominee[]) => void>>(),
   teamSubscribers: new Map<string, Set<(teams: TournamentTeam[]) => void>>(),
   playerSubscribers: new Map<string, Set<(players: TournamentPlayer[]) => void>>(),
   standingSubscribers: new Map<string, Set<(standings: TournamentTeamStanding[]) => void>>(),
+  contactSubscribers: new Map<string, Set<(contacts: Record<string, string>) => void>>(),
 };
+
+function notifyContactSubscribers(tournamentId: string) {
+  const subs = memoryStore.contactSubscribers.get(tournamentId);
+  if (!subs || subs.size === 0) return;
+  const map = memoryStore.contacts.get(tournamentId);
+  const obj: Record<string, string> = {};
+  if (map) {
+    map.forEach((phone, id) => {
+      obj[id] = phone;
+    });
+  }
+  subs.forEach((cb) => cb(obj));
+}
 
 // Helper to check if tournament is WEHAT Season 2
 function isWehatSeason2(tournamentId: string): boolean {
@@ -1145,6 +1189,10 @@ export const tournamentService = {
     } catch (e) {
       console.warn("getFixtures fallback to local:", e);
     }
+    return getLocalFixtures(tournamentId);
+  },
+
+  getLocalFixtures(tournamentId: string): TournamentFixture[] {
     return getLocalFixtures(tournamentId);
   },
 
@@ -1750,34 +1798,60 @@ export const tournamentService = {
     };
   },
 
-  async addTeam(team: Omit<TournamentTeam, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  async addTeam(
+    team: Omit<TournamentTeam, "id" | "createdAt" | "updatedAt"> & { managerPhone?: string },
+    managerPhone?: string
+  ): Promise<string> {
+    const { managerPhone: inlinePhone, ...cleanTeam } = team as any;
+    const phone = (managerPhone !== undefined ? managerPhone : inlinePhone || "").trim();
     const teamId = `tm_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const now = new Date().toISOString();
     const data: TournamentTeam = {
-      ...team,
+      ...cleanTeam,
       id: teamId,
       createdAt: now,
       updatedAt: now,
     };
+    delete (data as any).managerPhone;
 
-    const current = getLocalTeams(team.tournamentId);
-    saveLocalTeams(team.tournamentId, [...current, data]);
+    const current = getLocalTeams(cleanTeam.tournamentId);
+    saveLocalTeams(cleanTeam.tournamentId, [...current, data]);
 
     try {
       await setDoc(doc(db, TEAMS_COLLECTION, teamId), data);
     } catch (e) {
       console.warn("Firestore sync warning on addTeam:", e);
     }
+
+    if (phone) {
+      await this.saveTournamentContact({
+        tournamentId: cleanTeam.tournamentId,
+        type: "team",
+        targetId: teamId,
+        contactNumber: phone,
+      });
+    }
+
     return teamId;
   },
 
-  async updateTeam(teamId: string, updates: Partial<TournamentTeam>): Promise<void> {
+  async updateTeam(
+    teamId: string,
+    updates: Partial<TournamentTeam> & { managerPhone?: string },
+    managerPhone?: string
+  ): Promise<void> {
+    const { managerPhone: inlinePhone, ...cleanUpdates } = updates as any;
+    const phone = managerPhone !== undefined ? managerPhone : inlinePhone;
     const now = new Date().toISOString();
+    delete (cleanUpdates as any).managerPhone;
+
+    let tournamentId = "";
     for (const [tId, list] of memoryStore.teams.entries()) {
       const idx = list.findIndex((t) => t.id === teamId);
       if (idx !== -1) {
+        tournamentId = tId;
         const updated = [...list];
-        updated[idx] = { ...updated[idx], ...updates, updatedAt: now };
+        updated[idx] = { ...updated[idx], ...cleanUpdates, updatedAt: now };
         saveLocalTeams(tId, updated);
         break;
       }
@@ -1785,11 +1859,24 @@ export const tournamentService = {
 
     try {
       await updateDoc(doc(db, TEAMS_COLLECTION, teamId), {
-        ...updates,
+        ...cleanUpdates,
         updatedAt: now,
       });
     } catch (e) {
       console.warn("Firestore sync warning on updateTeam:", e);
+    }
+
+    if (phone !== undefined) {
+      if (phone.trim()) {
+        await this.saveTournamentContact({
+          tournamentId: tournamentId || "",
+          type: "team",
+          targetId: teamId,
+          contactNumber: phone.trim(),
+        });
+      } else {
+        await this.deleteTournamentContact("team", teamId);
+      }
     }
   },
 
@@ -1806,6 +1893,8 @@ export const tournamentService = {
     } catch (e) {
       console.warn("Firestore sync warning on deleteTeam:", e);
     }
+
+    await this.deleteTournamentContact("team", teamId);
   },
 
   // ==========================================
@@ -1857,34 +1946,60 @@ export const tournamentService = {
     };
   },
 
-  async addPlayer(player: Omit<TournamentPlayer, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  async addPlayer(
+    player: Omit<TournamentPlayer, "id" | "createdAt" | "updatedAt"> & { contactNumber?: string },
+    contactNumber?: string
+  ): Promise<string> {
+    const { contactNumber: inlineContact, ...cleanPlayer } = player as any;
+    const phone = (contactNumber !== undefined ? contactNumber : inlineContact || "").trim();
     const playerId = `ply_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const now = new Date().toISOString();
     const data: TournamentPlayer = {
-      ...player,
+      ...cleanPlayer,
       id: playerId,
       createdAt: now,
       updatedAt: now,
     };
+    delete (data as any).contactNumber;
 
-    const current = getLocalPlayers(player.tournamentId);
-    saveLocalPlayers(player.tournamentId, [...current, data]);
+    const current = getLocalPlayers(cleanPlayer.tournamentId);
+    saveLocalPlayers(cleanPlayer.tournamentId, [...current, data]);
 
     try {
       await setDoc(doc(db, PLAYERS_COLLECTION, playerId), data);
     } catch (e) {
       console.warn("Firestore sync warning on addPlayer:", e);
     }
+
+    if (phone) {
+      await this.saveTournamentContact({
+        tournamentId: cleanPlayer.tournamentId,
+        type: "player",
+        targetId: playerId,
+        contactNumber: phone,
+      });
+    }
+
     return playerId;
   },
 
-  async updatePlayer(playerId: string, updates: Partial<TournamentPlayer>): Promise<void> {
+  async updatePlayer(
+    playerId: string,
+    updates: Partial<TournamentPlayer> & { contactNumber?: string },
+    contactNumber?: string
+  ): Promise<void> {
+    const { contactNumber: inlineContact, ...cleanUpdates } = updates as any;
+    const phone = contactNumber !== undefined ? contactNumber : inlineContact;
     const now = new Date().toISOString();
+    delete (cleanUpdates as any).contactNumber;
+
+    let tournamentId = "";
     for (const [tId, list] of memoryStore.players.entries()) {
       const idx = list.findIndex((p) => p.id === playerId);
       if (idx !== -1) {
+        tournamentId = tId;
         const updated = [...list];
-        updated[idx] = { ...updated[idx], ...updates, updatedAt: now };
+        updated[idx] = { ...updated[idx], ...cleanUpdates, updatedAt: now };
         saveLocalPlayers(tId, updated);
         break;
       }
@@ -1892,11 +2007,24 @@ export const tournamentService = {
 
     try {
       await updateDoc(doc(db, PLAYERS_COLLECTION, playerId), {
-        ...updates,
+        ...cleanUpdates,
         updatedAt: now,
       });
     } catch (e) {
       console.warn("Firestore sync warning on updatePlayer:", e);
+    }
+
+    if (phone !== undefined) {
+      if (phone.trim()) {
+        await this.saveTournamentContact({
+          tournamentId: tournamentId || "",
+          type: "player",
+          targetId: playerId,
+          contactNumber: phone.trim(),
+        });
+      } else {
+        await this.deleteTournamentContact("player", playerId);
+      }
     }
   },
 
@@ -1913,6 +2041,142 @@ export const tournamentService = {
     } catch (e) {
       console.warn("Firestore sync warning on deletePlayer:", e);
     }
+
+    await this.deleteTournamentContact("player", playerId);
+  },
+
+  // ==========================================
+  // TOURNAMENT CONTACTS (PRIVATE STORAGE)
+  // ==========================================
+  async saveTournamentContact(contact: {
+    tournamentId: string;
+    type: "team" | "player";
+    targetId: string;
+    contactNumber: string;
+  }): Promise<void> {
+    const docId = `tc_${contact.type}_${contact.targetId}`;
+    const now = new Date().toISOString();
+    const data: TournamentContact = {
+      id: docId,
+      tournamentId: contact.tournamentId,
+      type: contact.type,
+      targetId: contact.targetId,
+      teamId: contact.type === "team" ? contact.targetId : undefined,
+      playerId: contact.type === "player" ? contact.targetId : undefined,
+      contactNumber: contact.contactNumber,
+      updatedAt: now,
+    };
+
+    if (!memoryStore.contacts.has(contact.tournamentId)) {
+      memoryStore.contacts.set(contact.tournamentId, new Map());
+    }
+    memoryStore.contacts.get(contact.tournamentId)!.set(contact.targetId, contact.contactNumber);
+    notifyContactSubscribers(contact.tournamentId);
+
+    try {
+      await setDoc(doc(db, CONTACTS_COLLECTION, docId), data);
+    } catch (e) {
+      console.warn("Firestore sync warning on saveTournamentContact:", e);
+    }
+  },
+
+  async deleteTournamentContact(type: "team" | "player", targetId: string): Promise<void> {
+    const docId = `tc_${type}_${targetId}`;
+    for (const [tId, map] of memoryStore.contacts.entries()) {
+      if (map.has(targetId)) {
+        map.delete(targetId);
+        notifyContactSubscribers(tId);
+      }
+    }
+
+    try {
+      await deleteDoc(doc(db, CONTACTS_COLLECTION, docId));
+    } catch (e) {
+      console.warn("Firestore sync warning on deleteTournamentContact:", e);
+    }
+  },
+
+  subscribeToTournamentContacts(
+    tournamentId: string,
+    callback: (contacts: Record<string, string>) => void,
+    onError?: (error: Error) => void
+  ): () => void {
+    const initialMap = memoryStore.contacts.get(tournamentId);
+    const initialObj: Record<string, string> = {};
+    if (initialMap) {
+      initialMap.forEach((phone, id) => {
+        initialObj[id] = phone;
+      });
+    }
+    callback(initialObj);
+
+    if (!memoryStore.contactSubscribers.has(tournamentId)) {
+      memoryStore.contactSubscribers.set(tournamentId, new Set());
+    }
+    const subs = memoryStore.contactSubscribers.get(tournamentId)!;
+    subs.add(callback);
+
+    let unsubFirestore: (() => void) | null = null;
+    try {
+      const q = query(
+        collection(db, CONTACTS_COLLECTION),
+        where("tournamentId", "==", tournamentId)
+      );
+      unsubFirestore = onSnapshot(
+        q,
+        (snapshot) => {
+          if (!memoryStore.contacts.has(tournamentId)) {
+            memoryStore.contacts.set(tournamentId, new Map());
+          }
+          const map = memoryStore.contacts.get(tournamentId)!;
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data() as TournamentContact;
+            if (data.targetId && data.contactNumber) {
+              map.set(data.targetId, data.contactNumber);
+            }
+          });
+          const obj: Record<string, string> = {};
+          map.forEach((phone, id) => {
+            obj[id] = phone;
+          });
+          callback(obj);
+        },
+        (error) => onError?.(error)
+      );
+    } catch (e: any) {
+      onError?.(e);
+    }
+
+    return () => {
+      subs.delete(callback);
+      if (unsubFirestore) unsubFirestore();
+    };
+  },
+
+  async getTournamentContacts(tournamentId: string): Promise<Record<string, string>> {
+    const contactsMap: Record<string, string> = {};
+    const local = memoryStore.contacts.get(tournamentId);
+    if (local) {
+      local.forEach((phone, id) => {
+        contactsMap[id] = phone;
+      });
+    }
+    try {
+      const q = query(
+        collection(db, CONTACTS_COLLECTION),
+        where("tournamentId", "==", tournamentId)
+      );
+      const snapshot = await getDocs(q);
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data() as TournamentContact;
+        if (data.targetId && data.contactNumber) {
+          contactsMap[data.targetId] = data.contactNumber;
+        }
+      });
+    } catch (e) {
+      console.warn("getTournamentContacts fallback to local:", e);
+    }
+    return contactsMap;
   },
 
   // ==========================================
@@ -1960,8 +2224,12 @@ export const tournamentService = {
             const sorted = sortStandingsByPointsGdWins(list);
             saveLocalStandings(tournamentId, sorted);
           } else {
-            // If collection is empty in Firestore, automatically aggregate from fixtures and seed
-            tournamentService.syncStandingsToFirestore(tournamentId);
+            // If collection is empty in Firestore, compute dynamically from fixtures WITHOUT writing to Firestore
+            const fixtures = getLocalFixtures(tournamentId);
+            const computed = sortStandingsByPointsGdWins(
+              aggregateStandingsFromFixtures(fixtures, tournamentId)
+            );
+            saveLocalStandings(tournamentId, computed);
           }
         },
         (error) => {
@@ -1979,7 +2247,20 @@ export const tournamentService = {
   },
 
   /**
+   * Standard alias for subscribeToLeaderboard to ensure no write is attempted when empty.
+   */
+  subscribeToStandings(
+    tournamentId: string,
+    callback: (standings: TournamentTeamStanding[]) => void,
+    onError?: (error: Error) => void
+  ): () => void {
+    return this.subscribeToLeaderboard(tournamentId, callback, onError);
+  },
+
+  /**
    * Aggregates tournament fixtures and writes the updated standings directly to Firestore.
+   * Permitted only for authorized tournament organizers or platform admins.
+   * Does not silently swallow permission errors; rethrows so callers know if write failed.
    */
   async syncStandingsToFirestore(
     tournamentId: string,
@@ -2005,15 +2286,16 @@ export const tournamentService = {
         });
       });
       await batch.commit();
+      return sorted;
     } catch (e) {
-      console.warn("Firestore sync warning on syncStandingsToFirestore:", e);
+      console.error("Firestore sync error on syncStandingsToFirestore:", e);
+      throw e;
     }
-
-    return sorted;
   },
 
   /**
    * Fetches the latest leaderboard dynamically from Firestore (or local aggregate fallback).
+   * Public visitors request leaderboard data without triggering any Firestore write.
    */
   async getLeaderboard(tournamentId: string): Promise<TournamentTeamStanding[]> {
     try {
@@ -2038,7 +2320,378 @@ export const tournamentService = {
       console.warn("Firestore getDocs warning on getLeaderboard:", err);
     }
 
-    // Fallback: aggregate from fixtures
-    return tournamentService.syncStandingsToFirestore(tournamentId);
+    // Fallback: aggregate from fixtures locally WITHOUT writing to Firestore
+    const fixtures = getLocalFixtures(tournamentId);
+    const computed = sortStandingsByPointsGdWins(
+      aggregateStandingsFromFixtures(fixtures, tournamentId)
+    );
+    saveLocalStandings(tournamentId, computed);
+    return computed;
+  },
+
+  // ==========================================
+  // 8. SELF-SERVE TOURNAMENT MANAGEMENT
+  // ==========================================
+
+  async createTournament(input: {
+    name: string;
+    startDate: string;
+    venueText: string;
+    description?: string;
+    bannerUrl?: string;
+    endDate?: string;
+    format?: "knockout" | "league" | "groups_knockout" | "other";
+    pitchId?: string;
+    season?: string;
+    week?: string;
+    status?: any;
+    [key: string]: any;
+  }): Promise<string> {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error("You must be signed in to create a tournament.");
+    }
+
+    if (!input.name || !input.name.trim()) {
+      throw new Error("Tournament name is required.");
+    }
+    if (!input.startDate || !input.startDate.trim()) {
+      throw new Error("Tournament start date is required.");
+    }
+    if (!input.venueText || !input.venueText.trim()) {
+      throw new Error("Tournament venue is required.");
+    }
+
+    const organizerId = currentUser.uid;
+    const organizerName =
+      currentUser.displayName ||
+      "Tournament Organizer";
+
+    const rand5 = Math.random()
+      .toString(36)
+      .replace(/[^a-z0-9]/g, "")
+      .slice(0, 5)
+      .padEnd(5, "0");
+    const id = `${slugifyTournament(input.name) || "tournament"}-${rand5}`;
+    const now = new Date().toISOString();
+
+    const data: Record<string, any> = {
+      id,
+      name: input.name.trim(),
+      organizerId,
+      organizerName,
+      startDate: input.startDate.trim(),
+      format: input.format || "knockout",
+      venueText: input.venueText.trim(),
+      status: "pending", // ALWAYS forced to pending; ignores any status passed in
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    if (input.description !== undefined && input.description.trim()) {
+      data.description = input.description.trim();
+    }
+    if (input.bannerUrl !== undefined && input.bannerUrl.trim()) {
+      data.bannerUrl = input.bannerUrl.trim();
+    }
+    if (input.endDate !== undefined && input.endDate.trim()) {
+      data.endDate = input.endDate.trim();
+    }
+    if (input.pitchId !== undefined && input.pitchId.trim()) {
+      data.pitchId = input.pitchId.trim();
+    }
+    if (input.season !== undefined && input.season.trim()) {
+      data.season = input.season.trim();
+    }
+    if (input.week !== undefined && input.week.trim()) {
+      data.week = input.week.trim();
+    }
+
+    try {
+      await setDoc(doc(db, TOURNAMENTS_COLLECTION, id), data);
+      return id;
+    } catch (err: any) {
+      console.error("Failed to create tournament:", err);
+      throw new Error(err.message || "Failed to create tournament.");
+    }
+  },
+
+  async getTournament(id: string): Promise<Tournament | null> {
+    try {
+      const snap = await getDoc(doc(db, TOURNAMENTS_COLLECTION, id));
+      if (snap.exists()) {
+        return snap.data() as Tournament;
+      }
+    } catch (err) {
+      console.warn(`Firestore warning on getTournament(${id}):`, err);
+    }
+
+    if (id === "wehat-s2-w2" || id === DEFAULT_TOURNAMENT.id) {
+      return buildDefaultWehatTournament();
+    }
+
+    return null;
+  },
+
+  async listApprovedTournaments(): Promise<Tournament[]> {
+    const list: Tournament[] = [];
+    try {
+      const q = query(
+        collection(db, TOURNAMENTS_COLLECTION),
+        where("status", "==", "approved")
+      );
+      const snapshot = await getDocs(q);
+      snapshot.forEach((d) => {
+        list.push(d.data() as Tournament);
+      });
+    } catch (err) {
+      console.warn("Firestore warning on listApprovedTournaments:", err);
+    }
+
+    if (!list.some((t) => t.id === "wehat-s2-w2" || t.id === DEFAULT_TOURNAMENT.id)) {
+      list.push(buildDefaultWehatTournament());
+    }
+
+    list.sort((a, b) => {
+      if (a.id === "wehat-s2-w2" || a.id === DEFAULT_TOURNAMENT.id) return -1;
+      if (b.id === "wehat-s2-w2" || b.id === DEFAULT_TOURNAMENT.id) return 1;
+      return (b.startDate || "").localeCompare(a.startDate || "");
+    });
+
+    return list;
+  },
+
+  async listMyTournaments(uid: string): Promise<Tournament[]> {
+    const list: Tournament[] = [];
+    try {
+      const q = query(
+        collection(db, TOURNAMENTS_COLLECTION),
+        where("organizerId", "==", uid)
+      );
+      const snapshot = await getDocs(q);
+      snapshot.forEach((d) => {
+        list.push(d.data() as Tournament);
+      });
+      list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    } catch (err) {
+      console.warn(`Firestore warning on listMyTournaments(${uid}):`, err);
+    }
+    return list;
+  },
+
+  async listPendingTournaments(): Promise<Tournament[]> {
+    const list: Tournament[] = [];
+    try {
+      const q = query(
+        collection(db, TOURNAMENTS_COLLECTION),
+        where("status", "==", "pending")
+      );
+      const snapshot = await getDocs(q);
+      snapshot.forEach((d) => {
+        list.push(d.data() as Tournament);
+      });
+      list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    } catch (err) {
+      console.warn("Firestore warning on listPendingTournaments:", err);
+    }
+    return list;
+  },
+
+  async approveTournament(id: string): Promise<void> {
+    try {
+      const currentUid = auth.currentUser?.uid || "admin";
+      const now = new Date().toISOString();
+      await updateDoc(doc(db, TOURNAMENTS_COLLECTION, id), {
+        status: "approved",
+        approvedAt: now,
+        approvedBy: currentUid,
+        updatedAt: now,
+      });
+    } catch (err: any) {
+      console.error(`Failed to approve tournament ${id}:`, err);
+      throw new Error(err.message || `Failed to approve tournament ${id}.`);
+    }
+  },
+
+  async rejectTournament(id: string, reason?: string): Promise<void> {
+    try {
+      const now = new Date().toISOString();
+      await updateDoc(doc(db, TOURNAMENTS_COLLECTION, id), {
+        status: "rejected",
+        rejectionReason: reason || "Tournament proposal was rejected by admin.",
+        updatedAt: now,
+      });
+    } catch (err: any) {
+      console.error(`Failed to reject tournament ${id}:`, err);
+      throw new Error(err.message || `Failed to reject tournament ${id}.`);
+    }
+  },
+
+  async updateTournament(
+    id: string,
+    patch: Partial<Tournament> | Record<string, any>
+  ): Promise<void> {
+    const allowedKeys = [
+      "name",
+      "description",
+      "bannerUrl",
+      "startDate",
+      "endDate",
+      "format",
+      "venueText",
+      "pitchId",
+      "season",
+      "week",
+      "scheduleNote",
+    ];
+    const updates: Record<string, any> = {};
+    const patchObj = patch as Record<string, any>;
+    for (const key of allowedKeys) {
+      const val = patchObj[key];
+      if (typeof val === "string") {
+        const trimmed = val.trim();
+        if (trimmed) {
+          updates[key] = trimmed;
+        }
+      }
+    }
+    updates.updatedAt = new Date().toISOString();
+
+    try {
+      await updateDoc(doc(db, TOURNAMENTS_COLLECTION, id), updates);
+    } catch (err: any) {
+      console.error(`Failed to update tournament ${id}:`, err);
+      throw new Error(err.message || `Failed to update tournament ${id}.`);
+    }
+  },
+
+  async setTournamentPhase(
+    id: string,
+    phase: TournamentPhase,
+    note?: string
+  ): Promise<void> {
+    if (phase === "completed") {
+      throw new Error(
+        "Cannot set phase to 'completed' directly. Use markTournamentCompleted instead."
+      );
+    }
+    const allowedPhases: TournamentPhase[] = [
+      "scheduled",
+      "live",
+      "postponed",
+      "cancelled",
+    ];
+    if (!allowedPhases.includes(phase)) {
+      throw new Error(
+        `Invalid phase: ${phase}. Allowed phases are: ${allowedPhases.join(", ")}.`
+      );
+    }
+
+    const updates: Record<string, any> = {
+      phase,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (note !== undefined && typeof note === "string") {
+      const trimmed = note.trim();
+      if (trimmed) {
+        updates.scheduleNote = trimmed.slice(0, 300);
+      }
+    }
+
+    try {
+      await updateDoc(doc(db, TOURNAMENTS_COLLECTION, id), updates);
+    } catch (err: any) {
+      console.error(`Failed to set phase for tournament ${id}:`, err);
+      throw new Error(err.message || `Failed to set phase for tournament ${id}.`);
+    }
+  },
+
+  async getCompletionReadiness(tournamentId: string): Promise<{
+    ready: boolean;
+    total: number;
+    withoutScore: number;
+  }> {
+    const fixtures = await tournamentService.getFixtures(tournamentId);
+    const total = fixtures.length;
+    let withoutScore = 0;
+    for (const fixture of fixtures) {
+      if (fixture.homeScore === null || fixture.awayScore === null) {
+        withoutScore++;
+      }
+    }
+    const ready = total >= 1 && withoutScore === 0;
+    return { ready, total, withoutScore };
+  },
+
+  async markTournamentCompleted(
+    id: string,
+    opts?: { championName?: string; runnerUpName?: string; force?: boolean }
+  ): Promise<void> {
+    if (!opts?.force) {
+      const readiness = await tournamentService.getCompletionReadiness(id);
+      if (!readiness.ready) {
+        throw new Error(
+          `Cannot mark tournament as completed: ${readiness.withoutScore} of ${readiness.total} fixture(s) lack a score.`
+        );
+      }
+    }
+
+    const updates: Record<string, any> = {
+      phase: "completed",
+      completedAt: serverTimestamp(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (opts?.championName && typeof opts.championName === "string") {
+      const trimmed = opts.championName.trim();
+      if (trimmed) {
+        updates.championName = trimmed.slice(0, 100);
+      }
+    }
+
+    if (opts?.runnerUpName && typeof opts.runnerUpName === "string") {
+      const trimmed = opts.runnerUpName.trim();
+      if (trimmed) {
+        updates.runnerUpName = trimmed.slice(0, 100);
+      }
+    }
+
+    try {
+      await updateDoc(doc(db, TOURNAMENTS_COLLECTION, id), updates);
+    } catch (err: any) {
+      console.error(`Failed to mark tournament ${id} as completed:`, err);
+      throw new Error(err.message || `Failed to mark tournament ${id} as completed.`);
+    }
+  },
+
+  isEditLocked(t: Tournament, nowMs?: number): boolean {
+    if (t.phase !== "completed" || !t.completedAt) {
+      return false;
+    }
+
+    let completedMs: number;
+    const c = t.completedAt;
+
+    if (typeof c?.toMillis === "function") {
+      completedMs = c.toMillis();
+    } else if (typeof c?.seconds === "number") {
+      completedMs = c.seconds * 1000;
+    } else if (c instanceof Date) {
+      completedMs = c.getTime();
+    } else if (typeof c === "string") {
+      completedMs = Date.parse(c);
+    } else if (typeof c === "number") {
+      completedMs = c;
+    } else {
+      return false;
+    }
+
+    if (isNaN(completedMs)) {
+      return false;
+    }
+
+    const current = nowMs ?? Date.now();
+    return current - completedMs > 172800000;
   },
 };

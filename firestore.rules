@@ -194,6 +194,64 @@ service cloud.firestore {
       allow delete: if isOwner(userId) || isAdmin();
     }
 
+    match /tournaments/{tournamentId} {
+      function validTournamentContent(d) {
+        return d.name is string && d.name.size() >= 3 && d.name.size() <= 100
+          && d.organizerName is string && d.organizerName.size() <= 100
+          && d.venueText is string && d.venueText.size() >= 1 && d.venueText.size() <= 200
+          && d.startDate is string && d.startDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && d.format in ['knockout', 'league', 'groups_knockout', 'other']
+          && (!d.keys().hasAny(['description']) || (d.description is string && d.description.size() <= 2000))
+          && (!d.keys().hasAny(['bannerUrl']) || (d.bannerUrl is string && d.bannerUrl.size() <= 500 && d.bannerUrl.matches('^https://.*')))
+          && (!d.keys().hasAny(['endDate']) || (d.endDate is string && d.endDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')))
+          && (!d.keys().hasAny(['pitchId']) || (d.pitchId is string && d.pitchId.size() <= 100))
+          && (!d.keys().hasAny(['season']) || (d.season is string && d.season.size() <= 50))
+          && (!d.keys().hasAny(['week']) || (d.week is string && d.week.size() <= 50))
+          && (!d.keys().hasAny(['phase']) || d.phase in ['scheduled', 'live', 'postponed', 'completed', 'cancelled'])
+          && (!d.keys().hasAny(['scheduleNote']) || (d.scheduleNote is string && d.scheduleNote.size() <= 300))
+          && (!d.keys().hasAny(['championName']) || (d.championName is string && d.championName.size() <= 100))
+          && (!d.keys().hasAny(['runnerUpName']) || (d.runnerUpName is string && d.runnerUpName.size() <= 100))
+          && (!d.keys().hasAny(['completedAt']) || d.completedAt is timestamp);
+      }
+
+      // Public sees approved. Organizer sees their own (any status). Admin sees all.
+      allow read: if resource.data.status == 'approved'
+        || (isAuthenticated() && resource.data.organizerId == request.auth.uid)
+        || isAdmin();
+
+      // Anyone signed in may submit a PENDING tournament that they own. Phase, if sent, must be 'scheduled'.
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasOnly(['id', 'name', 'description', 'bannerUrl', 'organizerId', 'organizerName', 'startDate', 'endDate', 'format', 'venueText', 'pitchId', 'status', 'createdAt', 'updatedAt', 'season', 'week', 'phase', 'scheduleNote'])
+        && request.resource.data.keys().hasAll(['id', 'name', 'organizerId', 'organizerName', 'startDate', 'format', 'venueText', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.id == tournamentId
+        && request.resource.data.organizerId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && (!request.resource.data.keys().hasAny(['phase']) || request.resource.data.phase == 'scheduled')
+        && validTournamentContent(request.resource.data);
+
+      // Admin may change anything (approve, reject, take down, reopen, correct after the lock).
+      // Organizer may edit ONLY descriptive and lifecycle fields of their own tournament, never status or ownership.
+      // Once completed, the organizer can edit for 2 days after completedAt, then only an admin can.
+      allow update: if isAdmin()
+        || (isAuthenticated()
+            && resource.data.organizerId == request.auth.uid
+            && request.resource.data.organizerId == resource.data.organizerId
+            && request.resource.data.id == resource.data.id
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'description', 'bannerUrl', 'startDate', 'endDate', 'format', 'venueText', 'pitchId', 'season', 'week', 'phase', 'scheduleNote', 'championName', 'runnerUpName', 'completedAt', 'updatedAt'])
+            && validTournamentContent(request.resource.data)
+            && request.time < resource.data.get('completedAt', request.time) + duration.value(2, 'd')
+            && (resource.data.get('phase', 'scheduled') != 'completed' || request.resource.data.get('phase', 'scheduled') == 'completed')
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['completedAt'])
+                || (request.resource.data.get('phase', 'scheduled') == 'completed' && request.resource.data.completedAt == request.time))
+            && (request.resource.data.get('phase', 'scheduled') != 'completed' || request.resource.data.keys().hasAny(['completedAt'])));
+
+      // Admin may delete anything. Organizer may delete only their own pending or rejected tournament.
+      allow delete: if isAdmin()
+        || (isAuthenticated()
+            && resource.data.organizerId == request.auth.uid
+            && resource.data.status in ['pending', 'rejected']);
+    }
+
     // ─────────────────────────────────────────────────────────────
     // PITCHES COLLECTION
     // Enforces PitchStatus, validates owner ownership, restricts unverified writes
@@ -657,41 +715,83 @@ service cloud.firestore {
     // ─────────────────────────────────────────────────────────────
     // TOURNAMENT HUB & PUBLIC TOURNAMENTS
     // ─────────────────────────────────────────────────────────────
+    function tournamentPath(tid) {
+      return /databases/$(database)/documents/tournaments/$(tid);
+    }
+
+    // True when the signed-in user created this tournament, it is pending or approved,
+    // and the 2-day window after completion has not passed.
+    function ownsOpenTournament(tid) {
+      let t = get(tournamentPath(tid)).data;
+      return isAuthenticated()
+        && t.organizerId == request.auth.uid
+        && t.status in ['pending', 'approved']
+        && request.time < t.get('completedAt', request.time) + duration.value(2, 'd');
+    }
+
+    // Voting stays open unless the tournament document says it is completed.
+    function tournamentVotingOpen(tid) {
+      return !exists(tournamentPath(tid))
+        || get(tournamentPath(tid)).data.get('phase', 'scheduled') != 'completed';
+    }
+
     match /tournamentFixtures/{fixtureId} {
       allow read: if true;
-      allow write: if isOrganizer();
+      allow create: if isAdmin() || ownsOpenTournament(request.resource.data.tournamentId);
+      allow update: if isAdmin()
+        || (resource.data.tournamentId == request.resource.data.tournamentId
+            && ownsOpenTournament(resource.data.tournamentId));
+      allow delete: if isAdmin() || ownsOpenTournament(resource.data.tournamentId);
     }
 
     match /tournamentScorers/{scorerId} {
       allow read: if true;
-      allow write: if isOrganizer();
+      allow create: if isAdmin() || ownsOpenTournament(request.resource.data.tournamentId);
+      allow update: if isAdmin()
+        || (resource.data.tournamentId == request.resource.data.tournamentId
+            && ownsOpenTournament(resource.data.tournamentId));
+      allow delete: if isAdmin() || ownsOpenTournament(resource.data.tournamentId);
     }
 
     match /tournamentNominees/{nomineeId} {
       allow read: if true;
-      // Allow voters to update voteCount atomically by exactly +1
-      allow update: if isAuthenticated() && (
-        (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voteCount', 'updatedAt']) &&
-          request.resource.data.get('voteCount', 0) == resource.data.get('voteCount', 0) + 1
-        ) || isOrganizer()
-      );
-      allow create, delete: if isOrganizer();
+      allow create: if isAdmin() || ownsOpenTournament(request.resource.data.tournamentId);
+      // Voters may add exactly +1 to voteCount while voting is open. Admin and the tournament creator may change anything.
+      allow update: if (isAuthenticated()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voteCount', 'updatedAt'])
+          && request.resource.data.get('voteCount', 0) == resource.data.get('voteCount', 0) + 1
+          && tournamentVotingOpen(resource.data.tournamentId))
+        || isAdmin()
+        || (resource.data.tournamentId == request.resource.data.tournamentId
+            && ownsOpenTournament(resource.data.tournamentId));
+      allow delete: if isAdmin() || ownsOpenTournament(resource.data.tournamentId);
     }
 
     match /tournamentTeams/{teamId} {
       allow read: if true;
-      allow write: if isOrganizer();
+      allow create: if isAdmin() || ownsOpenTournament(request.resource.data.tournamentId);
+      allow update: if isAdmin()
+        || (resource.data.tournamentId == request.resource.data.tournamentId
+            && ownsOpenTournament(resource.data.tournamentId));
+      allow delete: if isAdmin() || ownsOpenTournament(resource.data.tournamentId);
     }
 
     match /tournamentPlayers/{playerId} {
       allow read: if true;
-      allow write: if isOrganizer();
+      allow create: if isAdmin() || ownsOpenTournament(request.resource.data.tournamentId);
+      allow update: if isAdmin()
+        || (resource.data.tournamentId == request.resource.data.tournamentId
+            && ownsOpenTournament(resource.data.tournamentId));
+      allow delete: if isAdmin() || ownsOpenTournament(resource.data.tournamentId);
     }
 
     match /tournamentStandings/{standingId} {
       allow read: if true;
-      allow write: if isOrganizer();
+      allow create: if isAdmin() || ownsOpenTournament(request.resource.data.tournamentId);
+      allow update: if isAdmin()
+        || (resource.data.tournamentId == request.resource.data.tournamentId
+            && ownsOpenTournament(resource.data.tournamentId));
+      allow delete: if isAdmin() || ownsOpenTournament(resource.data.tournamentId);
     }
 
     // ─────────────────────────────────────────────────────────────

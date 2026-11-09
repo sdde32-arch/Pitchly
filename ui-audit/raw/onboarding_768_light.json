@@ -1,0 +1,275 @@
+{
+  "page": "onboarding",
+  "route": "/#/onboarding",
+  "width": 768,
+  "theme": "light",
+  "url": "http://localhost:3000/#/onboarding",
+  "metrics": {
+    "docScrollWidth": 768,
+    "hasOverflow": false,
+    "overflowElements": [],
+    "smallTextCount": 14,
+    "smallText": [
+      {
+        "selector": "div.max-w-7xl.mx-auto > div.flex.items-center:nth-of-type(2) > button.text-\\[11px\\].font-extrabold:nth-of-type(2)",
+        "fontSize": 11,
+        "text": "Skip Tour"
+      },
+      {
+        "selector": "div.flex.items-center > div.flex.items-center > span.inline-flex.items-center:nth-of-type(2)",
+        "fontSize": 11,
+        "text": "Kampala Turf Radar"
+      },
+      {
+        "selector": "div.relative.rounded-2xl:nth-of-type(2) > div.absolute.top-3:nth-of-type(2) > span",
+        "fontSize": 11,
+        "text": "FIFA Synthetic Turf"
+      },
+      {
+        "selector": "div.relative.rounded-2xl:nth-of-type(2) > div.absolute.top-3:nth-of-type(3) > span",
+        "fontSize": 11,
+        "text": "4.9 (128)"
+      },
+      {
+        "selector": "div.grid.grid-cols-3:nth-of-type(2) > div.p-2.rounded-xl > p.text-\\[11px\\].font-extrabold",
+        "fontSize": 11,
+        "text": "18:00 - 19:00"
+      },
+      {
+        "selector": "div.grid.grid-cols-3:nth-of-type(2) > div.p-2.rounded-xl > span.text-\\[9px\\].font-bold",
+        "fontSize": 9,
+        "text": "Available"
+      },
+      {
+        "selector": "div.grid.grid-cols-3:nth-of-type(2) > div.p-2.rounded-xl:nth-of-type(2) > p.text-\\[11px\\].font-bold",
+        "fontSize": 11,
+        "text": "19:00 - 20:00"
+      },
+      {
+        "selector": "div.grid.grid-cols-3:nth-of-type(2) > div.p-2.rounded-xl:nth-of-type(2) > span.text-\\[9px\\].font-bold",
+        "fontSize": 9,
+        "text": "Held"
+      },
+      {
+        "selector": "div.grid.grid-cols-3:nth-of-type(2) > div.p-2.rounded-xl:nth-of-type(3) > p.text-\\[11px\\].font-extrabold",
+        "fontSize": 11,
+        "text": "20:00 - 21:00"
+      },
+      {
+        "selector": "div.grid.grid-cols-3:nth-of-type(2) > div.p-2.rounded-xl:nth-of-type(3) > span.text-\\[9px\\].font-bold",
+        "fontSize": 9,
+        "text": "Available"
+      },
+      {
+        "selector": "div.space-y-4.animate-fadeIn > div.flex.flex-wrap:nth-of-type(4) > span.px-2\\.5.py-1",
+        "fontSize": 11,
+        "text": "Floodlights"
+      },
+      {
+        "selector": "div.space-y-4.animate-fadeIn > div.flex.flex-wrap:nth-of-type(4) > span.px-2\\.5.py-1:nth-of-type(2)",
+        "fontSize": 11,
+        "text": "Showers"
+      },
+      {
+        "selector": "div.space-y-4.animate-fadeIn > div.flex.flex-wrap:nth-of-type(4) > span.px-2\\.5.py-1:nth-of-type(3)",
+        "fontSize": 11,
+        "text": "Secure Parking"
+      },
+      {
+        "selector": "div.space-y-4.animate-fadeIn > div.flex.flex-wrap:nth-of-type(4) > span.px-2\\.5.py-1:nth-of-type(4)",
+        "fontSize": 11,
+        "text": "Cafeteria"
+      }
+    ],
+    "smallTapCount": 10,
+    "smallTapTargets": [
+      {
+        "selector": "div.max-w-7xl.mx-auto > nav.hidden.sm\\:flex > button.flex.items-center",
+        "width": 110,
+        "height": 28,
+        "label": "1\nDISCOVER"
+      },
+      {
+        "selector": "div.max-w-7xl.mx-auto > nav.hidden.sm\\:flex > button.flex.items-center:nth-of-type(2)",
+        "width": 84,
+        "height": 28,
+        "label": "2\nBOOK"
+      },
+      {
+        "selector": "div.max-w-7xl.mx-auto > nav.hidden.sm\\:flex > button.flex.items-center:nth-of-type(3)",
+        "width": 77,
+        "height": 28,
+        "label": "3\nPLAY"
+      },
+      {
+        "selector": "div.max-w-7xl.mx-auto > div.flex.items-center:nth-of-type(2) > button.text-xs.font-bold",
+        "width": 62,
+        "height": 28,
+        "label": "Sign In"
+      },
+      {
+        "selector": "div.max-w-7xl.mx-auto > div.flex.items-center:nth-of-type(2) > button.text-\\[11px\\].font-extrabold:nth-of-type(2)",
+        "width": 93,
+        "height": 31,
+        "label": "SKIP TOUR"
+      },
+      {
+        "selector": "div.pt-2.space-y-4:nth-of-type(4) > div.flex.items-center > button.h-2.rounded-full",
+        "width": 40,
+        "height": 8,
+        "label": "Go to slide 1"
+      },
+      {
+        "selector": "div.pt-2.space-y-4:nth-of-type(4) > div.flex.items-center > button.h-2.rounded-full:nth-of-type(2)",
+        "width": 8,
+        "height": 8,
+        "label": "Go to slide 2"
+      },
+      {
+        "selector": "div.pt-2.space-y-4:nth-of-type(4) > div.flex.items-center > button.h-2.rounded-full:nth-of-type(3)",
+        "width": 8,
+        "height": 8,
+        "label": "Go to slide 3"
+      },
+      {
+        "selector": "div.flex.items-center:nth-of-type(3) > span > button.text-text-primary.font-bold",
+        "width": 38,
+        "height": 16,
+        "label": "Sign in"
+      },
+      {
+        "selector": "div.pt-2.space-y-4:nth-of-type(4) > div.flex.items-center:nth-of-type(3) > button.text-primary-lime.hover\\:underline",
+        "width": 130,
+        "height": 16,
+        "label": "Venue Owner Portal"
+      }
+    ],
+    "fontSizesCount": 10,
+    "fontSizesList": [
+      "16px",
+      "21px",
+      "20px",
+      "12px",
+      "10px",
+      "11px",
+      "36px",
+      "18px",
+      "14px",
+      "9px"
+    ],
+    "fontFamiliesCount": 2,
+    "fontFamiliesList": [
+      "Plus Jakarta Sans",
+      "Sora"
+    ],
+    "borderRadiiCount": 6,
+    "borderRadiiList": [
+      "3.35544e+07px",
+      "12px",
+      "8px",
+      "24px",
+      "6px",
+      "16px"
+    ],
+    "textColorsCount": 9,
+    "textColorsList": [
+      "rgb(15, 23, 42)",
+      "rgb(255, 255, 255)",
+      "rgb(100, 116, 139)",
+      "rgb(71, 85, 105)",
+      "rgb(56, 189, 248)",
+      "rgb(22, 163, 74)",
+      "rgb(0, 0, 0)",
+      "oklab(0.999994 0.0000455677 0.0000200868 / 0.8)",
+      "oklch(0.704 0.191 22.216)"
+    ],
+    "cardRowMismatches": [],
+    "gapMismatches": [],
+    "imageIssuesCount": 1,
+    "imageIssues": [
+      {
+        "selector": "div.space-y-4.animate-fadeIn > div.relative.rounded-2xl:nth-of-type(2) > img.w-full.h-full",
+        "src": "https://images.unsplash.com/photo-1529900241451-b8f416550794",
+        "missingAlt": false,
+        "missingFixedAspect": true
+      }
+    ],
+    "clippedTextCount": 0,
+    "clippedText": [],
+    "priceElementsCount": 1,
+    "priceElements": [
+      {
+        "selector": "div.space-y-2:nth-of-type(3) > div.flex.items-center > span.font-extrabold.text-primary-lime:nth-of-type(2)",
+        "text": "UGX 120,000 / hr",
+        "fontSize": 12,
+        "fontFamily": "Plus Jakarta Sans",
+        "usesTabularNumbers": false
+      }
+    ],
+    "pitchCardImages": {
+      "cardsCount": 1,
+      "aspectRatiosFound": [
+        "1.78"
+      ],
+      "brokenOrMissingImagesCount": 1,
+      "details": [
+        {
+          "selector": "div.space-y-4.animate-fadeIn > div.relative.rounded-2xl:nth-of-type(2) > img.w-full.h-full",
+          "renderedDimensions": "388x217",
+          "aspectRatio": "1.78",
+          "isBroken": true,
+          "src": "https://images.unsplash.com/photo-1529900241451-b8f416550794",
+          "alt": "Kigozi Sports Arena"
+        }
+      ]
+    }
+  },
+  "axe": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "nodesCount": 5,
+      "nodes": [
+        {
+          "target": ".shadow-sm > span:nth-child(2)",
+          "html": "<span>DISCOVER</span>",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.29 (foreground color: #ffffff, background color: #16a34a, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".bg-\\[\\#38BDF8\\]\\/10 > span",
+          "html": "<span>DISCOVER</span>",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.97 (foreground color: #38bdf8, background color: #ebf8fe, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "#btn-onboarding-continue > span",
+          "html": "<span>Continue</span>",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.29 (foreground color: #ffffff, background color: #16a34a, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".hover\\:underline.gap-1.text-primary-lime > span",
+          "html": "<span>Venue Owner Portal</span>",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.29 (foreground color: #16a34a, background color: #ffffff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".rounded-md",
+          "html": "<span class=\"text-xs font-bold text-primary-lime bg-primary-lime/10 px-2 py-0.5 rounded-md\">1.2 km a",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.29 (foreground color: #16a34a, background color: #ffffff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ]
+    },
+    {
+      "id": "heading-order",
+      "impact": "moderate",
+      "description": "Ensure the order of headings is semantically correct",
+      "nodesCount": 1,
+      "nodes": [
+        {
+          "target": ".p-3.sm\\:p-3\\.5.bg-surface-card\\/70:nth-child(1) > .min-w-0 > h3",
+          "html": "<h3 class=\"text-xs sm:text-sm font-bold text-text-primary\">Map-integrated search</h3>",
+          "failureSummary": "Fix any of the following:\n  Heading order invalid"
+        }
+      ]
+    }
+  ]
+}

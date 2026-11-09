@@ -1,0 +1,115 @@
+{
+  "page": "welcome-back",
+  "route": "/#/welcome-back",
+  "width": 360,
+  "theme": "light",
+  "url": "http://localhost:3000/#/welcome-back",
+  "metrics": {
+    "docScrollWidth": 360,
+    "hasOverflow": false,
+    "overflowElements": [],
+    "smallTextCount": 0,
+    "smallText": [],
+    "smallTapCount": 1,
+    "smallTapTargets": [
+      {
+        "selector": "div.fixed.inset-0 > div.max-w-sm.w-full > button.text-slate-500.dark\\:text-zinc-400:nth-of-type(2)",
+        "width": 145,
+        "height": 16,
+        "label": "Not you? Switch Account"
+      }
+    ],
+    "fontSizesCount": 5,
+    "fontSizesList": [
+      "16px",
+      "49px",
+      "46px",
+      "12px",
+      "24px"
+    ],
+    "fontFamiliesCount": 2,
+    "fontFamiliesList": [
+      "Plus Jakarta Sans",
+      "Sora"
+    ],
+    "borderRadiiCount": 2,
+    "borderRadiiList": [
+      "16px",
+      "3.35544e+07px"
+    ],
+    "textColorsCount": 4,
+    "textColorsList": [
+      "rgb(15, 23, 42)",
+      "oklch(0.554 0.046 257.417)",
+      "oklch(0.208 0.042 265.755)",
+      "rgb(255, 255, 255)"
+    ],
+    "cardRowMismatches": [],
+    "gapMismatches": [],
+    "imageIssuesCount": 1,
+    "imageIssues": [
+      {
+        "selector": "div.mb-10:nth-of-type(2) > div.h-24.w-24 > img.w-full.h-full",
+        "src": "https://images.unsplash.com/photo-1534528741775-53994a69daeb",
+        "missingAlt": false,
+        "missingFixedAspect": true
+      }
+    ],
+    "clippedTextCount": 0,
+    "clippedText": [],
+    "priceElementsCount": 0,
+    "priceElements": [],
+    "pitchCardImages": {
+      "cardsCount": 0,
+      "aspectRatiosFound": [],
+      "brokenOrMissingImagesCount": 0,
+      "details": []
+    }
+  },
+  "axe": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "nodesCount": 1,
+      "nodes": [
+        {
+          "target": ".min-h-\\[56px\\]",
+          "html": "<button class=\"w-full min-h-[56px] py-4 rounded-full bg-amber-500 text-white font-bold shadow-sm sha",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 2.13 (foreground color: #ffffff, background color: #fe9a00, font size: 12.0pt (16px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ]
+    },
+    {
+      "id": "landmark-one-main",
+      "impact": "moderate",
+      "description": "Ensure the document has a main landmark",
+      "nodesCount": 1,
+      "nodes": [
+        {
+          "target": "html",
+          "html": "<html lang=\"en\" class=\"\">",
+          "failureSummary": "Fix all of the following:\n  Document does not have a main landmark"
+        }
+      ]
+    },
+    {
+      "id": "region",
+      "impact": "moderate",
+      "description": "Ensure all page content is contained by landmarks",
+      "nodesCount": 2,
+      "nodes": [
+        {
+          "target": ".mb-10.justify-center.flex",
+          "html": "<div class=\"flex justify-center mb-10\">",
+          "failureSummary": "Fix any of the following:\n  Some page content is not contained by landmarks"
+        },
+        {
+          "target": ".mb-10:nth-child(2)",
+          "html": "<div class=\"mb-10\">",
+          "failureSummary": "Fix any of the following:\n  Some page content is not contained by landmarks"
+        }
+      ]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Users,
   UserPlus,
@@ -12,16 +12,17 @@ import {
   Filter,
 } from "lucide-react";
 import { TournamentTeam, TournamentPlayer } from "../../types/tournament";
+import { tournamentService } from "../../services/tournamentService";
 
 interface TeamRegistrationManagerProps {
   tournamentId: string;
   teams: TournamentTeam[];
   players: TournamentPlayer[];
-  onAddTeam: (team: Omit<TournamentTeam, "id" | "createdAt" | "updatedAt">) => Promise<string | void>;
-  onUpdateTeam: (teamId: string, updates: Partial<TournamentTeam>) => Promise<void>;
+  onAddTeam: (team: Omit<TournamentTeam, "id" | "createdAt" | "updatedAt"> & { managerPhone?: string }) => Promise<string | void>;
+  onUpdateTeam: (teamId: string, updates: Partial<TournamentTeam> & { managerPhone?: string }) => Promise<void>;
   onDeleteTeam: (teamId: string) => Promise<void>;
-  onAddPlayer: (player: Omit<TournamentPlayer, "id" | "createdAt" | "updatedAt">) => Promise<string | void>;
-  onUpdatePlayer: (playerId: string, updates: Partial<TournamentPlayer>) => Promise<void>;
+  onAddPlayer: (player: Omit<TournamentPlayer, "id" | "createdAt" | "updatedAt"> & { contactNumber?: string }) => Promise<string | void>;
+  onUpdatePlayer: (playerId: string, updates: Partial<TournamentPlayer> & { contactNumber?: string }) => Promise<void>;
   onDeletePlayer: (playerId: string) => Promise<void>;
   showNotification: (msg: string) => void;
   showError: (err: any) => void;
@@ -42,6 +43,17 @@ export const TeamRegistrationManager: React.FC<TeamRegistrationManagerProps> = (
 }) => {
   // Active sub-view or filter
   const [selectedTeamFilter, setSelectedTeamFilter] = useState<string>("all");
+
+  // Private tournament contacts (managerPhone / contactNumber)
+  const [contacts, setContacts] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const unsub = tournamentService.subscribeToTournamentContacts(
+      tournamentId,
+      (latest) => setContacts(latest)
+    );
+    return () => unsub();
+  }, [tournamentId]);
 
   // Team Form
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
@@ -348,6 +360,7 @@ export const TeamRegistrationManager: React.FC<TeamRegistrationManagerProps> = (
                         <div className="text-[10px] text-text-secondary flex items-center gap-2 mt-0.5">
                           <span>{teamPlayers.length} players</span>
                           {t.managerName && <span>• Mgr: {t.managerName}</span>}
+                          {contacts[t.id] && <span className="text-text-tertiary">• Tel: {contacts[t.id]}</span>}
                         </div>
                       </div>
 
@@ -360,7 +373,7 @@ export const TeamRegistrationManager: React.FC<TeamRegistrationManagerProps> = (
                               teamName: t.teamName,
                               group: t.group || "Group A",
                               managerName: t.managerName || "",
-                              managerPhone: t.managerPhone || "",
+                              managerPhone: contacts[t.id] || "",
                               badgeInitials: t.badgeInitials || "",
                             });
                           }}
@@ -564,6 +577,7 @@ export const TeamRegistrationManager: React.FC<TeamRegistrationManagerProps> = (
                         </div>
                         <div className="text-[10px] text-text-secondary truncate">
                           {p.teamName} • <span className="text-text-tertiary">{p.position || "Player"}</span>
+                          {contacts[p.id] && <span className="text-text-tertiary"> • Tel: {contacts[p.id]}</span>}
                         </div>
                       </div>
                     </div>
@@ -579,7 +593,7 @@ export const TeamRegistrationManager: React.FC<TeamRegistrationManagerProps> = (
                             jerseyNumber: p.jerseyNumber ? String(p.jerseyNumber) : "",
                             position: p.position || "Forward",
                             captain: !!p.captain,
-                            contactNumber: p.contactNumber || "",
+                            contactNumber: contacts[p.id] || "",
                           });
                         }}
                         className="p-1 rounded-lg text-text-secondary hover:text-text-primary cursor-pointer"

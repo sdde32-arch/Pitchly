@@ -1227,6 +1227,7 @@ export const TournamentHub: React.FC = () => {
               <TournamentLeaderboard
                 tournamentId={tournamentId}
                 fixtures={fixtures}
+                canManage={canManageTournament}
                 onNavigateToFixtures={() => setActiveTab("fixtures")}
               />
             ) : (

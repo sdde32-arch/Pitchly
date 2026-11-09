@@ -4,6 +4,8 @@ export interface TournamentFixture {
   id: string;
   tournamentId: string;
   time: string; // e.g. "2:30 PM"
+  date?: string;
+  pitchId?: string;
   homeTeam: string;
   awayTeam: string;
   homeScore: number | null;
@@ -68,7 +70,6 @@ export interface TournamentPlayer {
   jerseyNumber?: number;
   position?: string; // Forward, Midfielder, Defender, Goalkeeper
   captain?: boolean;
-  contactNumber?: string;
   photoUrl?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -80,10 +81,21 @@ export interface TournamentTeam {
   teamName: string;
   group: "Group A" | "Group B" | "Group C" | "Group D" | string;
   managerName?: string;
-  managerPhone?: string;
   primaryColor?: string;
   badgeInitials?: string;
   playersCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TournamentContact {
+  id: string;
+  tournamentId: string;
+  type: "team" | "player";
+  targetId: string;
+  teamId?: string;
+  playerId?: string;
+  contactNumber: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -107,3 +119,34 @@ export const DEFAULT_TOURNAMENT: TournamentInfo = {
   venue: "Tal Olympic Park / Bayern Munyonyo",
   description: "Official match center: Quarter-Finals knockout fixtures, Matchday 3 results, official 37-player Top Scorers table, and final group standings.",
 };
+
+export type TournamentStatus = "pending" | "approved" | "rejected";
+export type TournamentPhase = "scheduled" | "live" | "postponed" | "completed" | "cancelled";
+
+export interface Tournament {
+  id: string;
+  name: string;
+  description?: string;
+  bannerUrl?: string;
+  organizerId: string;
+  organizerName: string;
+  startDate: string;
+  endDate?: string;
+  format: "knockout" | "league" | "groups_knockout" | "other";
+  venueText: string;
+  pitchId?: string;
+  status: TournamentStatus;
+  rejectionReason?: string;
+  approvedAt?: string;
+  approvedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  season?: string;
+  week?: string;
+  phase?: TournamentPhase;
+  scheduleNote?: string;
+  championName?: string;
+  runnerUpName?: string;
+  completedAt?: any;
+}
+

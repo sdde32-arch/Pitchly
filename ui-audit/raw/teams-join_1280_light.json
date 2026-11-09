@@ -1,0 +1,223 @@
+{
+  "page": "teams-join",
+  "route": "/#/teams/join",
+  "width": 1280,
+  "theme": "light",
+  "url": "http://localhost:3000/#/teams/join",
+  "metrics": {
+    "docScrollWidth": 1280,
+    "hasOverflow": false,
+    "overflowElements": [],
+    "smallTextCount": 11,
+    "smallText": [
+      {
+        "selector": "div.flex.items-center:nth-of-type(2) > div.inline-flex.items-center > span.text-\\[10px\\].font-bold",
+        "fontSize": 10,
+        "text": "Player"
+      },
+      {
+        "selector": "div.p-4.border-b > div.flex.items-center:nth-of-type(2) > span.text-\\[10px\\].font-bold",
+        "fontSize": 10,
+        "text": "App"
+      },
+      {
+        "selector": "div.flex-1.overflow-y-auto:nth-of-type(2) > div > p.font-bold.text-\\[10px\\]",
+        "fontSize": 10,
+        "text": "Main Navigation"
+      },
+      {
+        "selector": "div.flex.items-center > div.min-w-0:nth-of-type(2) > p.text-\\[10px\\].text-text-tertiary:nth-of-type(2)",
+        "fontSize": 10,
+        "text": "verified account"
+      },
+      {
+        "selector": "div.flex.items-center > div.inline-flex.items-center:nth-of-type(2) > span.text-\\[10px\\].font-bold",
+        "fontSize": 10,
+        "text": "Player"
+      },
+      {
+        "selector": "div.max-w-md.mx-auto > div.flex.items-center > span.text-\\[10px\\].font-black",
+        "fontSize": 10,
+        "text": "Pitchly Squad Invite"
+      },
+      {
+        "selector": "nav.pointer-events-auto.w-full > button.relative.flex > span.text-\\[10px\\].leading-tight",
+        "fontSize": 10,
+        "text": "Home"
+      },
+      {
+        "selector": "nav.pointer-events-auto.w-full > button.relative.flex:nth-of-type(2) > span.text-\\[10px\\].leading-tight",
+        "fontSize": 10,
+        "text": "Tournament"
+      },
+      {
+        "selector": "nav.pointer-events-auto.w-full > button.relative.flex:nth-of-type(3) > span.text-\\[10px\\].leading-tight",
+        "fontSize": 10,
+        "text": "Explore"
+      },
+      {
+        "selector": "nav.pointer-events-auto.w-full > button.relative.flex:nth-of-type(4) > span.text-\\[10px\\].leading-tight",
+        "fontSize": 10,
+        "text": "Bookings"
+      },
+      {
+        "selector": "nav.pointer-events-auto.w-full > button.relative.flex:nth-of-type(5) > span.text-\\[10px\\].leading-tight",
+        "fontSize": 10,
+        "text": "Squads"
+      }
+    ],
+    "smallTapCount": 11,
+    "smallTapTargets": [
+      {
+        "selector": "div > nav.space-y-1 > button.relative.flex",
+        "width": 231,
+        "height": 37,
+        "label": "Home"
+      },
+      {
+        "selector": "div > nav.space-y-1 > button.relative.flex:nth-of-type(2)",
+        "width": 231,
+        "height": 37,
+        "label": "Tournament"
+      },
+      {
+        "selector": "div > nav.space-y-1 > button.relative.flex:nth-of-type(3)",
+        "width": 231,
+        "height": 37,
+        "label": "Explore"
+      },
+      {
+        "selector": "div > nav.space-y-1 > button.relative.flex:nth-of-type(4)",
+        "width": 231,
+        "height": 37,
+        "label": "Bookings"
+      },
+      {
+        "selector": "div > nav.space-y-1 > button.relative.flex:nth-of-type(5)",
+        "width": 231,
+        "height": 37,
+        "label": "Squads"
+      },
+      {
+        "selector": "div > nav.space-y-1 > button.relative.flex:nth-of-type(6)",
+        "width": 231,
+        "height": 37,
+        "label": "Profile"
+      },
+      {
+        "selector": "aside.hidden.lg\\:flex > div.p-3.border-t:nth-of-type(3) > button.w-full.flex",
+        "width": 231,
+        "height": 34,
+        "label": "App Walkthrough"
+      },
+      {
+        "selector": "div.p-3.border-t:nth-of-type(3) > div.flex.items-center:nth-of-type(2) > button.flex-1.flex",
+        "width": 192,
+        "height": 34,
+        "label": "Settings"
+      },
+      {
+        "selector": "div.p-3.border-t:nth-of-type(3) > div.flex.items-center:nth-of-type(2) > button.flex.items-center:nth-of-type(2)",
+        "width": 33,
+        "height": 33,
+        "label": "Log out"
+      },
+      {
+        "selector": "div.max-w-md.mx-auto > div.flex.items-center > button.flex.items-center",
+        "width": 112,
+        "height": 16,
+        "label": "Back to Squads"
+      },
+      {
+        "selector": "div.max-w-md.mx-auto > div.bg-surface-card.rounded-3xl:nth-of-type(2) > button.w-full.py-3",
+        "width": 398,
+        "height": 40,
+        "label": "Browse All Squads"
+      }
+    ],
+    "fontSizesCount": 6,
+    "fontSizesList": [
+      "16px",
+      "24px",
+      "23px",
+      "10px",
+      "12px",
+      "5px"
+    ],
+    "fontFamiliesCount": 2,
+    "fontFamiliesList": [
+      "Plus Jakarta Sans",
+      "Sora"
+    ],
+    "borderRadiiCount": 6,
+    "borderRadiiList": [
+      "3.35544e+07px",
+      "6px",
+      "12px",
+      "8px",
+      "24px",
+      "16px"
+    ],
+    "textColorsCount": 6,
+    "textColorsList": [
+      "rgb(15, 23, 42)",
+      "rgb(22, 163, 74)",
+      "rgb(100, 116, 139)",
+      "rgb(71, 85, 105)",
+      "rgb(220, 38, 38)",
+      "oklch(0.704 0.191 22.216)"
+    ],
+    "cardRowMismatches": [],
+    "gapMismatches": [],
+    "imageIssuesCount": 0,
+    "imageIssues": [],
+    "clippedTextCount": 0,
+    "clippedText": [],
+    "priceElementsCount": 0,
+    "priceElements": [],
+    "pitchCardImages": {
+      "cardsCount": 0,
+      "aspectRatiosFound": [],
+      "brokenOrMissingImagesCount": 0,
+      "details": []
+    }
+  },
+  "axe": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "nodesCount": 3,
+      "nodes": [
+        {
+          "target": ".pt-1.justify-between.items-center > .py-1.rounded-md.px-2\\.5 > .tracking-wider.uppercase.text-primary-lime",
+          "html": "<span class=\"text-[10px] font-bold text-primary-lime tracking-wider uppercase\">Player</span>",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.29 (foreground color: #16a34a, background color: #ffffff, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".gap-2.items-center.flex > span",
+          "html": "<span>App Walkthrough</span>",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.29 (foreground color: #16a34a, background color: #ffffff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".px-2",
+          "html": "<span class=\"text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-lim",
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.29 (foreground color: #16a34a, background color: #ffffff, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ]
+    },
+    {
+      "id": "page-has-heading-one",
+      "impact": "moderate",
+      "description": "Ensure that the page, or at least one of its frames contains a level-one heading",
+      "nodesCount": 1,
+      "nodes": [
+        {
+          "target": "html",
+          "html": "<html lang=\"en\" class=\"\">",
+          "failureSummary": "Fix all of the following:\n  Page must have a level-one heading"
+        }
+      ]
+    }
+  ]
+}

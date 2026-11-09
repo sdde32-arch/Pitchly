@@ -29,11 +29,13 @@ import {
   tournamentService,
   normalizeTournamentTeam,
   sortStandingsByPointsGdWins,
+  aggregateStandingsFromFixtures,
 } from "../../services/tournamentService";
 
 interface TournamentLeaderboardProps {
   tournamentId?: string;
   fixtures?: TournamentFixture[];
+  canManage?: boolean;
   onSelectTeam?: (teamName: string) => void;
   onNavigateToFixtures?: () => void;
 }
@@ -87,6 +89,7 @@ function getClubBadge(teamName: string) {
 export const TournamentLeaderboard: React.FC<TournamentLeaderboardProps> = ({
   tournamentId = DEFAULT_TOURNAMENT.id,
   fixtures: propFixtures,
+  canManage = false,
   onSelectTeam,
   onNavigateToFixtures,
 }) => {
@@ -111,32 +114,60 @@ export const TournamentLeaderboard: React.FC<TournamentLeaderboardProps> = ({
     const unsub = tournamentService.subscribeToLeaderboard(
       tournamentId,
       (latest) => {
-        setStandings(latest);
+        if (latest && latest.length > 0) {
+          setStandings(latest);
+        } else {
+          // If Firestore standings are empty, compute from fixtures locally without writing to Firestore
+          const fixtures = propFixtures || tournamentService.getLocalFixtures(tournamentId);
+          const computed = aggregateStandingsFromFixtures(fixtures, tournamentId);
+          setStandings(computed);
+        }
         setLoading(false);
         setLastSyncTime(new Date());
       },
       (err) => {
         console.warn("Leaderboard subscription notice:", err);
+        const fixtures = propFixtures || tournamentService.getLocalFixtures(tournamentId);
+        const computed = aggregateStandingsFromFixtures(fixtures, tournamentId);
+        setStandings(computed);
         setLoading(false);
       }
     );
 
     return () => unsub();
-  }, [tournamentId]);
+  }, [tournamentId, propFixtures]);
 
-  // Manual Trigger to re-aggregate from fixtures and sync directly to Firestore
+  // Trigger to re-aggregate from fixtures. Only authorized managers/admins sync to Firestore.
   const handleManualSync = async () => {
     try {
       setSyncing(true);
-      const updated = await tournamentService.syncStandingsToFirestore(tournamentId);
-      setStandings(updated);
-      setLastSyncTime(new Date());
-      setFeedbackMsg("Dynamic Firestore Standings Aggregated & Synced!");
-      setTimeout(() => setFeedbackMsg(null), 3000);
-    } catch (e) {
+      if (canManage) {
+        const updated = await tournamentService.syncStandingsToFirestore(tournamentId);
+        setStandings(updated);
+        setLastSyncTime(new Date());
+        setFeedbackMsg("Dynamic Firestore Standings Aggregated & Synced!");
+        setTimeout(() => setFeedbackMsg(null), 3000);
+      } else {
+        // Public visitors compute from fixtures in memory only without writing to Firestore
+        const fixtures = propFixtures || tournamentService.getLocalFixtures(tournamentId);
+        const computed = aggregateStandingsFromFixtures(fixtures, tournamentId);
+        setStandings(computed);
+        setLastSyncTime(new Date());
+        setFeedbackMsg("Standings computed from fixtures.");
+        setTimeout(() => setFeedbackMsg(null), 2500);
+      }
+    } catch (e: any) {
       console.error("Sync error:", e);
-      setFeedbackMsg("Sync completed with local state.");
-      setTimeout(() => setFeedbackMsg(null), 2500);
+      const fixtures = propFixtures || tournamentService.getLocalFixtures(tournamentId);
+      const computed = aggregateStandingsFromFixtures(fixtures, tournamentId);
+      setStandings(computed);
+      const isPerm = e?.code === "permission-denied" || e?.message?.includes("permission");
+      setFeedbackMsg(
+        isPerm
+          ? "Permission denied: only tournament organizer or admin can sync to Firestore."
+          : "Firestore sync failed. Displaying locally computed standings."
+      );
+      setTimeout(() => setFeedbackMsg(null), 3500);
     } finally {
       setSyncing(false);
     }
@@ -314,18 +345,20 @@ export const TournamentLeaderboard: React.FC<TournamentLeaderboardProps> = ({
             (16 Clubs • All Groups)
           </span>
         </div>
-        <button
-          onClick={handleManualSync}
-          disabled={syncing}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-card hover:bg-surface-raised border border-border-subtle text-text-secondary hover:text-text-primary text-[11px] font-medium transition-all disabled:opacity-50 cursor-pointer"
-          title="Recalculate standings"
-        >
-          <RefreshCw
-            size={12}
-            className={`text-primary-lime ${syncing ? "animate-spin" : ""}`}
-          />
-          <span>{syncing ? "Syncing..." : "Sync"}</span>
-        </button>
+        {canManage && (
+          <button
+            onClick={handleManualSync}
+            disabled={syncing}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-card hover:bg-surface-raised border border-border-subtle text-text-secondary hover:text-text-primary text-[11px] font-medium transition-all disabled:opacity-50 cursor-pointer"
+            title="Recalculate and sync standings to Firestore"
+          >
+            <RefreshCw
+              size={12}
+              className={`text-primary-lime ${syncing ? "animate-spin" : ""}`}
+            />
+            <span>{syncing ? "Syncing..." : "Sync"}</span>
+          </button>
+        )}
       </div>
 
       {feedbackMsg && (
