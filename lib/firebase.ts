@@ -16,24 +16,19 @@ import {
   doc, collection, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit 
 } from 'firebase/firestore';
 
-// 1. Firebase Initialization
-// Fallback configuration allows the application to initialize without crashing
-import firebaseAppletConfig from '../firebase-applet-config.json';
+// 1. Firebase Environment-Aware Initialization
+// Fail-closed validation guarantees staging builds cannot accidentally connect to production
+import { getFirebaseConfig, ResolvedFirebaseConfig } from './firebaseEnv';
+import { connectFirestoreEmulator } from 'firebase/firestore';
+import { connectAuthEmulator } from 'firebase/auth';
 
-const firebaseConfig = {
-  apiKey: firebaseAppletConfig.apiKey,
-  authDomain: firebaseAppletConfig.authDomain,
-  projectId: firebaseAppletConfig.projectId,
-  storageBucket: firebaseAppletConfig.storageBucket,
-  messagingSenderId: firebaseAppletConfig.messagingSenderId,
-  appId: firebaseAppletConfig.appId,
-};
+export const resolvedConfig: ResolvedFirebaseConfig = getFirebaseConfig();
 
-export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+export const app = getApps().length === 0 ? initializeApp(resolvedConfig.firebaseConfig) : getApp();
 export const auth = getAuth(app);
 
 // Enable persistent multi-tab offline caching for Firestore
-const databaseId = firebaseAppletConfig.firestoreDatabaseId || '(default)';
+const databaseId = resolvedConfig.databaseId || '(default)';
 let firestoreInstance: ReturnType<typeof getFirestore>;
 try {
   firestoreInstance = initializeFirestore(
@@ -46,6 +41,14 @@ try {
   );
 } catch {
   firestoreInstance = getFirestore(app, databaseId);
+}
+
+// Connect to emulator ONLY if explicitly enabled in development mode
+if (resolvedConfig.emulator?.enabled) {
+  connectFirestoreEmulator(firestoreInstance, resolvedConfig.emulator.host, resolvedConfig.emulator.firestorePort);
+  if (resolvedConfig.emulator.authPort) {
+    connectAuthEmulator(auth, `http://${resolvedConfig.emulator.host}:${resolvedConfig.emulator.authPort}`, { disableWarnings: true });
+  }
 }
 
 export const db = firestoreInstance;

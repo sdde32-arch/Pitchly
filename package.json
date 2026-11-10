@@ -5,7 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
+    "build": "vite build --mode production",
+    "build:production": "vite build --mode production",
+    "build:staging": "vite build --mode staging",
+    "build:development": "vite build --mode development",
+    "test:env": "tsx tests/env-isolation.test.ts",
+    "test:rules": "firebase emulators:exec --project demo-footlink-security-test --only firestore \"npx tsx tests/tour-3e-rules.test.ts\"",
     "start": "node server.ts",
     "preview": "vite preview",
     "lint": "tsc --noEmit"

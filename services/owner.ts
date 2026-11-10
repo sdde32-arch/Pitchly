@@ -1,5 +1,4 @@
-import { db } from '../lib/firebase';
-import { getAuth } from 'firebase/auth';
+import { db, auth } from '../lib/firebase';
 import { pitchService } from './pitchService';
 import { bookingService } from './bookingService';
 import { Booking, Payout, StaffMember, Transaction, Turf, BusinessProfile, PitchStatus } from '../types';
@@ -8,7 +7,7 @@ import { collection, doc } from 'firebase/firestore';
 export const OwnerService = {
   // 1. DASHBOARD STATS
   getDashboardStats: async () => {
-    const user = getAuth().currentUser;
+    const user = auth.currentUser;
     if (!user) return { todayRevenue: 0, todayBookingsCount: 0, occupancyRate: 0, pendingRequests: 0 };
 
     const today = new Date().toISOString().split('T')[0];
@@ -25,7 +24,7 @@ export const OwnerService = {
   },
 
   getRevenueChartData: async () => {
-    const user = getAuth().currentUser;
+    const user = auth.currentUser;
     if (!user) return [];
 
     const bookings = await bookingService.listByOwner(user.uid);
@@ -41,7 +40,7 @@ export const OwnerService = {
   },
 
   getTodaySchedule: async () => {
-    const user = getAuth().currentUser;
+    const user = auth.currentUser;
     if (!user) return [];
 
     const today = new Date().toISOString().split('T')[0];
@@ -61,7 +60,7 @@ export const OwnerService = {
 
   // 2. PITCHES
   getPitches: async (): Promise<any[]> => {
-    const user = getAuth().currentUser;
+    const user = auth.currentUser;
     if (!user) return [];
 
     const pitches = await pitchService.listByOwner(user.uid);
@@ -81,7 +80,7 @@ export const OwnerService = {
   },
 
   addTurf: async (turf: Partial<Turf>): Promise<any | null> => {
-    const user = getAuth().currentUser;
+    const user = auth.currentUser;
     if (!user) return null;
 
     const newId = doc(collection(db, 'pitches')).id;
@@ -129,7 +128,7 @@ export const OwnerService = {
 
   // 3. BOOKINGS
   getBookings: async (): Promise<any[]> => {
-    const user = getAuth().currentUser;
+    const user = auth.currentUser;
     if (!user) return [];
 
     return await bookingService.listByOwner(user.uid);
@@ -142,7 +141,7 @@ export const OwnerService = {
 
   // 5. FINANCES (Mock fallback)
   getFinancials: async () => {
-    const user = getAuth().currentUser;
+    const user = auth.currentUser;
     if (!user) return { balance: 0, totalRevenue: 0, transactions: [], payouts: [] };
 
     const bookings = await bookingService.listByOwner(user.uid);
@@ -171,7 +170,7 @@ export const OwnerService = {
 
   // 6. BUSINESS PROFILE
   getBusinessProfile: async (): Promise<BusinessProfile> => {
-    const user = getAuth().currentUser;
+    const user = auth.currentUser;
     if (!user) return OwnerService.getBusinessProfileById('guest');
     return OwnerService.getBusinessProfileById(user.uid);
   },
@@ -208,7 +207,7 @@ export const OwnerService = {
   },
 
   updateBusinessProfile: async (profile: BusinessProfile) => {
-    const user = getAuth().currentUser;
+    const user = auth.currentUser;
     if (!user) return profile;
     try {
       const { doc, setDoc } = await import('firebase/firestore');
@@ -222,7 +221,7 @@ export const OwnerService = {
 
   // 7. STAFF MANAGEMENT
   getStaff: async (): Promise<StaffMember[]> => {
-    const user = getAuth().currentUser;
+    const user = auth.currentUser;
     if (!user) return [];
     try {
       const { doc, getDoc } = await import('firebase/firestore');
@@ -237,7 +236,7 @@ export const OwnerService = {
   },
 
   addStaff: async (staffMember: StaffMember) => {
-    const user = getAuth().currentUser;
+    const user = auth.currentUser;
     if (!user) return;
     try {
       const { doc, getDoc, setDoc } = await import('firebase/firestore');
@@ -251,7 +250,7 @@ export const OwnerService = {
   },
 
   deleteStaff: async (staffId: string) => {
-    const user = getAuth().currentUser;
+    const user = auth.currentUser;
     if (!user) return;
     try {
       const { doc, getDoc, setDoc } = await import('firebase/firestore');
