@@ -100,6 +100,7 @@ export const TeamRegistrationManager: React.FC<TeamRegistrationManagerProps> = (
     try {
       if (editingTeamId) {
         await onUpdateTeam(editingTeamId, {
+          tournamentId,
           teamName: teamForm.teamName.trim(),
           group: teamForm.group,
           managerName: teamForm.managerName.trim(),
@@ -145,6 +146,7 @@ export const TeamRegistrationManager: React.FC<TeamRegistrationManagerProps> = (
 
       if (editingPlayerId) {
         await onUpdatePlayer(editingPlayerId, {
+          tournamentId,
           playerName: playerForm.playerName.trim(),
           teamName: playerForm.teamName.trim(),
           jerseyNumber: isNaN(jerseyNum as number) ? undefined : jerseyNum,
@@ -384,9 +386,13 @@ export const TeamRegistrationManager: React.FC<TeamRegistrationManagerProps> = (
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             if (window.confirm(`Delete ${t.teamName}?`)) {
-                              onDeleteTeam(t.id);
+                              try {
+                                await onDeleteTeam(t.id);
+                              } catch (err) {
+                                showError(err);
+                              }
                             }
                           }}
                           className="p-1 rounded-lg text-[#EF4444] hover:bg-[#EF4444]/10 cursor-pointer"
@@ -603,9 +609,13 @@ export const TeamRegistrationManager: React.FC<TeamRegistrationManagerProps> = (
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
                           if (window.confirm(`Delete ${p.playerName} from roster?`)) {
-                            onDeletePlayer(p.id);
+                            try {
+                              await onDeletePlayer(p.id);
+                            } catch (err) {
+                              showError(err);
+                            }
                           }
                         }}
                         className="p-1 rounded-lg text-[#EF4444] hover:bg-[#EF4444]/10 cursor-pointer"

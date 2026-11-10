@@ -685,6 +685,7 @@ const memoryStore = {
   playerSubscribers: new Map<string, Set<(players: TournamentPlayer[]) => void>>(),
   standingSubscribers: new Map<string, Set<(standings: TournamentTeamStanding[]) => void>>(),
   contactSubscribers: new Map<string, Set<(contacts: Record<string, string>) => void>>(),
+  contactFirestoreListeners: new Map<string, { unsub: () => void; count: number }>(),
 };
 
 function notifyContactSubscribers(tournamentId: string) {
@@ -1814,22 +1815,41 @@ export const tournamentService = {
     };
     delete (data as any).managerPhone;
 
-    const current = getLocalTeams(cleanTeam.tournamentId);
-    saveLocalTeams(cleanTeam.tournamentId, [...current, data]);
-
-    try {
-      await setDoc(doc(db, TEAMS_COLLECTION, teamId), data);
-    } catch (e) {
-      console.warn("Firestore sync warning on addTeam:", e);
-    }
+    const batch = writeBatch(db);
+    const teamDocRef = doc(db, TEAMS_COLLECTION, teamId);
+    batch.set(teamDocRef, data);
 
     if (phone) {
-      await this.saveTournamentContact({
+      const contactDocId = `tc_team_${teamId}`;
+      const contactDocRef = doc(db, CONTACTS_COLLECTION, contactDocId);
+      const contactData: TournamentContact = {
+        id: contactDocId,
         tournamentId: cleanTeam.tournamentId,
         type: "team",
         targetId: teamId,
+        teamId: teamId,
         contactNumber: phone,
-      });
+        updatedAt: now,
+      };
+      batch.set(contactDocRef, contactData);
+    }
+
+    try {
+      await batch.commit();
+    } catch (e) {
+      console.error("Firestore batch error on addTeam for team ID:", teamId, e);
+      throw e;
+    }
+
+    const current = getLocalTeams(cleanTeam.tournamentId);
+    saveLocalTeams(cleanTeam.tournamentId, [...current, data]);
+
+    if (phone) {
+      if (!memoryStore.contacts.has(cleanTeam.tournamentId)) {
+        memoryStore.contacts.set(cleanTeam.tournamentId, new Map());
+      }
+      memoryStore.contacts.get(cleanTeam.tournamentId)!.set(teamId, phone);
+      notifyContactSubscribers(cleanTeam.tournamentId);
     }
 
     return teamId;
@@ -1840,61 +1860,122 @@ export const tournamentService = {
     updates: Partial<TournamentTeam> & { managerPhone?: string },
     managerPhone?: string
   ): Promise<void> {
-    const { managerPhone: inlinePhone, ...cleanUpdates } = updates as any;
+    const { managerPhone: inlinePhone, tournamentId: rawExplicitTournamentId, ...cleanUpdates } = updates as any;
     const phone = managerPhone !== undefined ? managerPhone : inlinePhone;
+    const explicitTournamentId = typeof rawExplicitTournamentId === "string" ? rawExplicitTournamentId.trim() : "";
     const now = new Date().toISOString();
     delete (cleanUpdates as any).managerPhone;
+    delete (cleanUpdates as any).tournamentId;
 
-    let tournamentId = "";
+    let inMemoryTournamentId = "";
     for (const [tId, list] of memoryStore.teams.entries()) {
-      const idx = list.findIndex((t) => t.id === teamId);
-      if (idx !== -1) {
-        tournamentId = tId;
-        const updated = [...list];
-        updated[idx] = { ...updated[idx], ...cleanUpdates, updatedAt: now };
-        saveLocalTeams(tId, updated);
+      if (list.some((t) => t.id === teamId)) {
+        inMemoryTournamentId = tId;
         break;
       }
     }
 
-    try {
-      await updateDoc(doc(db, TEAMS_COLLECTION, teamId), {
-        ...cleanUpdates,
-        updatedAt: now,
-      });
-    } catch (e) {
-      console.warn("Firestore sync warning on updateTeam:", e);
+    if (explicitTournamentId && inMemoryTournamentId && explicitTournamentId !== inMemoryTournamentId) {
+      throw new Error(
+        `Tournament ID mismatch for team ${teamId}: explicit "${explicitTournamentId}" conflicts with existing association "${inMemoryTournamentId}".`
+      );
     }
+
+    const resolvedTournamentId = explicitTournamentId || inMemoryTournamentId;
+
+    if (phone !== undefined && phone.trim() && !resolvedTournamentId) {
+      throw new Error(`Cannot update contact: missing valid tournament ID for team ${teamId}.`);
+    }
+
+    const batch = writeBatch(db);
+    const teamDocRef = doc(db, TEAMS_COLLECTION, teamId);
+    batch.update(teamDocRef, {
+      ...cleanUpdates,
+      updatedAt: now,
+    });
+
+    const contactDocId = `tc_team_${teamId}`;
+    const contactDocRef = doc(db, CONTACTS_COLLECTION, contactDocId);
 
     if (phone !== undefined) {
       if (phone.trim()) {
-        await this.saveTournamentContact({
-          tournamentId: tournamentId || "",
+        const contactData: TournamentContact = {
+          id: contactDocId,
+          tournamentId: resolvedTournamentId,
           type: "team",
           targetId: teamId,
+          teamId: teamId,
           contactNumber: phone.trim(),
-        });
+          updatedAt: now,
+        };
+        batch.set(contactDocRef, contactData);
       } else {
-        await this.deleteTournamentContact("team", teamId);
+        batch.delete(contactDocRef);
+      }
+    }
+
+    try {
+      await batch.commit();
+    } catch (e) {
+      console.error("Firestore batch error on updateTeam for team ID:", teamId, e);
+      throw e;
+    }
+
+    if (resolvedTournamentId) {
+      const list = memoryStore.teams.get(resolvedTournamentId) || [];
+      const idx = list.findIndex((t) => t.id === teamId);
+      if (idx !== -1) {
+        const updated = [...list];
+        updated[idx] = { ...updated[idx], ...cleanUpdates, updatedAt: now };
+        saveLocalTeams(resolvedTournamentId, updated);
+      }
+
+      if (phone !== undefined) {
+        if (!memoryStore.contacts.has(resolvedTournamentId)) {
+          memoryStore.contacts.set(resolvedTournamentId, new Map());
+        }
+        if (phone.trim()) {
+          memoryStore.contacts.get(resolvedTournamentId)!.set(teamId, phone.trim());
+        } else {
+          memoryStore.contacts.get(resolvedTournamentId)!.delete(teamId);
+        }
+        notifyContactSubscribers(resolvedTournamentId);
       }
     }
   },
 
   async deleteTeam(teamId: string): Promise<void> {
+    let tournamentId = "";
     for (const [tId, list] of memoryStore.teams.entries()) {
       if (list.some((t) => t.id === teamId)) {
-        saveLocalTeams(tId, list.filter((t) => t.id !== teamId));
+        tournamentId = tId;
         break;
       }
     }
 
+    const batch = writeBatch(db);
+    const teamDocRef = doc(db, TEAMS_COLLECTION, teamId);
+    const contactDocRef = doc(db, CONTACTS_COLLECTION, `tc_team_${teamId}`);
+
+    batch.delete(teamDocRef);
+    batch.delete(contactDocRef);
+
     try {
-      await deleteDoc(doc(db, TEAMS_COLLECTION, teamId));
+      await batch.commit();
     } catch (e) {
-      console.warn("Firestore sync warning on deleteTeam:", e);
+      console.error("Firestore batch error on deleteTeam for team ID:", teamId, e);
+      throw e;
     }
 
-    await this.deleteTournamentContact("team", teamId);
+    if (tournamentId) {
+      const list = memoryStore.teams.get(tournamentId) || [];
+      saveLocalTeams(tournamentId, list.filter((t) => t.id !== teamId));
+
+      if (memoryStore.contacts.has(tournamentId)) {
+        memoryStore.contacts.get(tournamentId)!.delete(teamId);
+        notifyContactSubscribers(tournamentId);
+      }
+    }
   },
 
   // ==========================================
@@ -1962,22 +2043,41 @@ export const tournamentService = {
     };
     delete (data as any).contactNumber;
 
-    const current = getLocalPlayers(cleanPlayer.tournamentId);
-    saveLocalPlayers(cleanPlayer.tournamentId, [...current, data]);
-
-    try {
-      await setDoc(doc(db, PLAYERS_COLLECTION, playerId), data);
-    } catch (e) {
-      console.warn("Firestore sync warning on addPlayer:", e);
-    }
+    const batch = writeBatch(db);
+    const playerDocRef = doc(db, PLAYERS_COLLECTION, playerId);
+    batch.set(playerDocRef, data);
 
     if (phone) {
-      await this.saveTournamentContact({
+      const contactDocId = `tc_player_${playerId}`;
+      const contactDocRef = doc(db, CONTACTS_COLLECTION, contactDocId);
+      const contactData: TournamentContact = {
+        id: contactDocId,
         tournamentId: cleanPlayer.tournamentId,
         type: "player",
         targetId: playerId,
+        playerId: playerId,
         contactNumber: phone,
-      });
+        updatedAt: now,
+      };
+      batch.set(contactDocRef, contactData);
+    }
+
+    try {
+      await batch.commit();
+    } catch (e) {
+      console.error("Firestore batch error on addPlayer for player ID:", playerId, e);
+      throw e;
+    }
+
+    const current = getLocalPlayers(cleanPlayer.tournamentId);
+    saveLocalPlayers(cleanPlayer.tournamentId, [...current, data]);
+
+    if (phone) {
+      if (!memoryStore.contacts.has(cleanPlayer.tournamentId)) {
+        memoryStore.contacts.set(cleanPlayer.tournamentId, new Map());
+      }
+      memoryStore.contacts.get(cleanPlayer.tournamentId)!.set(playerId, phone);
+      notifyContactSubscribers(cleanPlayer.tournamentId);
     }
 
     return playerId;
@@ -1988,61 +2088,122 @@ export const tournamentService = {
     updates: Partial<TournamentPlayer> & { contactNumber?: string },
     contactNumber?: string
   ): Promise<void> {
-    const { contactNumber: inlineContact, ...cleanUpdates } = updates as any;
+    const { contactNumber: inlineContact, tournamentId: rawExplicitTournamentId, ...cleanUpdates } = updates as any;
     const phone = contactNumber !== undefined ? contactNumber : inlineContact;
+    const explicitTournamentId = typeof rawExplicitTournamentId === "string" ? rawExplicitTournamentId.trim() : "";
     const now = new Date().toISOString();
     delete (cleanUpdates as any).contactNumber;
+    delete (cleanUpdates as any).tournamentId;
 
-    let tournamentId = "";
+    let inMemoryTournamentId = "";
     for (const [tId, list] of memoryStore.players.entries()) {
-      const idx = list.findIndex((p) => p.id === playerId);
-      if (idx !== -1) {
-        tournamentId = tId;
-        const updated = [...list];
-        updated[idx] = { ...updated[idx], ...cleanUpdates, updatedAt: now };
-        saveLocalPlayers(tId, updated);
+      if (list.some((p) => p.id === playerId)) {
+        inMemoryTournamentId = tId;
         break;
       }
     }
 
-    try {
-      await updateDoc(doc(db, PLAYERS_COLLECTION, playerId), {
-        ...cleanUpdates,
-        updatedAt: now,
-      });
-    } catch (e) {
-      console.warn("Firestore sync warning on updatePlayer:", e);
+    if (explicitTournamentId && inMemoryTournamentId && explicitTournamentId !== inMemoryTournamentId) {
+      throw new Error(
+        `Tournament ID mismatch for player ${playerId}: explicit "${explicitTournamentId}" conflicts with existing association "${inMemoryTournamentId}".`
+      );
     }
+
+    const resolvedTournamentId = explicitTournamentId || inMemoryTournamentId;
+
+    if (phone !== undefined && phone.trim() && !resolvedTournamentId) {
+      throw new Error(`Cannot update contact: missing valid tournament ID for player ${playerId}.`);
+    }
+
+    const batch = writeBatch(db);
+    const playerDocRef = doc(db, PLAYERS_COLLECTION, playerId);
+    batch.update(playerDocRef, {
+      ...cleanUpdates,
+      updatedAt: now,
+    });
+
+    const contactDocId = `tc_player_${playerId}`;
+    const contactDocRef = doc(db, CONTACTS_COLLECTION, contactDocId);
 
     if (phone !== undefined) {
       if (phone.trim()) {
-        await this.saveTournamentContact({
-          tournamentId: tournamentId || "",
+        const contactData: TournamentContact = {
+          id: contactDocId,
+          tournamentId: resolvedTournamentId,
           type: "player",
           targetId: playerId,
+          playerId: playerId,
           contactNumber: phone.trim(),
-        });
+          updatedAt: now,
+        };
+        batch.set(contactDocRef, contactData);
       } else {
-        await this.deleteTournamentContact("player", playerId);
+        batch.delete(contactDocRef);
+      }
+    }
+
+    try {
+      await batch.commit();
+    } catch (e) {
+      console.error("Firestore batch error on updatePlayer for player ID:", playerId, e);
+      throw e;
+    }
+
+    if (resolvedTournamentId) {
+      const list = memoryStore.players.get(resolvedTournamentId) || [];
+      const idx = list.findIndex((p) => p.id === playerId);
+      if (idx !== -1) {
+        const updated = [...list];
+        updated[idx] = { ...updated[idx], ...cleanUpdates, updatedAt: now };
+        saveLocalPlayers(resolvedTournamentId, updated);
+      }
+
+      if (phone !== undefined) {
+        if (!memoryStore.contacts.has(resolvedTournamentId)) {
+          memoryStore.contacts.set(resolvedTournamentId, new Map());
+        }
+        if (phone.trim()) {
+          memoryStore.contacts.get(resolvedTournamentId)!.set(playerId, phone.trim());
+        } else {
+          memoryStore.contacts.get(resolvedTournamentId)!.delete(playerId);
+        }
+        notifyContactSubscribers(resolvedTournamentId);
       }
     }
   },
 
   async deletePlayer(playerId: string): Promise<void> {
+    let tournamentId = "";
     for (const [tId, list] of memoryStore.players.entries()) {
       if (list.some((p) => p.id === playerId)) {
-        saveLocalPlayers(tId, list.filter((p) => p.id !== playerId));
+        tournamentId = tId;
         break;
       }
     }
 
+    const batch = writeBatch(db);
+    const playerDocRef = doc(db, PLAYERS_COLLECTION, playerId);
+    const contactDocRef = doc(db, CONTACTS_COLLECTION, `tc_player_${playerId}`);
+
+    batch.delete(playerDocRef);
+    batch.delete(contactDocRef);
+
     try {
-      await deleteDoc(doc(db, PLAYERS_COLLECTION, playerId));
+      await batch.commit();
     } catch (e) {
-      console.warn("Firestore sync warning on deletePlayer:", e);
+      console.error("Firestore batch error on deletePlayer for player ID:", playerId, e);
+      throw e;
     }
 
-    await this.deleteTournamentContact("player", playerId);
+    if (tournamentId) {
+      const list = memoryStore.players.get(tournamentId) || [];
+      saveLocalPlayers(tournamentId, list.filter((p) => p.id !== playerId));
+
+      if (memoryStore.contacts.has(tournamentId)) {
+        memoryStore.contacts.get(tournamentId)!.delete(playerId);
+        notifyContactSubscribers(tournamentId);
+      }
+    }
   },
 
   // ==========================================
@@ -2067,32 +2228,35 @@ export const tournamentService = {
       updatedAt: now,
     };
 
-    if (!memoryStore.contacts.has(contact.tournamentId)) {
-      memoryStore.contacts.set(contact.tournamentId, new Map());
-    }
-    memoryStore.contacts.get(contact.tournamentId)!.set(contact.targetId, contact.contactNumber);
-    notifyContactSubscribers(contact.tournamentId);
-
     try {
       await setDoc(doc(db, CONTACTS_COLLECTION, docId), data);
+
+      if (!memoryStore.contacts.has(contact.tournamentId)) {
+        memoryStore.contacts.set(contact.tournamentId, new Map());
+      }
+      memoryStore.contacts.get(contact.tournamentId)!.set(contact.targetId, contact.contactNumber);
+      notifyContactSubscribers(contact.tournamentId);
     } catch (e) {
-      console.warn("Firestore sync warning on saveTournamentContact:", e);
+      console.error(`Firestore error on saveTournamentContact for ${contact.type} ${contact.targetId}:`, e);
+      throw e;
     }
   },
 
   async deleteTournamentContact(type: "team" | "player", targetId: string): Promise<void> {
     const docId = `tc_${type}_${targetId}`;
-    for (const [tId, map] of memoryStore.contacts.entries()) {
-      if (map.has(targetId)) {
-        map.delete(targetId);
-        notifyContactSubscribers(tId);
-      }
-    }
 
     try {
       await deleteDoc(doc(db, CONTACTS_COLLECTION, docId));
+
+      for (const [tId, map] of memoryStore.contacts.entries()) {
+        if (map.has(targetId)) {
+          map.delete(targetId);
+          notifyContactSubscribers(tId);
+        }
+      }
     } catch (e) {
-      console.warn("Firestore sync warning on deleteTournamentContact:", e);
+      console.error(`Firestore error on deleteTournamentContact for ${type} ${targetId}:`, e);
+      throw e;
     }
   },
 
@@ -2116,67 +2280,90 @@ export const tournamentService = {
     const subs = memoryStore.contactSubscribers.get(tournamentId)!;
     subs.add(callback);
 
-    let unsubFirestore: (() => void) | null = null;
-    try {
-      const q = query(
-        collection(db, CONTACTS_COLLECTION),
-        where("tournamentId", "==", tournamentId)
-      );
-      unsubFirestore = onSnapshot(
-        q,
-        (snapshot) => {
-          if (!memoryStore.contacts.has(tournamentId)) {
-            memoryStore.contacts.set(tournamentId, new Map());
+    const existingListener = memoryStore.contactFirestoreListeners.get(tournamentId);
+    if (existingListener) {
+      existingListener.count += 1;
+    } else {
+      try {
+        const q = query(
+          collection(db, CONTACTS_COLLECTION),
+          where("tournamentId", "==", tournamentId)
+        );
+        const unsubFirestore = onSnapshot(
+          q,
+          (snapshot) => {
+            // Reconcile local map with latest snapshot: fresh map eliminates deleted/stale contacts
+            const freshMap = new Map<string, string>();
+            snapshot.forEach((docSnap) => {
+              const data = docSnap.data() as TournamentContact;
+              if (data.targetId && data.contactNumber) {
+                freshMap.set(data.targetId, data.contactNumber);
+              }
+            });
+            memoryStore.contacts.set(tournamentId, freshMap);
+            notifyContactSubscribers(tournamentId);
+          },
+          (error) => {
+            onError?.(error);
           }
-          const map = memoryStore.contacts.get(tournamentId)!;
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data() as TournamentContact;
-            if (data.targetId && data.contactNumber) {
-              map.set(data.targetId, data.contactNumber);
-            }
-          });
-          const obj: Record<string, string> = {};
-          map.forEach((phone, id) => {
-            obj[id] = phone;
-          });
-          callback(obj);
-        },
-        (error) => onError?.(error)
-      );
-    } catch (e: any) {
-      onError?.(e);
+        );
+        memoryStore.contactFirestoreListeners.set(tournamentId, {
+          unsub: unsubFirestore,
+          count: 1,
+        });
+      } catch (e: any) {
+        onError?.(e);
+      }
     }
 
     return () => {
       subs.delete(callback);
-      if (unsubFirestore) unsubFirestore();
+      const listener = memoryStore.contactFirestoreListeners.get(tournamentId);
+      if (listener) {
+        listener.count -= 1;
+        if (listener.count <= 0) {
+          try {
+            listener.unsub();
+          } catch (unsubErr) {
+            console.warn("Notice during contact listener unsubscribe:", unsubErr);
+          }
+          memoryStore.contactFirestoreListeners.delete(tournamentId);
+        }
+      }
     };
   },
 
   async getTournamentContacts(tournamentId: string): Promise<Record<string, string>> {
-    const contactsMap: Record<string, string> = {};
-    const local = memoryStore.contacts.get(tournamentId);
-    if (local) {
-      local.forEach((phone, id) => {
-        contactsMap[id] = phone;
-      });
-    }
     try {
       const q = query(
         collection(db, CONTACTS_COLLECTION),
         where("tournamentId", "==", tournamentId)
       );
       const snapshot = await getDocs(q);
+      const freshMap = new Map<string, string>();
       snapshot.forEach((docSnap) => {
         const data = docSnap.data() as TournamentContact;
         if (data.targetId && data.contactNumber) {
-          contactsMap[data.targetId] = data.contactNumber;
+          freshMap.set(data.targetId, data.contactNumber);
         }
       });
+      memoryStore.contacts.set(tournamentId, freshMap);
+      const contactsMap: Record<string, string> = {};
+      freshMap.forEach((phone, id) => {
+        contactsMap[id] = phone;
+      });
+      return contactsMap;
     } catch (e) {
       console.warn("getTournamentContacts fallback to local:", e);
+      const contactsMap: Record<string, string> = {};
+      const local = memoryStore.contacts.get(tournamentId);
+      if (local) {
+        local.forEach((phone, id) => {
+          contactsMap[id] = phone;
+        });
+      }
+      return contactsMap;
     }
-    return contactsMap;
   },
 
   // ==========================================

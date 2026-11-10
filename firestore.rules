@@ -795,6 +795,88 @@ service cloud.firestore {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // TOURNAMENT CONTACTS (PRIVATE STORAGE)
+    // Secure private contact numbers for team managers and players.
+    // Never publicly readable or writable.
+    // ─────────────────────────────────────────────────────────────
+    function isTournamentOrganizer(tid) {
+      let tPath = tournamentPath(tid);
+      return isAuthenticated()
+        && exists(tPath)
+        && ownsOpenTournament(tid);
+    }
+
+    function targetTeamBelongsToTournament(teamId, tid) {
+      let tPath = /databases/$(database)/documents/tournamentTeams/$(teamId);
+      return (exists(tPath) && get(tPath).data.tournamentId == tid)
+        || (existsAfter(tPath) && getAfter(tPath).data.tournamentId == tid);
+    }
+
+    function targetPlayerBelongsToTournament(playerId, tid) {
+      let pPath = /databases/$(database)/documents/tournamentPlayers/$(playerId);
+      return (exists(pPath) && get(pPath).data.tournamentId == tid)
+        || (existsAfter(pPath) && getAfter(pPath).data.tournamentId == tid);
+    }
+
+    function isValidTournamentContactData(d, contactId) {
+      return d.id == contactId
+        && d.tournamentId is string && d.tournamentId.size() > 0 && d.tournamentId.size() <= 100
+        && exists(tournamentPath(d.tournamentId))
+        && d.contactNumber is string && d.contactNumber.size() >= 5 && d.contactNumber.size() <= 30
+        && d.contactNumber.matches('^\\+?[0-9\\s\\-\\(\\)]{5,30}$')
+        && (!d.keys().hasAny(['updatedAt']) || (d.updatedAt is string && d.updatedAt.size() <= 50))
+        && (!d.keys().hasAny(['createdAt']) || (d.createdAt is string && d.createdAt.size() <= 50))
+        && d.targetId is string
+        && (
+          (d.type == 'team'
+            && d.keys().hasOnly(['id', 'tournamentId', 'type', 'targetId', 'teamId', 'contactNumber', 'createdAt', 'updatedAt'])
+            && d.keys().hasAll(['id', 'tournamentId', 'type', 'targetId', 'teamId', 'contactNumber'])
+            && d.targetId is string
+            && d.teamId is string
+            && d.targetId == d.teamId
+            && contactId == 'tc_team_' + d.teamId
+            && targetTeamBelongsToTournament(d.teamId, d.tournamentId))
+          ||
+          (d.type == 'player'
+            && d.keys().hasOnly(['id', 'tournamentId', 'type', 'targetId', 'playerId', 'contactNumber', 'createdAt', 'updatedAt'])
+            && d.keys().hasAll(['id', 'tournamentId', 'type', 'targetId', 'playerId', 'contactNumber'])
+            && d.targetId is string
+            && d.playerId is string
+            && d.targetId == d.playerId
+            && contactId == 'tc_player_' + d.playerId
+            && targetPlayerBelongsToTournament(d.playerId, d.tournamentId))
+        );
+    }
+
+    match /tournamentContacts/{contactId} {
+      // Private reads: ONLY admins or authorized tournament owner
+      allow read: if isAdmin() || isTournamentOrganizer(resource.data.tournamentId);
+
+      // Create: Only admin or open tournament owner, with full validation
+      allow create: if (isAdmin() || isTournamentOrganizer(request.resource.data.tournamentId))
+        && isValidTournamentContactData(request.resource.data, contactId);
+
+      // Update: Only admin or open tournament owner; immutable tournamentId, type, targetId, teamId/playerId, id, createdAt
+      allow update: if (isAdmin() || isTournamentOrganizer(resource.data.tournamentId))
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.tournamentId == resource.data.tournamentId
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.targetId == resource.data.targetId
+        && (!resource.data.keys().hasAny(['teamId']) || request.resource.data.teamId == resource.data.teamId)
+        && (!resource.data.keys().hasAny(['playerId']) || request.resource.data.playerId == resource.data.playerId)
+        && (!resource.data.keys().hasAny(['createdAt']) || request.resource.data.createdAt == resource.data.createdAt)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['contactNumber', 'updatedAt'])
+        && request.resource.data.contactNumber is string
+        && request.resource.data.contactNumber.size() >= 5
+        && request.resource.data.contactNumber.size() <= 30
+        && request.resource.data.contactNumber.matches('^\\+?[0-9\\s\\-\\(\\)]{5,30}$')
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['updatedAt']) || (request.resource.data.updatedAt is string && request.resource.data.updatedAt.size() <= 50));
+
+      // Delete: Only admin or open tournament owner
+      allow delete: if isAdmin() || isTournamentOrganizer(resource.data.tournamentId);
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // COMMUNITY ACTIVITY FEED
     // ─────────────────────────────────────────────────────────────
     match /communityActivities/{activityId} {
