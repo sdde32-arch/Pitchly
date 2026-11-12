@@ -17,6 +17,7 @@ import { useUser } from "../../context/UserContext";
 import { Booking } from "../../types/firebase";
 import { MatchWeatherWidget } from "../weather/MatchWeatherWidget";
 import { SmartDashboardSkeleton } from "../ui/Skeleton";
+import { SITE_URL } from "../../utils/contact";
 
 interface SmartDashboardProps {
   upcomingBooking?: Booking | null;
@@ -73,7 +74,7 @@ export const SmartDashboard: React.FC<SmartDashboardProps> = ({
   }
 
   const handleCopyMatchInvite = () => {
-    const matchText = `⚽ Matchday Invite: Lugogo AstroTurf 7v7 on Friday 07:00 PM!\nSlot reference: #PTC-8821\nJoin our squad lineup on Pitchly App: https://pitchly.ug/match/8821`;
+    const matchText = `⚽ Matchday Invite: Lugogo AstroTurf 7v7 on Friday 07:00 PM!\nSlot reference: #PTC-8821\nJoin our squad lineup on Pitchly App: ${SITE_URL}/match/8821`;
     navigator.clipboard?.writeText(matchText);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);

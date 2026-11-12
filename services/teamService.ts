@@ -12,6 +12,7 @@ import {
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { Team, TeamMember } from "../types/firebase";
 import { communityActivityService } from "./communityActivityService";
+import { SITE_URL } from "../utils/contact";
 
 const COLLECTION_NAME = "teams";
 const LOCAL_STORAGE_PREFIX = "pitchly_teams_cache";
@@ -33,7 +34,7 @@ export function generateSquadInviteCode(teamName: string = "SQUAD"): string {
  * Generate full shareable invite URL
  */
 export function generateSquadInviteUrl(inviteCode: string): string {
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://pitchly.app";
+  const origin = typeof window !== "undefined" ? window.location.origin : SITE_URL;
   return `${origin}/teams/join/${encodeURIComponent(inviteCode)}`;
 }
 

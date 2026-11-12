@@ -3,6 +3,7 @@ import { db } from '../lib/firebase';
 import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { offlineCacheService } from './offlineCacheService';
 import { Turf, PitchStatus } from '../types';
+import { SUPPORT_EMAIL } from '../utils/contact';
 
 const DELETED_PITCHES_KEY = 'pitchly_deleted_pitch_ids';
 
@@ -73,7 +74,7 @@ export const turfToPitch = (t: Turf): Pitch => ({
   createdAt: t.submittedAt || new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   contactPhone: t.contactPhone || '',
-  contactEmail: t.contactEmail || 'info@pitchly.ug',
+  contactEmail: t.contactEmail || SUPPORT_EMAIL,
   description: t.description || '',
   surfaceType: t.surfaceType || 'Synthetic Grass (AstroTurf)',
   ...({

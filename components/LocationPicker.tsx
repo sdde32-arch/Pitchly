@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin, Search, CheckCircle, Navigation, Loader2 } from 'lucide-react';
+import { SUPPORT_EMAIL } from '../utils/contact';
 
 interface LocationPickerProps {
   latitude: number | null;
@@ -106,7 +107,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
     try {
       const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
       console.log('[LocationPicker] Fetching reverse geocode from Nominatim:', url);
-      const res = await fetch(url, { headers: { 'User-Agent': 'PitchlyApp/1.0 (contact@pitchly.app)' } });
+      const res = await fetch(url, { headers: { 'User-Agent': `PitchlyApp/1.0 (${SUPPORT_EMAIL})` } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const address = data.display_name || `Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
@@ -167,7 +168,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
       try {
         const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=ug&limit=5`;
         console.log('[LocationPicker] Searching Nominatim:', searchUrl);
-        const res = await fetch(searchUrl, { headers: { 'User-Agent': 'PitchlyApp/1.0 (contact@pitchly.app)' } });
+        const res = await fetch(searchUrl, { headers: { 'User-Agent': `PitchlyApp/1.0 (${SUPPORT_EMAIL})` } });
         if (res.ok) {
           const data = await res.json();
           console.log('[LocationPicker] Search results count:', data.length);

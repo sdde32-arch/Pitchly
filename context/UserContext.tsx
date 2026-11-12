@@ -77,7 +77,7 @@ interface UserContextType {
   updateProfile: (data: Partial<UserProfileData>) => Promise<void>;
   signOut: () => Promise<void>;
   signInWithGoogle: (preferredRole?: "PLAYER" | "OWNER") => Promise<User>;
-  switchRole: () => void;
+  switchRole: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -202,34 +202,58 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const updateProfile = async (data: Partial<UserProfileData>) => {
-    setUserProfile((prev) => {
-      if (!prev) return null;
-      const updated = { ...prev, ...data };
-      localStorage.setItem("pitchly_last_user", JSON.stringify(updated));
-      return updated;
-    });
+    // 1. Sanitize input to prevent privilege escalation or tampering
+    const sanitizedData: Record<string, any> = { ...data };
+    delete sanitizedData.isAdmin;
+    delete sanitizedData.isSuperAdmin;
+    delete sanitizedData.permissions;
+
+    // 2. Persist to Firestore first and await confirmation before mutating React state
     if (user) {
       const docRef = doc(db, "users", user.uid);
-      await setDoc(docRef, data, { merge: true });
+      await setDoc(docRef, sanitizedData, { merge: true });
 
-      if (data.name || data.avatar || data.avatarId) {
+      if (sanitizedData.name || sanitizedData.avatar || sanitizedData.avatarId) {
         userService.syncPublicProfile(user.uid, {
-          name: data.name || userProfile?.name,
-          avatar: data.avatar || userProfile?.avatar,
-          avatarId: data.avatarId || userProfile?.avatarId,
+          name: sanitizedData.name || userProfile?.name,
+          avatar: sanitizedData.avatar || userProfile?.avatar,
+          avatarId: sanitizedData.avatarId || userProfile?.avatarId,
         }).catch(console.warn);
       }
     }
+
+    // 3. Update local state and cache only after persistent write succeeds
+    setUserProfile((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, ...sanitizedData };
+      try {
+        localStorage.setItem("pitchly_last_user", JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
   };
 
-  const switchRole = () => {
+  const switchRole = async () => {
     if (isAdmin) {
       console.warn("switchRole is disabled for admin accounts");
       return;
     }
-    if (!userProfile) return;
-    const newRole = userProfile.role === "PLAYER" ? "OWNER" : "PLAYER";
-    updateProfile({ role: newRole });
+    if (!userProfile || !user) return;
+
+    // Normalize current roles to ensure valid array with PLAYER present
+    const currentRoles = (userProfile.roles || [userProfile.role || "PLAYER"]).filter(
+      (r) => r === "PLAYER" || r === "OWNER"
+    ) as ("PLAYER" | "OWNER")[];
+
+    const targetRole: "PLAYER" | "OWNER" = userProfile.role === "PLAYER" ? "OWNER" : "PLAYER";
+    // Security rules require: roles.hasAll(['PLAYER']) and roles.hasOnly(['PLAYER', 'OWNER'])
+    // and new role must be in resulting roles list
+    const updatedRoles = Array.from(new Set([...currentRoles, "PLAYER", targetRole])) as ("PLAYER" | "OWNER")[];
+
+    await updateProfile({
+      role: targetRole,
+      roles: updatedRoles,
+    });
   };
 
   const addXP = (amount: number) => {

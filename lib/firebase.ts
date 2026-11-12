@@ -21,11 +21,42 @@ import {
 import { getFirebaseConfig, ResolvedFirebaseConfig } from './firebaseEnv';
 import { connectFirestoreEmulator } from 'firebase/firestore';
 import { connectAuthEmulator } from 'firebase/auth';
+import { getStorage, connectStorageEmulator, FirebaseStorage } from 'firebase/storage';
 
 export const resolvedConfig: ResolvedFirebaseConfig = getFirebaseConfig();
 
 export const app = getApps().length === 0 ? initializeApp(resolvedConfig.firebaseConfig) : getApp();
 export const auth = getAuth(app);
+export const storage: FirebaseStorage = getStorage(app);
+
+// Singleton tracking to guarantee Storage emulator is connected at most once
+let storageEmulatorConnected = false;
+
+/**
+ * Connects a FirebaseStorage instance to the local emulator exactly once.
+ * Returns true if the connection was established, or false if already connected.
+ */
+export function connectStorageEmulatorOnce(
+  storageInstance: FirebaseStorage,
+  host: string,
+  port: number
+): boolean {
+  if (storageEmulatorConnected || Boolean((storageInstance as any)._isUsingEmulator)) {
+    return false;
+  }
+  connectStorageEmulator(storageInstance, host, port);
+  if (storageInstance === storage) {
+    storageEmulatorConnected = true;
+  }
+  return true;
+}
+
+/**
+ * Returns whether the shared Storage singleton is connected to an emulator.
+ */
+export function isStorageEmulatorConnected(): boolean {
+  return storageEmulatorConnected || Boolean((storage as any)._isUsingEmulator);
+}
 
 // Enable persistent multi-tab offline caching for Firestore
 const databaseId = resolvedConfig.databaseId || '(default)';
@@ -48,6 +79,9 @@ if (resolvedConfig.emulator?.enabled) {
   connectFirestoreEmulator(firestoreInstance, resolvedConfig.emulator.host, resolvedConfig.emulator.firestorePort);
   if (resolvedConfig.emulator.authPort) {
     connectAuthEmulator(auth, `http://${resolvedConfig.emulator.host}:${resolvedConfig.emulator.authPort}`, { disableWarnings: true });
+  }
+  if (resolvedConfig.emulator.storagePort) {
+    connectStorageEmulatorOnce(storage, resolvedConfig.emulator.host, resolvedConfig.emulator.storagePort);
   }
 }
 

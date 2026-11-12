@@ -19,7 +19,7 @@ export const Button: React.FC<ButtonProps> = ({
   
   let variantClasses = "";
   if (variant === 'primary') {
-    variantClasses = "bg-primary-lime text-accent-text hover:bg-[#96E600] active:bg-[#85CC00] shadow-sm shadow-primary-lime/20 font-bold";
+    variantClasses = "bg-cta-bg text-cta-text hover:bg-cta-bg-hover shadow-sm font-bold";
   } else if (variant === 'secondary') {
     variantClasses = "bg-surface-raised text-text-primary hover:bg-border-subtle border border-border-subtle shadow-sm";
   } else if (variant === 'outline') {

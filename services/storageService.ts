@@ -1,8 +1,6 @@
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { app } from '../lib/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { storage } from '../lib/firebase';
 import { compressImage } from '../utils/compressImage';
-
-const storage = getStorage(app);
 
 const STALL_TIMEOUT_MS = 30000; // 30s without byte progress
 const HARD_TIMEOUT_MS = 120000; // 120s max limit

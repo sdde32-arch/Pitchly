@@ -98,7 +98,7 @@ export const AdminLayout: React.FC = () => {
   return (
     <div className="min-h-screen h-screen w-full overflow-hidden bg-app-base flex flex-col lg:flex-row text-text-primary font-sans">
       {/* Desktop Sidebar matching Player Portal Design */}
-      <aside className="hidden lg:flex flex-col w-72 bg-surface-card border-r border-border-subtle h-full shrink-0 p-4 shadow-xs">
+      <aside className="hidden lg:flex flex-col w-72 bg-nav-bg border-r border-nav-border h-full shrink-0 p-4 shadow-xs text-nav-text">
         {/* Brand & Role Header */}
         <div className="flex items-center justify-between gap-3 mb-6">
           <div className="cursor-pointer" onClick={() => navigate("/admin/overview")}>
@@ -106,35 +106,35 @@ export const AdminLayout: React.FC = () => {
               size={32}
               showText={true}
               showTagline={false}
-              variant="auto"
+              variant="dark"
             />
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#A78BFA]/25 bg-[#A78BFA]/10 shadow-xs">
-            <Shield size={12} className="text-[#A78BFA]" />
-            <span className="text-[10px] font-bold text-[#A78BFA] tracking-wider uppercase">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-nav-admin-border bg-nav-admin-tint shadow-xs">
+            <Shield size={12} className="text-nav-admin" />
+            <span className="text-[10px] font-bold text-nav-admin tracking-wider uppercase">
               Admin
             </span>
           </div>
         </div>
 
         {/* User Card */}
-        <div className="flex items-center gap-3 bg-surface-raised p-3 rounded-2xl border border-border-subtle mb-6">
-          <div className="w-10 h-10 rounded-full bg-[#A78BFA]/15 text-[#A78BFA] border border-[#A78BFA]/30 flex items-center justify-center font-extrabold text-sm shrink-0">
+        <div className="flex items-center gap-3 bg-white/[0.04] p-3 rounded-2xl border border-nav-border mb-6">
+          <div className="w-10 h-10 rounded-full bg-nav-admin-tint text-nav-admin border border-nav-admin-border flex items-center justify-center font-extrabold text-sm shrink-0">
             {userProfile?.name?.charAt(0) || "A"}
           </div>
           <div className="overflow-hidden flex-1">
-            <p className="text-xs font-bold text-text-primary truncate">
+            <p className="text-xs font-bold text-nav-text truncate">
               {userProfile?.name || "Admin User"}
             </p>
-            <p className="text-[10px] text-text-secondary truncate font-medium">
-              {userProfile?.email || user?.email || "admin@pitchly.app"}
+            <p className="text-[10px] text-nav-text-muted truncate font-medium">
+              {userProfile?.email || user?.email || "Admin"}
             </p>
           </div>
         </div>
 
         {/* Navigation Menu */}
         <div className="mb-6 flex-1 overflow-y-auto no-scrollbar">
-          <p className="font-bold text-[10px] uppercase tracking-widest text-text-tertiary px-3 mb-2">
+          <p className="font-bold text-[10px] uppercase tracking-widest text-nav-text-muted px-3 mb-2">
             Admin Console
           </p>
           <nav className="space-y-1">
@@ -146,16 +146,16 @@ export const AdminLayout: React.FC = () => {
                   to={item.path}
                   className={`relative flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime ${
                     active
-                      ? "bg-primary-lime/10 text-primary-lime font-bold"
-                      : "text-text-secondary hover:bg-surface-raised hover:text-text-primary"
+                      ? "bg-nav-active-bg text-nav-active-text font-bold"
+                      : "text-nav-text-muted hover:bg-white/[0.06] hover:text-nav-text"
                   }`}
                 >
-                  <span className={`shrink-0 transition-colors ${active ? "text-primary-lime" : "text-text-tertiary"}`}>
+                  <span className={`shrink-0 transition-colors ${active ? "text-nav-active-text" : "text-nav-text-muted"}`}>
                     {item.icon}
                   </span>
                   <span>{item.label}</span>
                   {active && (
-                    <div className="ml-auto w-1.5 h-1.5 bg-primary-lime rounded-full shadow-[0_0_8px_#A8FF00]"></div>
+                    <div className="ml-auto w-1.5 h-1.5 bg-nav-active-text rounded-full shadow-[0_0_8px_#A8FF00]"></div>
                   )}
                 </NavLink>
               );
@@ -164,24 +164,24 @@ export const AdminLayout: React.FC = () => {
         </div>
 
         {/* Footer Actions */}
-        <div className="mt-auto pt-4 border-t border-border-subtle space-y-1 shrink-0">
+        <div className="mt-auto pt-4 border-t border-nav-border space-y-1 shrink-0">
           <button
             onClick={() => navigate("/home")}
-            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full text-xs font-medium text-text-secondary hover:bg-surface-raised hover:text-primary-lime transition-all group cursor-pointer"
+            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full text-xs font-medium text-nav-text-muted hover:bg-white/[0.06] hover:text-nav-active-text transition-all group cursor-pointer"
             title="Switch to Player Portal view"
           >
-            <Eye size={18} className="text-primary-lime group-hover:scale-110 transition-transform" />
+            <Eye size={18} className="text-nav-active-text group-hover:scale-110 transition-transform" />
             <span>Player Portal</span>
-            <ArrowRightCircle size={14} className="ml-auto opacity-60 group-hover:opacity-100 text-text-tertiary" />
+            <ArrowRightCircle size={14} className="ml-auto opacity-60 group-hover:opacity-100 text-nav-text-muted" />
           </button>
 
           <button
             onClick={() => navigate("/admin/settings")}
-            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full text-xs font-medium text-text-secondary hover:bg-surface-raised hover:text-text-primary transition-all cursor-pointer group"
+            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full text-xs font-medium text-nav-text-muted hover:bg-white/[0.06] hover:text-nav-text transition-all cursor-pointer group"
           >
             <Settings
               size={18}
-              className="group-hover:rotate-90 transition-transform duration-300 text-text-tertiary"
+              className="group-hover:rotate-90 transition-transform duration-300 text-nav-text-muted"
             />
             <span>Settings</span>
           </button>
@@ -202,7 +202,7 @@ export const AdminLayout: React.FC = () => {
       {/* Main Container */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative min-w-0">
         {/* Mobile Header matching Player Portal */}
-        <header className="bg-surface-card/90 backdrop-blur-md flex justify-between items-center w-full px-4 py-3 sticky top-0 z-50 border-b border-border-subtle lg:hidden">
+        <header className="bg-nav-bg-glass backdrop-blur-md flex justify-between items-center w-full px-4 py-3 sticky top-0 z-50 border-b border-nav-border lg:hidden text-nav-text">
           <div className="flex items-center gap-2">
             <div
               className="flex items-center gap-2 cursor-pointer"
@@ -212,12 +212,12 @@ export const AdminLayout: React.FC = () => {
                 size={30}
                 showText={true}
                 showTagline={false}
-                variant="auto"
+                variant="dark"
               />
             </div>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-[#A78BFA]/25 bg-[#A78BFA]/10">
-              <Shield size={11} className="text-[#A78BFA]" />
-              <span className="text-[9px] font-bold text-[#A78BFA] tracking-wider uppercase">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-nav-admin-border bg-nav-admin-tint">
+              <Shield size={11} className="text-nav-admin" />
+              <span className="text-[9px] font-bold text-nav-admin tracking-wider uppercase">
                 Admin
               </span>
             </div>
@@ -226,7 +226,7 @@ export const AdminLayout: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate("/home")}
-              className="px-2.5 py-1.5 rounded-full bg-surface-raised border border-border-subtle text-[11px] font-bold text-primary-lime flex items-center gap-1 cursor-pointer active:scale-95"
+              className="px-2.5 py-1.5 rounded-full bg-white/[0.06] border border-nav-border text-[11px] font-bold text-nav-active-text flex items-center gap-1 cursor-pointer active:scale-95"
               title="Player View"
             >
               <Eye size={13} />
@@ -234,7 +234,7 @@ export const AdminLayout: React.FC = () => {
             </button>
             <button
               onClick={handleSignOut}
-              className="w-9 h-9 rounded-full bg-surface-raised border border-border-subtle text-[#EF4444] hover:bg-[#EF4444]/10 flex items-center justify-center cursor-pointer transition-colors"
+              className="w-9 h-9 rounded-full bg-white/[0.06] border border-nav-border text-[#EF4444] hover:bg-[#EF4444]/10 flex items-center justify-center cursor-pointer transition-colors"
               title="Logout"
             >
               <LogOut size={16} />
@@ -243,7 +243,7 @@ export const AdminLayout: React.FC = () => {
         </header>
 
         {/* Mobile Sub-Navigation Bar matching sleek pills */}
-        <div className="lg:hidden bg-surface-card border-b border-border-subtle px-3 py-2 overflow-x-auto no-scrollbar">
+        <div className="lg:hidden bg-nav-bg border-b border-nav-border px-3 py-2 overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-1.5 min-w-max">
             {navItems.map((item) => {
               const active = location.pathname === item.path;
@@ -253,8 +253,8 @@ export const AdminLayout: React.FC = () => {
                   to={item.path}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                     active
-                      ? "bg-primary-lime text-accent-text shadow-xs"
-                      : "bg-surface-raised text-text-secondary hover:text-text-primary border border-border-subtle"
+                      ? "bg-nav-active-bg text-nav-active-text shadow-xs"
+                      : "bg-white/[0.04] text-nav-text-muted hover:text-nav-text border border-nav-border"
                   }`}
                 >
                   {item.icon}

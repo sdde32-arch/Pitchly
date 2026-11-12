@@ -4,6 +4,7 @@
  */
 
 export const SUPPORT_EMAIL = 'support@pitchly.live';
+export const SITE_URL = 'https://pitchly.live';
 
 // Keep empty string when no official WhatsApp support number is configured.
 // When set, format with country code and digits only (e.g. '2567XXXXXXXX').

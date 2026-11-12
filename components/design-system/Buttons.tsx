@@ -30,7 +30,7 @@ export const PrimaryButton: React.FC<ButtonProps> = ({
   return (
     <button
       disabled={disabled || loading}
-      className={`relative inline-flex items-center justify-center gap-2 rounded-xl font-sans uppercase transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none disabled:active:scale-100 bg-primary-lime hover:bg-[#96E600] text-accent-text font-bold shadow-md shadow-primary-lime/15 ${
+      className={`relative inline-flex items-center justify-center gap-2 rounded-xl font-sans uppercase transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none disabled:active:scale-100 bg-cta-bg hover:bg-cta-bg-hover text-cta-text font-bold shadow-md ${
         sizeStyles[size]
       } ${fullWidth ? 'w-full' : ''} ${className}`}
       {...props}

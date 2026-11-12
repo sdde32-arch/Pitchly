@@ -86,8 +86,16 @@ export function isValidEmulatorHost(host?: string | null): boolean {
  * Validates emulator port (integer between 1 and 65535).
  */
 export function isValidPort(port: any): boolean {
-  const num = typeof port === 'number' ? port : parseInt(String(port), 10);
-  return Number.isInteger(num) && num > 0 && num <= 65535;
+  if (typeof port === 'number') {
+    return Number.isInteger(port) && port > 0 && port <= 65535;
+  }
+  if (typeof port === 'string') {
+    const trimmed = port.trim();
+    if (!/^\d+$/.test(trimmed)) return false;
+    const num = Number(trimmed);
+    return Number.isInteger(num) && num > 0 && num <= 65535;
+  }
+  return false;
 }
 
 /**
@@ -174,7 +182,9 @@ export function validateAndResolveFirebaseConfig(
     let storagePort: number | undefined;
     if (rawEnv.VITE_FIREBASE_STORAGE_EMULATOR_PORT) {
       if (!isValidPort(rawEnv.VITE_FIREBASE_STORAGE_EMULATOR_PORT)) {
-        throw new Error(`[FirebaseEnv] Invalid Storage emulator port "${rawEnv.VITE_FIREBASE_STORAGE_EMULATOR_PORT}".`);
+        throw new Error(
+          `[FirebaseEnv] Invalid Storage emulator port "${rawEnv.VITE_FIREBASE_STORAGE_EMULATOR_PORT}". Must be an integer between 1 and 65535.`
+        );
       }
       storagePort = parseInt(rawEnv.VITE_FIREBASE_STORAGE_EMULATOR_PORT, 10);
     }
@@ -413,8 +423,8 @@ export function validateAndResolveFirebaseConfig(
       authDomain: devAuthDomain || 'pitchlink-c4df3.firebaseapp.com',
       projectId: devProjectId || APPROVED_PRODUCTION_PROJECT_ID,
       storageBucket: devStorageBucket || 'pitchlink-c4df3.firebasestorage.app',
-      messagingSenderId: devMessagingSenderId || '185767485760',
-      appId: devAppId || '1:185767485760:web:104cbde6798975d269daa5',
+      messagingSenderId: devMessagingSenderId || '551117016763',
+      appId: devAppId || '1:551117016763:web:e4fc06b3bb53fad5d1a39e',
     },
     databaseId: '(default)',
     emulator: emulatorConfig,

@@ -21,6 +21,10 @@ import {
   ExternalLink,
   ChevronRight,
   Sparkles,
+  MoreHorizontal,
+  X,
+  Repeat,
+  Building,
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 import { useInteractiveWalkthrough } from "../context/InteractiveWalkthroughContext";
@@ -50,7 +54,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       "/turf/",
       "/owner/add-pitch",
       "/owner/edit-pitch",
-      "/owner/pitches",
       "/support",
       "/settings"
     ];
@@ -67,6 +70,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [location.pathname]);
 
   const [avatarError, setAvatarError] = React.useState(false);
+  const [showOwnerMoreMenu, setShowOwnerMoreMenu] = React.useState(false);
 
   const hideDesktopSidebar = React.useMemo(() => {
     return location.pathname.startsWith("/turf");
@@ -79,6 +83,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     userProfile,
     user,
     signOut,
+    switchRole,
   } = useUser();
   const { openWalkthrough } = useInteractiveWalkthrough();
   const [showOnboarding, setShowOnboarding] = React.useState(false);
@@ -272,10 +277,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     return (
       <button
         onClick={handleClick}
-        className={`flex flex-col items-center justify-center h-full transition-colors ${active ? "text-primary-lime font-bold" : "text-text-secondary hover:text-text-primary"}`}
+        className={`flex flex-col items-center justify-center h-full transition-colors ${active ? "text-nav-active-text font-bold" : "text-nav-text-muted hover:text-nav-text"}`}
       >
         <div
-          className={`p-1.5 rounded-full flex items-center justify-center ${active ? "text-accent-text bg-primary-lime" : ""}`}
+          className={`p-1.5 rounded-full flex items-center justify-center ${active ? "text-nav-active-text bg-nav-active-bg" : ""}`}
         >
           <span
             className="material-symbols-outlined text-[24px] transition-transform duration-300"
@@ -311,17 +316,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     return (
       <button
         onClick={handleClick}
-        className={`relative flex items-center gap-4 p-3.5 rounded-xl transition-all duration-300 w-full group ${active ? "bg-primary-lime/10 text-primary-lime" : "text-text-secondary hover:bg-surface-raised hover:text-text-primary"}`}
+        className={`relative flex items-center gap-4 p-3.5 rounded-xl transition-all duration-300 w-full group ${active ? "bg-nav-active-bg text-nav-active-text" : "text-nav-text-muted hover:bg-white/[0.06] hover:text-nav-text"}`}
       >
         <span
-          className={`material-symbols-outlined text-[22px] transition-transform ${active ? "scale-105 text-primary-lime" : ""}`}
+          className={`material-symbols-outlined text-[22px] transition-transform ${active ? "scale-105 text-nav-active-text" : ""}`}
           style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}
         >
           {icon}
         </span>
         <span className="font-sans font-bold text-sm tracking-wide">{label}</span>
         {active && (
-          <div className="absolute right-4 w-1.5 h-1.5 bg-primary-lime rounded-full shadow-[0_0_8px_#A8FF00]"></div>
+          <div className="absolute right-4 w-1.5 h-1.5 bg-nav-active-text rounded-full shadow-[0_0_8px_#A8FF00]"></div>
         )}
       </button>
     );
@@ -406,19 +411,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   }
   const getRoleBadgeConfig = () => {
     if (isAdmin) {
-      return { label: "Admin", color: "text-[#A78BFA]", bg: "bg-[#A78BFA]/10", border: "border-[#A78BFA]/25" };
+      return { label: "Admin", color: "text-nav-admin", bg: "bg-nav-admin-tint", border: "border-nav-admin-border" };
     }
     const r = userProfile?.role?.toLowerCase() || role?.toLowerCase();
     if (r === "super_admin" || r === "admin") {
-      return { label: r === "super_admin" ? "Super Admin" : "Admin", color: "text-[#A78BFA]", bg: "bg-[#A78BFA]/10", border: "border-[#A78BFA]/25" };
+      return { label: r === "super_admin" ? "Super Admin" : "Admin", color: "text-nav-admin", bg: "bg-nav-admin-tint", border: "border-nav-admin-border" };
     }
     if (r === "owner") {
-      return { label: "Pitch Owner", color: "text-[#0284C7]", bg: "bg-[#0284C7]/10", border: "border-[#0284C7]/25" };
+      return { label: "Pitch Owner", color: "text-nav-owner", bg: "bg-nav-owner-tint", border: "border-nav-owner-border" };
     }
     if (r === "staff") {
-      return { label: "Staff", color: "text-[#0284C7]", bg: "bg-[#0284C7]/10", border: "border-[#0284C7]/25" };
+      return { label: "Staff", color: "text-nav-owner", bg: "bg-nav-owner-tint", border: "border-nav-owner-border" };
     }
-    return { label: "Player", color: "text-primary-lime", bg: "bg-primary-lime/10", border: "border-primary-lime/25" };
+    return { label: "Player", color: "text-nav-active-text", bg: "bg-nav-active-bg", border: "border-nav-active-text/25" };
   };
 
   const renderRoleBadge = () => {
@@ -437,9 +442,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="flex h-screen w-full bg-app-base text-text-primary font-body overflow-hidden selection:bg-primary-lime/30">
       {/* DESKTOP SIDEBAR */}
       {!hideDesktopSidebar && (
-        <aside className="hidden lg:flex flex-col w-64 bg-surface-card border-r border-border-subtle h-full shrink-0 z-30 shadow-xs select-none">
+        <aside className="hidden lg:flex flex-col w-64 bg-nav-bg border-r border-nav-border h-full shrink-0 z-30 shadow-xs select-none text-nav-text">
           {/* Brand Header */}
-          <div className="p-4 border-b border-border-subtle space-y-3">
+          <div className="p-4 border-b border-nav-border space-y-3">
             <div className="flex items-center justify-between">
               <div
                 className="cursor-pointer"
@@ -448,7 +453,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Logo
                   size={32}
                   showTagline={false}
-                  variant="auto"
+                  variant="dark"
                 />
               </div>
               <UpcomingMatchesBell />
@@ -456,7 +461,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             <div className="flex items-center justify-between pt-1">
               {renderRoleBadge()}
-              <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-nav-text-muted uppercase tracking-wider">
                 {isOwner ? "Portal" : "App"}
               </span>
             </div>
@@ -465,7 +470,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           {/* Navigation Items */}
           <div className="flex-1 overflow-y-auto p-3 space-y-5 no-scrollbar">
             <div>
-              <p className="font-bold text-[10px] uppercase tracking-widest text-text-tertiary px-3 mb-1.5">
+              <p className="font-bold text-[10px] uppercase tracking-widest text-nav-text-muted px-3 mb-1.5">
                 {isOwner ? "Facility Management" : "Main Navigation"}
               </p>
               <nav className="space-y-1">
@@ -480,20 +485,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       }
                       className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-lime ${
                         active
-                          ? "bg-primary-lime text-black font-extrabold shadow-sm shadow-primary-lime/20"
-                          : "text-text-secondary hover:bg-surface-raised hover:text-text-primary"
+                          ? "bg-nav-active-bg text-nav-active-text font-extrabold shadow-sm"
+                          : "text-nav-text-muted hover:bg-white/[0.06] hover:text-nav-text"
                       }`}
                     >
                       <Icon
                         size={17}
                         strokeWidth={active ? 2.5 : 2}
                         className={`shrink-0 transition-colors ${
-                          active ? "text-black" : "text-text-tertiary"
+                          active ? "text-nav-active-text" : "text-nav-text-muted"
                         }`}
                       />
                       <span className="truncate">{link.label}</span>
                       {active && (
-                        <div className="ml-auto w-1.5 h-1.5 bg-black rounded-full" />
+                        <div className="ml-auto w-1.5 h-1.5 bg-nav-active-text rounded-full shadow-[0_0_8px_#A8FF00]" />
                       )}
                     </button>
                   );
@@ -503,23 +508,27 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
 
           {/* Sidebar Footer: PWA Install, User Card & Logout */}
-          <div className="p-3 border-t border-border-subtle space-y-2 shrink-0 bg-surface-raised/40">
+          <div className="p-3 border-t border-nav-border space-y-2 shrink-0 bg-white/[0.02]">
             <button
               type="button"
               onClick={() => openWalkthrough()}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-bold text-primary-lime bg-primary-lime/10 hover:bg-primary-lime/20 border border-primary-lime/30 transition-all cursor-pointer shadow-xs active:scale-98"
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-bold text-nav-active-text bg-nav-active-bg hover:bg-primary-lime/20 border border-primary-lime/30 transition-all cursor-pointer shadow-xs active:scale-98"
               title="Open Pitchly Master Walkthrough & Guide"
             >
               <div className="flex items-center gap-2">
-                <Compass size={15} className="text-primary-lime animate-spin-slow" />
+                <Compass size={15} className="text-nav-active-text animate-spin-slow" />
                 <span>App Walkthrough</span>
               </div>
-              <Sparkles size={12} className="text-primary-lime" />
+              <Sparkles size={12} className="text-nav-active-text" />
             </button>
             <PWAInstallButton variant="sidebar" />
-            <div className="flex items-center justify-between p-2 rounded-xl bg-surface-card border border-border-subtle">
+            <div
+              onClick={() => navigate(isOwner ? "/owner-profile" : "/profile")}
+              className="flex items-center justify-between p-2 rounded-xl bg-white/[0.04] border border-nav-border hover:border-nav-active-text/40 cursor-pointer transition-colors"
+              title={isOwner ? "Owner Business Profile & Banking" : "Player Profile & Stats"}
+            >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-surface-raised border border-border-subtle flex items-center justify-center text-text-secondary shrink-0 overflow-hidden">
+                <div className="w-8 h-8 rounded-lg bg-white/[0.06] border border-nav-border flex items-center justify-center text-nav-text-muted shrink-0 overflow-hidden">
                   {userProfile?.avatar && !avatarError ? (
                     <img
                       src={userProfile.avatar}
@@ -532,10 +541,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-text-primary truncate">
+                  <p className="text-xs font-bold text-nav-text truncate">
                     {userProfile?.name || user?.displayName || (isOwner ? "Pitch Owner" : "Footballer")}
                   </p>
-                  <p className="text-[10px] text-text-tertiary truncate">
+                  <p className="text-[10px] text-nav-text-muted truncate">
                     {user?.email || "verified account"}
                   </p>
                 </div>
@@ -545,7 +554,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="flex items-center gap-1.5 pt-1">
               <button
                 onClick={() => navigate("/settings")}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-text-secondary hover:bg-surface-card hover:text-text-primary border border-transparent hover:border-border-subtle transition-all cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-nav-text-muted hover:bg-white/[0.06] hover:text-nav-text border border-transparent hover:border-nav-border transition-all cursor-pointer"
                 title="Account Settings"
               >
                 <Settings size={14} />
@@ -553,7 +562,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </button>
               <button
                 onClick={handleLogout}
-                className="flex items-center justify-center p-2 rounded-lg text-[#DC2626] hover:bg-[#DC2626]/10 border border-transparent hover:border-[#DC2626]/20 transition-all cursor-pointer"
+                className="flex items-center justify-center p-2 rounded-lg text-[#EF4444] hover:bg-[#EF4444]/10 border border-transparent hover:border-[#EF4444]/20 transition-all cursor-pointer"
                 title="Log out"
                 aria-label="Log out"
               >
@@ -567,7 +576,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <div className="flex-1 flex flex-col h-full overflow-hidden relative min-w-0">
         {/* GLOBAL TOP BAR */}
         {!hideMobileHeader && (
-          <header className="bg-surface-card/90 backdrop-blur-md flex justify-between items-center w-full px-4 py-3 sticky top-0 z-50 border-b border-border-subtle lg:hidden">
+          <header className="bg-nav-bg-glass backdrop-blur-md flex justify-between items-center w-full px-4 py-3 sticky top-0 z-50 border-b border-nav-border lg:hidden text-nav-text">
             <div className="flex items-center gap-2">
               <div
                 className="flex items-center gap-2 cursor-pointer"
@@ -577,7 +586,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   size={32}
                   showText={true}
                   showTagline={false}
-                  variant="auto"
+                  variant="dark"
                 />
               </div>
               {renderRoleBadge()}
@@ -586,18 +595,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <button
                 type="button"
                 onClick={() => openWalkthrough()}
-                className="w-9 h-9 rounded-full flex items-center justify-center bg-primary-lime/10 hover:bg-primary-lime/20 border border-primary-lime/30 text-primary-lime cursor-pointer active:scale-95 transition-all shrink-0"
+                className="w-9 h-9 rounded-full flex items-center justify-center bg-nav-active-bg hover:bg-primary-lime/20 border border-primary-lime/30 text-nav-active-text cursor-pointer active:scale-95 transition-all shrink-0"
                 title="Pitchly App Walkthrough & Guide"
                 aria-label="App Walkthrough & Guide"
               >
-                <Compass size={16} className="text-primary-lime animate-spin-slow" />
+                <Compass size={16} className="text-nav-active-text animate-spin-slow" />
               </button>
               <PWAInstallButton variant="compact" />
               <UpcomingMatchesBell />
               <button
-                onClick={() => navigate("/profile")}
-                className="w-11 h-11 rounded-full overflow-hidden border border-border-subtle shrink-0 flex items-center justify-center bg-surface-raised cursor-pointer active:scale-95 transition-transform"
-                title="View Profile"
+                onClick={() => navigate(isOwner ? "/owner-profile" : "/profile")}
+                className="w-11 h-11 rounded-full overflow-hidden border border-nav-border shrink-0 flex items-center justify-center bg-white/[0.06] cursor-pointer active:scale-95 transition-transform"
+                title={isOwner ? "Owner Business Profile & Banking" : "Player Profile & Stats"}
               >
                 <PlayerAvatar id={userProfile?.avatarId} className="w-full h-full" />
               </button>
@@ -659,43 +668,242 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </main>
         {/* MOBILE NAVIGATION - SLEEK MODERN FLOATING DOCK */}
+        {/* MOBILE NAVIGATION - SLEEK MODERN FLOATING DOCK */}
         {!hideMobileNav && (
           <div className="lg:hidden fixed bottom-5 inset-x-0 z-40 px-4 pointer-events-none flex justify-center">
             <nav 
-              className="pointer-events-auto w-full max-w-[380px] h-[58px] px-2.5 rounded-full bg-surface-card/95 backdrop-blur-xl shadow-[0_12px_36px_rgba(0,0,0,0.35)] border border-border-subtle/80 flex justify-between items-center" 
-              id="player-bottom-nav"
+              className="pointer-events-auto w-full max-w-[390px] h-[58px] px-2 rounded-full bg-nav-bg-glass backdrop-blur-xl shadow-[0_12px_36px_rgba(0,0,0,0.35)] border border-nav-border flex justify-between items-center" 
+              id="app-bottom-nav"
             >
-              {links.slice(0, 5).map((link, index) => {
-                const active = isActive(link.path, link.search);
-                const IconComponent = link.icon;
-                return (
+              {isOwner ? (
+                <>
+                  {[
+                    { path: "/owner", search: "tab=Dashboard", label: "Overview", icon: LayoutDashboard },
+                    { path: "/owner/pitches", search: "", label: "Facilities", icon: Building2 },
+                    { path: "/owner", search: "tab=Bookings", label: "Bookings", icon: CalendarCheck },
+                    { path: "/owner", search: "tab=Finances", label: "Finances", icon: Wallet },
+                  ].map((item, index) => {
+                    const active = isActive(item.path, item.search) && !showOwnerMoreMenu;
+                    const IconComponent = item.icon;
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setShowOwnerMoreMenu(false);
+                          navigate(item.search ? `${item.path}?${item.search}` : item.path);
+                        }}
+                        className={`relative flex flex-col items-center justify-center flex-1 h-[44px] rounded-full transition-all duration-200 cursor-pointer focus-visible:outline-none ${
+                          active 
+                            ? "bg-nav-active-bg text-nav-active-text font-extrabold shadow-sm" 
+                            : "text-nav-text-muted hover:text-nav-text hover:bg-white/[0.06]"
+                        }`}
+                      >
+                        <IconComponent
+                          size={18}
+                          strokeWidth={active ? 2.5 : 2}
+                          className="mb-0.5 shrink-0"
+                        />
+                        <span className={`text-[10px] leading-tight tracking-tight whitespace-nowrap text-center ${active ? 'font-black' : 'font-semibold'}`}>
+                          {item.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+
+                  {/* 5th Tab: More Drawer Trigger */}
                   <button
-                    key={index}
-                    onClick={() =>
-                      navigate(
-                        link.search ? `${link.path}?${link.search}` : link.path,
-                      )
-                    }
+                    onClick={() => setShowOwnerMoreMenu(prev => !prev)}
                     className={`relative flex flex-col items-center justify-center flex-1 h-[44px] rounded-full transition-all duration-200 cursor-pointer focus-visible:outline-none ${
-                      active 
-                        ? "bg-primary-lime text-black font-extrabold shadow-sm shadow-primary-lime/25" 
-                        : "text-text-tertiary hover:text-text-primary hover:bg-surface-raised/40"
+                      showOwnerMoreMenu 
+                        ? "bg-nav-active-bg text-nav-active-text font-extrabold shadow-sm" 
+                        : "text-nav-text-muted hover:text-nav-text hover:bg-white/[0.06]"
                     }`}
                   >
-                    <IconComponent
+                    <MoreHorizontal
                       size={18}
-                      strokeWidth={active ? 2.5 : 2}
+                      strokeWidth={showOwnerMoreMenu ? 2.5 : 2}
                       className="mb-0.5 shrink-0"
                     />
-                    <span className={`text-[10px] leading-tight tracking-tight whitespace-nowrap text-center ${active ? 'font-black' : 'font-semibold'}`}>
-                      {link.label}
+                    <span className={`text-[10px] leading-tight tracking-tight whitespace-nowrap text-center ${showOwnerMoreMenu ? 'font-black' : 'font-semibold'}`}>
+                      More
                     </span>
                   </button>
-                );
-              })}
+                </>
+              ) : (
+                links.slice(0, 5).map((link, index) => {
+                  const active = isActive(link.path, link.search);
+                  const IconComponent = link.icon;
+                  return (
+                    <button
+                      key={index}
+                      onClick={() =>
+                        navigate(
+                          link.search ? `${link.path}?${link.search}` : link.path,
+                        )
+                      }
+                      className={`relative flex flex-col items-center justify-center flex-1 h-[44px] rounded-full transition-all duration-200 cursor-pointer focus-visible:outline-none ${
+                        active 
+                          ? "bg-nav-active-bg text-nav-active-text font-extrabold shadow-sm" 
+                          : "text-nav-text-muted hover:text-nav-text hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      <IconComponent
+                        size={18}
+                        strokeWidth={active ? 2.5 : 2}
+                        className="mb-0.5 shrink-0"
+                      />
+                      <span className={`text-[10px] leading-tight tracking-tight whitespace-nowrap text-center ${active ? 'font-black' : 'font-semibold'}`}>
+                        {link.label}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
             </nav>
           </div>
         )}
+
+        {/* OWNER MORE OPERATIONS BOTTOM SHEET DRAWER */}
+        <AnimatePresence>
+          {showOwnerMoreMenu && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowOwnerMoreMenu(false)}
+                className="fixed inset-0 bg-black/75 backdrop-blur-xs z-50 lg:hidden"
+              />
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 26, stiffness: 320 }}
+                className="fixed bottom-0 inset-x-0 bg-nav-bg border-t border-nav-border rounded-t-3xl p-5 z-50 lg:hidden shadow-2xl max-h-[85vh] overflow-y-auto text-nav-text"
+              >
+                <div className="flex items-center justify-between pb-3.5 border-b border-nav-border">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-nav-text tracking-tight">Facility Ops & Actions</h3>
+                    <p className="text-[11px] text-nav-text-muted">Quick access to all owner tools</p>
+                  </div>
+                  <button
+                    onClick={() => setShowOwnerMoreMenu(false)}
+                    className="w-8 h-8 rounded-full bg-white/[0.06] flex items-center justify-center text-nav-text-muted hover:text-nav-text cursor-pointer active:scale-95"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5 py-4">
+                  <button
+                    onClick={() => {
+                      setShowOwnerMoreMenu(false);
+                      navigate("/owner-profile");
+                    }}
+                    className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-nav-border hover:border-nav-active-text/40 text-left transition-colors cursor-pointer active:scale-98"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-nav-active-bg text-nav-active-text flex items-center justify-center shrink-0">
+                      <Building size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-nav-text truncate">Business Profile</p>
+                      <p className="text-[10px] text-nav-text-muted truncate">MoMo & banking</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowOwnerMoreMenu(false);
+                      navigate("/owner?tab=Staff");
+                    }}
+                    className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-nav-border hover:border-nav-active-text/40 text-left transition-colors cursor-pointer active:scale-98"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-nav-owner-tint text-nav-owner flex items-center justify-center shrink-0">
+                      <Users size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-nav-text truncate">Staff & Crew</p>
+                      <p className="text-[10px] text-nav-text-muted truncate">Pitch caretakers</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowOwnerMoreMenu(false);
+                      navigate("/tournament");
+                    }}
+                    className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-nav-border hover:border-nav-active-text/40 text-left transition-colors cursor-pointer active:scale-98"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-[#FACC15]/10 text-[#FACC15] flex items-center justify-center shrink-0">
+                      <Trophy size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-nav-text truncate">Tournaments</p>
+                      <p className="text-[10px] text-nav-text-muted truncate">Public events</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowOwnerMoreMenu(false);
+                      navigate("/invitations");
+                    }}
+                    className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-nav-border hover:border-nav-active-text/40 text-left transition-colors cursor-pointer active:scale-98"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-nav-admin-tint text-nav-admin flex items-center justify-center shrink-0">
+                      <Mail size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-nav-text truncate">Proposals</p>
+                      <p className="text-[10px] text-nav-text-muted truncate">Match invites</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowOwnerMoreMenu(false);
+                      navigate("/owner?tab=Settings");
+                    }}
+                    className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-nav-border hover:border-nav-active-text/40 text-left transition-colors cursor-pointer col-span-2 active:scale-98"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-white/[0.06] text-nav-text-muted flex items-center justify-center shrink-0 border border-nav-border">
+                      <Settings size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-nav-text truncate">Venue Settings & Policies</p>
+                      <p className="text-[10px] text-nav-text-muted truncate">Operating hours, rules, & cancellation terms</p>
+                    </div>
+                  </button>
+                </div>
+
+                <div className="pt-3 border-t border-nav-border space-y-2">
+                  <button
+                    onClick={async () => {
+                      setShowOwnerMoreMenu(false);
+                      await switchRole();
+                      navigate("/home");
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-nav-active-bg text-nav-active-text hover:bg-primary-lime/20 border border-primary-lime/30 font-bold text-xs transition-colors cursor-pointer active:scale-98"
+                  >
+                    <Repeat size={14} />
+                    <span>Switch to Player View</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowOwnerMoreMenu(false);
+                      handleLogout();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-bold text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors cursor-pointer"
+                  >
+                    <LogOut size={14} />
+                    <span>Log Out</span>
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -139,33 +139,99 @@ export const OwnerService = {
     return true;
   },
 
-  // 5. FINANCES (Mock fallback)
+  // 5. FINANCES (Direct Settlement & Non-Custodial Revenue Telemetry)
   getFinancials: async () => {
     const user = auth.currentUser;
-    if (!user) return { balance: 0, totalRevenue: 0, transactions: [], payouts: [] };
+    if (!user) {
+      return {
+        balance: 0,
+        totalRevenue: 0,
+        confirmedRevenue: 0,
+        pendingRevenue: 0,
+        confirmedCount: 0,
+        pendingCount: 0,
+        totalBookingsCount: 0,
+        momoRevenue: 0,
+        airtelRevenue: 0,
+        cashRevenue: 0,
+        transactions: [],
+        payouts: [],
+      };
+    }
 
     const bookings = await bookingService.listByOwner(user.uid);
-    const revenue = bookings.reduce((sum, b) => sum + (b.price || 0), 0);
+    const confirmedStatuses = ['CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'DEPOSIT_PAID'];
+    const pendingStatuses = ['PAYMENT_SUBMITTED', 'TENTATIVE', 'PENDING_PAYMENT', 'PENDING'];
 
-    const transactions: Transaction[] = bookings.map((b) => ({
-      id: `txn-${b.id}`,
-      bookingId: b.id,
-      type: 'CREDIT' as const,
-      amount: b.price || 0,
-      description: `Booking: ${b.turfName || 'Pitch'} (${b.date})`,
-      date: b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : b.date,
-    }));
+    let confirmedRevenue = 0;
+    let pendingRevenue = 0;
+    let confirmedCount = 0;
+    let pendingCount = 0;
+
+    let momoRevenue = 0;
+    let airtelRevenue = 0;
+    let cashRevenue = 0;
+
+    bookings.forEach((b) => {
+      const amt = b.price || b.totalPrice || 0;
+      const status = String(b.status || '');
+      const method = String(b.paymentMethod || '').toUpperCase();
+
+      if (confirmedStatuses.includes(status)) {
+        confirmedRevenue += amt;
+        confirmedCount += 1;
+        if (method.includes('AIRTEL')) {
+          airtelRevenue += amt;
+        } else if (method.includes('MTN') || method.includes('MOBILE_MONEY')) {
+          momoRevenue += amt;
+        } else {
+          cashRevenue += amt;
+        }
+      } else if (pendingStatuses.includes(status)) {
+        pendingRevenue += amt;
+        pendingCount += 1;
+      }
+    });
+
+    const transactions = bookings
+      .filter((b) => String(b.status) !== 'CANCELLED' && String(b.status) !== 'REJECTED')
+      .map((b) => {
+        const amt = b.price || b.totalPrice || 0;
+        return {
+          id: `txn-${b.id}`,
+          bookingId: b.id,
+          type: 'CREDIT' as const,
+          amount: amt,
+          turfName: b.turfName || b.pitchName || 'Pitch',
+          userName: b.userName || 'Player',
+          playerPhone: b.playerPhone || '',
+          date: b.date,
+          time: b.time,
+          createdAt: b.createdAt || b.date,
+          status: b.status,
+          paymentStatus: b.paymentStatus || 'UNPAID',
+          paymentMethod: b.paymentMethod || 'CASH',
+          transactionRef: (b as any).transactionRef || '',
+          paymentProofUrl: b.paymentProofUrl || '',
+          description: `${b.turfName || b.pitchName || 'Pitch'} - ${b.userName || 'Player'} (${b.date} ${b.time})`,
+        };
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return {
-      balance: revenue,
-      totalRevenue: revenue,
-      transactions: transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+      balance: confirmedRevenue,
+      totalRevenue: confirmedRevenue,
+      confirmedRevenue,
+      pendingRevenue,
+      confirmedCount,
+      pendingCount,
+      totalBookingsCount: bookings.length,
+      momoRevenue,
+      airtelRevenue,
+      cashRevenue,
+      transactions,
       payouts: [],
     };
-  },
-
-  requestPayout: async (amount: number) => {
-    return { id: String(Date.now()), amount, status: 'PENDING', requestDate: new Date().toISOString(), method: 'MOBILE_MONEY' } as Payout;
   },
 
   // 6. BUSINESS PROFILE

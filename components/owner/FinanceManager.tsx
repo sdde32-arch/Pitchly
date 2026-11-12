@@ -1,34 +1,35 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { OwnerService } from "../../services/owner";
 import { useUser } from "../../context/UserContext";
 import {
   DollarSign,
   TrendingUp,
-  TrendingDown,
-  ArrowUpRight,
-  Loader2,
   Wallet,
   CreditCard,
   Clock,
   CheckCircle2,
   Calendar,
-  Layers,
   ArrowDownLeft,
   ChevronRight,
   Info,
-  AlertCircle
+  AlertCircle,
+  Building,
+  ShieldCheck,
+  Smartphone,
+  Search,
+  Filter,
+  Check,
+  ExternalLink,
 } from "lucide-react";
-import { Payout, Transaction } from "../../types";
 
 export const FinanceManager: React.FC = () => {
+  const navigate = useNavigate();
   const { loading: authLoading } = useUser();
   const [financials, setFinancials] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [payoutAmount, setPayoutAmount] = useState("");
-  const [requesting, setRequesting] = useState(false);
-  const [payoutSuccess, setPayoutSuccess] = useState(false);
-  const [payoutError, setPayoutError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"transactions" | "payouts">("transactions");
+  const [filterMethod, setFilterMethod] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!authLoading) loadFinancials();
@@ -38,32 +39,9 @@ export const FinanceManager: React.FC = () => {
     try {
       setFinancials(await OwnerService.getFinancials());
     } catch (e) {
-      console.error(e);
+      console.error("Error loading financials:", e);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleRequestPayout = async (customAmount?: number) => {
-    const amount = customAmount ?? Number(payoutAmount);
-    setPayoutError(null);
-    if (!amount || amount <= 0 || amount > (financials?.balance || 0)) {
-      setPayoutError("Please enter a valid amount within your available balance.");
-      return;
-    }
-    setRequesting(true);
-    setPayoutSuccess(false);
-    try {
-      await OwnerService.requestPayout(amount);
-      setPayoutAmount("");
-      setPayoutSuccess(true);
-      await loadFinancials();
-      setTimeout(() => setPayoutSuccess(false), 4000);
-    } catch (e) {
-      console.error(e);
-      setPayoutError("Failed to process payout request. Please try again.");
-    } finally {
-      setRequesting(false);
     }
   };
 
@@ -78,379 +56,324 @@ export const FinanceManager: React.FC = () => {
     );
   }
 
-  const totalRevenue = financials?.totalRevenue || 0;
-  const balance = financials?.balance || 0;
-  const transactions: Transaction[] = financials?.transactions || [];
-  const payouts: Payout[] = financials?.payouts || [];
-  const thisMonth = new Date().toISOString().slice(0, 7);
-  const lastMonth = new Date(new Date().setMonth(new Date().getMonth() - 1))
-    .toISOString()
-    .slice(0, 7);
+  const confirmedRevenue = financials?.confirmedRevenue || 0;
+  const pendingRevenue = financials?.pendingRevenue || 0;
+  const confirmedCount = financials?.confirmedCount || 0;
+  const pendingCount = financials?.pendingCount || 0;
+  const totalBookingsCount = financials?.totalBookingsCount || 0;
 
-  const monthlyRevenue = transactions
-    .filter((t) => t.date?.startsWith(thisMonth))
-    .reduce((s, t) => s + (t.amount || 0), 0);
+  const momoRevenue = financials?.momoRevenue || 0;
+  const airtelRevenue = financials?.airtelRevenue || 0;
+  const cashRevenue = financials?.cashRevenue || 0;
 
-  const lastMonthRevenue = transactions
-    .filter((t) => t.date?.startsWith(lastMonth))
-    .reduce((s, t) => s + (t.amount || 0), 0);
+  const rawTransactions: any[] = financials?.transactions || [];
 
-  const monthChange =
-    lastMonthRevenue > 0
-      ? Math.round(((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
-      : 0;
+  const filteredTransactions = rawTransactions.filter((txn) => {
+    const matchesMethod =
+      filterMethod === "ALL" ||
+      (filterMethod === "MTN" && (txn.paymentMethod?.includes("MTN") || txn.paymentMethod?.includes("MOBILE_MONEY"))) ||
+      (filterMethod === "AIRTEL" && txn.paymentMethod?.includes("AIRTEL")) ||
+      (filterMethod === "CASH" && (txn.paymentMethod?.includes("CASH") || !txn.paymentMethod)) ||
+      (filterMethod === "PENDING" && (txn.status === "PAYMENT_SUBMITTED" || txn.status === "TENTATIVE"));
 
-  const avgPerBooking =
-    transactions.length > 0 ? Math.round(totalRevenue / transactions.length) : 0;
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      txn.turfName?.toLowerCase().includes(q) ||
+      txn.userName?.toLowerCase().includes(q) ||
+      txn.transactionRef?.toLowerCase().includes(q) ||
+      txn.playerPhone?.includes(q);
 
-  const daySales: Record<string, number> = {};
-  transactions.forEach((t) => {
-    const day = new Date(t.date).toLocaleDateString("en-US", {
-      weekday: "short",
-    });
-    daySales[day] = (daySales[day] || 0) + (t.amount || 0);
+    return matchesMethod && matchesSearch;
   });
 
-  const bestDay =
-    Object.entries(daySales).sort((a, b) => b[1] - a[1])[0]?.[0] || "Sat";
+  const getMethodBadge = (method: string) => {
+    const m = (method || "").toUpperCase();
+    if (m.includes("MTN") || m.includes("MOBILE_MONEY")) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-[#FACC15]/15 text-[#FACC15] border border-[#FACC15]/30">
+          <Smartphone size={10} /> MTN MoMo
+        </span>
+      );
+    }
+    if (m.includes("AIRTEL")) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-[#EF4444]/15 text-[#EF4444] border border-[#EF4444]/30">
+          <Smartphone size={10} /> Airtel Money
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-surface-raised text-text-secondary border border-border-subtle">
+        <DollarSign size={10} /> Cash at Venue
+      </span>
+    );
+  };
+
+  const getStatusBadge = (status: string, paymentStatus: string) => {
+    if (status === "CONFIRMED" || status === "CHECKED_IN" || status === "COMPLETED" || paymentStatus === "PAID") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30">
+          <CheckCircle2 size={11} /> Settled Direct
+        </span>
+      );
+    }
+    if (status === "DEPOSIT_PAID" || paymentStatus === "PARTIAL") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#38BDF8]/15 text-[#38BDF8] border border-[#38BDF8]/30">
+          <Check size={11} /> Deposit Received
+        </span>
+      );
+    }
+    if (status === "PAYMENT_SUBMITTED") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#FACC15]/15 text-[#FACC15] border border-[#FACC15]/30 animate-pulse">
+          <Clock size={11} /> Needs Verification
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-surface-raised text-text-tertiary border border-border-subtle">
+        {status}
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-6 animate-fadeIn font-sans w-full">
-      {/* Top Financial Bento Grid: 2 columns on Laptop, stacked on Tablet/Mobile */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* Left Hero: Monthly Revenue & Category Breakdown (7 cols) */}
-        <div className="lg:col-span-7 bg-surface-card border border-border-subtle rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between space-y-6">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">
-                Current Month Earnings
-              </span>
-              <div
-                className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md border ${
-                  monthChange >= 0
-                    ? "bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30"
-                    : "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30"
-                }`}
-              >
-                {monthChange >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-                <span>{monthChange >= 0 ? `+${monthChange}%` : `${monthChange}%`}</span>
-              </div>
+      {/* DIRECT SETTLEMENT ARCHITECTURE EDUCATIONAL HERO */}
+      <div className="bg-surface-card border border-border-subtle rounded-2xl p-5 sm:p-6 shadow-sm relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-primary-lime/15 text-primary-lime border border-primary-lime/30">
+              <ShieldCheck size={12} /> Direct Non-Custodial Marketplace
             </div>
-
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl sm:text-4xl font-extrabold text-text-primary tracking-tight">
-                UGX {(monthlyRevenue || 0).toLocaleString()}
-              </span>
-            </div>
-            <p className="text-xs text-text-tertiary mt-1">
-              vs last month: UGX {(lastMonthRevenue || 0).toLocaleString()}
+            <h2 className="text-lg sm:text-xl font-extrabold text-text-primary tracking-tight">
+              Direct Settlement Ledger & Revenue Telemetry
+            </h2>
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Pitchly holds <strong>zero customer funds in escrow</strong>. All player payments are transferred directly
+              to your registered MTN Mobile Money, Airtel Money account, or paid in cash at your venue. You maintain 100%
+              instant control of all match revenues.
             </p>
           </div>
 
-          {/* Revenue Breakdown */}
-          <div className="bg-surface-raised rounded-xl p-4 border border-border-subtle/80 space-y-3">
-            <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block">
-              Revenue Stream Breakdown
+          <button
+            onClick={() => navigate("/owner-profile")}
+            className="px-4 py-2.5 bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-primary font-bold text-xs rounded-xl flex items-center justify-center gap-2 shrink-0 transition-all cursor-pointer active:scale-95"
+          >
+            <Building size={14} className="text-primary-lime" />
+            <span>Update Payout Numbers</span>
+            <ChevronRight size={14} className="text-text-tertiary" />
+          </button>
+        </div>
+      </div>
+
+      {/* METRIC KPI BENTO */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Total Confirmed Revenue */}
+        <div className="bg-surface-card border border-border-subtle rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">
+              Confirmed Direct Revenue
             </span>
+            <div className="w-8 h-8 rounded-lg bg-[#22C55E]/10 text-[#22C55E] flex items-center justify-center border border-[#22C55E]/20">
+              <TrendingUp size={16} />
+            </div>
+          </div>
+          <div className="mt-3">
+            <span className="text-2xl sm:text-3xl font-extrabold text-text-primary tracking-tight">
+              UGX {confirmedRevenue.toLocaleString()}
+            </span>
+            <p className="text-[11px] text-[#22C55E] font-semibold mt-0.5">
+              Across {confirmedCount} confirmed matches
+            </p>
+          </div>
+        </div>
 
-            <div className="space-y-2.5">
-              {/* Standard */}
-              <div>
-                <div className="flex justify-between items-center text-xs font-bold mb-1">
-                  <span className="text-text-secondary">App Bookings</span>
-                  <span className="text-text-primary">
-                    UGX {Math.round(monthlyRevenue * 0.6).toLocaleString()}{" "}
-                    <span className="text-text-tertiary text-[10px] font-normal">(60%)</span>
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-surface-card rounded-full overflow-hidden">
-                  <div className="h-full bg-primary-lime w-[60%]" />
-                </div>
-              </div>
-
-              {/* Corporate */}
-              <div>
-                <div className="flex justify-between items-center text-xs font-bold mb-1">
-                  <span className="text-text-secondary">Corporate / Tournaments</span>
-                  <span className="text-text-primary">
-                    UGX {Math.round(monthlyRevenue * 0.3).toLocaleString()}{" "}
-                    <span className="text-text-tertiary text-[10px] font-normal">(30%)</span>
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-surface-card rounded-full overflow-hidden">
-                  <div className="h-full bg-[#38BDF8] w-[30%]" />
-                </div>
-              </div>
-
-              {/* Walk-in Cash */}
-              <div>
-                <div className="flex justify-between items-center text-xs font-bold mb-1">
-                  <span className="text-text-secondary">Walk-in Cash</span>
-                  <span className="text-text-primary">
-                    UGX {Math.round(monthlyRevenue * 0.1).toLocaleString()}{" "}
-                    <span className="text-text-tertiary text-[10px] font-normal">(10%)</span>
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-surface-card rounded-full overflow-hidden">
-                  <div className="h-full bg-[#FACC15] w-[10%]" />
-                </div>
-              </div>
+        {/* Card 2: Pending Owner Verification */}
+        <div className="bg-surface-card border border-border-subtle rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">
+              Pending Verification
+            </span>
+            <div className="w-8 h-8 rounded-lg bg-[#FACC15]/10 text-[#FACC15] flex items-center justify-center border border-[#FACC15]/20">
+              <Clock size={16} />
+            </div>
+          </div>
+          <div className="mt-3">
+            <span className="text-2xl sm:text-3xl font-extrabold text-[#FACC15] tracking-tight">
+              UGX {pendingRevenue.toLocaleString()}
+            </span>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-[11px] text-text-tertiary">
+                {pendingCount} awaiting approval
+              </p>
+              {pendingCount > 0 && (
+                <button
+                  onClick={() => navigate("/owner?tab=Bookings")}
+                  className="text-[10px] font-bold text-primary-lime hover:underline cursor-pointer"
+                >
+                  Verify Now &rarr;
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Right Stack: Balance & Payout Action (5 cols) */}
-        <div className="lg:col-span-5 space-y-4 flex flex-col justify-between">
-          {/* Balance Cards: 1 col on mobile, 2 cols on tablet/desktop */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="bg-surface-card rounded-2xl p-4 border border-border-subtle shadow-sm flex flex-col justify-between">
-              <div className="w-9 h-9 bg-primary-lime/10 text-primary-lime rounded-xl flex items-center justify-center mb-2 border border-primary-lime/20">
-                <DollarSign size={18} />
-              </div>
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary block">
-                  Total Gross
-                </span>
-                <span className="text-base sm:text-lg font-extrabold text-text-primary">
-                  UGX {(totalRevenue || 0).toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-surface-card rounded-2xl p-4 border border-border-subtle shadow-sm flex flex-col justify-between">
-              <div className="w-9 h-9 bg-[#38BDF8]/10 text-[#38BDF8] rounded-xl flex items-center justify-center mb-2 border border-[#38BDF8]/20">
-                <Wallet size={18} />
-              </div>
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary block">
-                  Available Payout
-                </span>
-                <span className="text-base sm:text-lg font-extrabold text-[#38BDF8]">
-                  UGX {(balance || 0).toLocaleString()}
-                </span>
-              </div>
+        {/* Card 3: Mobile Money Volume (MTN + Airtel) */}
+        <div className="bg-surface-card border border-border-subtle rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">
+              Direct Mobile Money
+            </span>
+            <div className="w-8 h-8 rounded-lg bg-[#38BDF8]/10 text-[#38BDF8] flex items-center justify-center border border-[#38BDF8]/20">
+              <Smartphone size={16} />
             </div>
           </div>
-
-          {/* Quick Metrics */}
-          <div className="bg-surface-card rounded-2xl p-3.5 border border-border-subtle grid grid-cols-3 gap-2 text-center shadow-sm">
-            <div>
-              <span className="text-[10px] font-bold text-text-tertiary uppercase block">
-                Avg Match
-              </span>
-              <span className="text-xs font-black text-text-primary mt-0.5 block">
-                UGX {avgPerBooking.toLocaleString()}
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-text-tertiary uppercase block">
-                Peak Day
-              </span>
-              <span className="text-xs font-black text-text-primary mt-0.5 block">
-                {bestDay}
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-text-tertiary uppercase block">
-                Payout Method
-              </span>
-              <span className="text-xs font-black text-[#22C55E] mt-0.5 block">
-                MTN MoMo
-              </span>
+          <div className="mt-3">
+            <span className="text-2xl sm:text-3xl font-extrabold text-text-primary tracking-tight">
+              UGX {(momoRevenue + airtelRevenue).toLocaleString()}
+            </span>
+            <div className="flex items-center gap-2 mt-1 text-[10px] text-text-tertiary">
+              <span>MTN: UGX {momoRevenue.toLocaleString()}</span>
+              <span>·</span>
+              <span>Airtel: UGX {airtelRevenue.toLocaleString()}</span>
             </div>
           </div>
+        </div>
 
-          {/* Request Payout Module */}
-          <div className="bg-surface-card rounded-2xl p-5 border border-border-subtle shadow-sm space-y-3.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-text-primary">
-                Instant Payout Request
-              </span>
-              <span className="text-[11px] text-text-tertiary font-medium">
-                Direct to Mobile Money
-              </span>
+        {/* Card 4: Cash at Venue */}
+        <div className="bg-surface-card border border-border-subtle rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">
+              Direct Cash at Pitch
+            </span>
+            <div className="w-8 h-8 rounded-lg bg-surface-raised text-text-secondary flex items-center justify-center border border-border-subtle">
+              <Wallet size={16} />
             </div>
-
-            {payoutSuccess && (
-              <div className="p-3 rounded-lg bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-xs font-bold flex items-center gap-2 animate-fadeIn">
-                <CheckCircle2 size={16} />
-                <span>Payout request submitted successfully!</span>
-              </div>
-            )}
-
-            {payoutError && (
-              <div className="p-3 rounded-lg bg-red-500/15 border border-red-500/30 text-red-500 text-xs font-bold flex items-center gap-2 animate-fadeIn">
-                <AlertCircle size={16} />
-                <span>{payoutError}</span>
-              </div>
-            )}
-
-            {/* Quick Amount Chips */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {[50000, 100000, 250000].map((amt) => (
-                <button
-                  key={amt}
-                  type="button"
-                  onClick={() => setPayoutAmount(String(amt))}
-                  className="px-2.5 py-1 bg-surface-raised hover:bg-border-subtle border border-border-subtle rounded-lg text-[11px] font-bold text-text-secondary hover:text-text-primary transition-all active:scale-95 cursor-pointer"
-                >
-                  {(amt / 1000)}k
-                </button>
-              ))}
-              {balance > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setPayoutAmount(String(balance))}
-                  className="px-2.5 py-1 bg-primary-lime/10 hover:bg-primary-lime/20 border border-primary-lime/30 text-primary-lime rounded-lg text-[11px] font-bold transition-all active:scale-95 cursor-pointer"
-                >
-                  Full Balance
-                </button>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={payoutAmount}
-                onChange={(e) => setPayoutAmount(e.target.value)}
-                placeholder={`Max: UGX ${(balance || 0).toLocaleString()}`}
-                className="flex-1 bg-surface-raised border border-border-subtle text-text-primary rounded-lg px-3.5 h-11 text-xs font-bold outline-none focus:border-border-prominent placeholder:text-text-tertiary"
-              />
-              <button
-                onClick={() => handleRequestPayout()}
-                disabled={requesting || !payoutAmount || Number(payoutAmount) <= 0}
-                className="px-4 h-11 bg-primary-lime hover:bg-[#96E600] text-black font-extrabold text-xs rounded-lg flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:grayscale transition-all active:scale-95 cursor-pointer shrink-0 shadow-sm"
-              >
-                {requesting ? (
-                  <Loader2 size={15} className="animate-spin" />
-                ) : (
-                  <>
-                    <ArrowUpRight size={15} strokeWidth={2.5} />
-                    <span>Withdraw</span>
-                  </>
-                )}
-              </button>
-            </div>
+          </div>
+          <div className="mt-3">
+            <span className="text-2xl sm:text-3xl font-extrabold text-text-primary tracking-tight">
+              UGX {cashRevenue.toLocaleString()}
+            </span>
+            <p className="text-[11px] text-text-tertiary mt-0.5">
+              Settled directly at facility gates
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Transactions & Payouts Tabs */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 border-b border-border-subtle pb-3">
-          <button
-            onClick={() => setActiveTab("transactions")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === "transactions"
-                ? "bg-primary-lime text-black font-extrabold shadow-sm"
-                : "bg-surface-card text-text-secondary hover:text-text-primary border border-border-subtle"
-            }`}
-          >
-            Recent Transactions ({transactions.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("payouts")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === "payouts"
-                ? "bg-primary-lime text-black font-extrabold shadow-sm"
-                : "bg-surface-card text-text-secondary hover:text-text-primary border border-border-subtle"
-            }`}
-          >
-            Payout History ({payouts.length})
-          </button>
+      {/* REVENUE TRANSACTIONS LEDGER */}
+      <div className="bg-surface-card border border-border-subtle rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
+        {/* Ledger Header & Search */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border-subtle">
+          <div>
+            <h3 className="text-sm sm:text-base font-extrabold text-text-primary tracking-tight">
+              Direct Payment Transactions ({filteredTransactions.length})
+            </h3>
+            <p className="text-[11px] text-text-tertiary">
+              All direct reservations logged across your sports facilities
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 sm:w-64">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search player, pitch, TxID..."
+                className="w-full bg-surface-raised border border-border-subtle text-text-primary rounded-xl pl-9 pr-3 py-2 text-xs font-medium outline-none focus:border-border-prominent placeholder:text-text-tertiary"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Transaction History List */}
-        {activeTab === "transactions" && (
-          <div className="space-y-2.5">
-            {transactions.length === 0 ? (
-              <div className="p-12 text-center text-text-secondary bg-surface-card rounded-2xl border border-border-subtle">
-                <CreditCard size={36} className="mx-auto mb-2.5 opacity-40 text-text-tertiary" />
-                <p className="text-xs font-bold uppercase tracking-wider text-text-primary">
-                  No recorded transactions yet
-                </p>
-              </div>
-            ) : (
-              transactions.map((txn) => (
-                <div
-                  key={txn.id}
-                  className="bg-surface-card rounded-xl p-3.5 sm:p-4 flex items-center justify-between gap-3 border border-border-subtle hover:border-border-prominent transition-all shadow-xs"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 bg-[#22C55E]/10 text-[#22C55E] rounded-lg flex items-center justify-center border border-[#22C55E]/20 shrink-0">
-                      <ArrowDownLeft size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-bold text-text-primary truncate">
-                        {txn.description}
-                      </p>
-                      <p className="text-[11px] text-text-tertiary mt-0.5">
-                        {new Date(txn.date).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </p>
-                    </div>
-                  </div>
+        {/* Filter Chips */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {[
+            { id: "ALL", label: "All Direct Payments" },
+            { id: "MTN", label: "MTN MoMo" },
+            { id: "AIRTEL", label: "Airtel Money" },
+            { id: "CASH", label: "Cash at Pitch" },
+            { id: "PENDING", label: `Pending Verification (${pendingCount})` },
+          ].map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFilterMethod(f.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                filterMethod === f.id
+                  ? "bg-primary-lime text-black font-extrabold shadow-xs"
+                  : "bg-surface-raised hover:bg-border-subtle text-text-secondary hover:text-text-primary border border-border-subtle"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
 
-                  <span className="text-xs sm:text-sm font-black text-[#22C55E] shrink-0">
+        {/* Transaction Rows */}
+        {filteredTransactions.length === 0 ? (
+          <div className="p-12 text-center text-text-secondary bg-surface-raised/40 rounded-xl border border-border-subtle">
+            <CreditCard size={36} className="mx-auto mb-2.5 opacity-40 text-text-tertiary" />
+            <p className="text-xs font-bold uppercase tracking-wider text-text-primary">
+              No matching direct transactions found
+            </p>
+            <p className="text-[11px] text-text-tertiary mt-1">
+              Transactions will appear here when players book your facilities.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {filteredTransactions.map((txn) => (
+              <div
+                key={txn.id}
+                className="bg-surface-raised/60 hover:bg-surface-raised rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-border-subtle hover:border-border-prominent transition-all shadow-xs"
+              >
+                <div className="flex items-start sm:items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-lg bg-surface-card border border-border-subtle flex items-center justify-center shrink-0 text-text-secondary mt-0.5 sm:mt-0">
+                    <ArrowDownLeft size={18} className="text-primary-lime" />
+                  </div>
+                  <div className="min-w-0 space-y-0.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs sm:text-sm font-extrabold text-text-primary truncate">
+                        {txn.turfName}
+                      </p>
+                      {getMethodBadge(txn.paymentMethod)}
+                      {getStatusBadge(txn.status, txn.paymentStatus)}
+                    </div>
+                    <p className="text-[11px] text-text-secondary">
+                      Booked by <strong className="text-text-primary">{txn.userName}</strong>
+                      {txn.playerPhone ? ` (${txn.playerPhone})` : ""} · Kickoff: {txn.date} at {txn.time}
+                    </p>
+                    {txn.transactionRef && (
+                      <p className="text-[10px] text-text-tertiary font-mono">
+                        MoMo Ref / TxID: <span className="text-[#FACC15]">{txn.transactionRef}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 pt-2 sm:pt-0 border-border-subtle/50 shrink-0 gap-1">
+                  <span className="text-sm sm:text-base font-black text-text-primary">
                     +UGX {(txn.amount || 0).toLocaleString()}
                   </span>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Payout History List */}
-        {activeTab === "payouts" && (
-          <div className="space-y-2.5">
-            {payouts.length === 0 ? (
-              <div className="p-12 text-center text-text-secondary bg-surface-card rounded-2xl border border-border-subtle">
-                <Clock size={36} className="mx-auto mb-2.5 opacity-40 text-text-tertiary" />
-                <p className="text-xs font-bold uppercase tracking-wider text-text-primary">
-                  No payout history yet
-                </p>
-              </div>
-            ) : (
-              payouts.map((payout) => (
-                <div
-                  key={payout.id}
-                  className="bg-surface-card rounded-xl p-3.5 sm:p-4 flex items-center justify-between gap-3 border border-border-subtle hover:border-border-prominent transition-all shadow-xs"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center border shrink-0 ${
-                        payout.status === "PAID"
-                          ? "bg-[#22C55E]/10 border-[#22C55E]/30 text-[#22C55E]"
-                          : "bg-[#38BDF8]/10 border-[#38BDF8]/30 text-[#38BDF8]"
-                      }`}
+                  {txn.status === "PAYMENT_SUBMITTED" ? (
+                    <button
+                      onClick={() => navigate("/owner?tab=Bookings")}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-primary-lime hover:underline cursor-pointer"
                     >
-                      <Clock size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-bold text-text-primary">
-                        UGX {(payout.amount || 0).toLocaleString()}
-                      </p>
-                      <p className="text-[11px] text-text-tertiary mt-0.5">
-                        {payout.requestDate?.split("T")[0]} · {payout.method}
-                      </p>
-                    </div>
-                  </div>
-
-                  <span
-                    className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border shrink-0 ${
-                      payout.status === "PAID"
-                        ? "bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30"
-                        : "bg-[#38BDF8]/10 text-[#38BDF8] border-[#38BDF8]/30"
-                    }`}
-                  >
-                    {payout.status}
-                  </span>
+                      <span>Verify Booking</span>
+                      <ExternalLink size={10} />
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-text-tertiary">Direct Settlement</span>
+                  )}
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
         )}
       </div>

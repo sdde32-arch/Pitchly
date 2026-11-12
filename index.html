@@ -10,7 +10,7 @@
     <meta property="og:description" content="The ultimate football ecosystem. Discover turfs, book matches, manage teams, and challenge other squads with a gamified experience." />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/icon-512.png" />
-    <link rel="canonical" href="https://pitchly.app" />
+    <link rel="canonical" href="https://pitchly.live" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -76,10 +76,13 @@
           }
         });
 
-        // 3. Theme initialization to eliminate flash of wrong background
+        // 3. Theme initialization to eliminate flash of wrong background (stored value if light/dark, else system)
         try {
           var saved = window.localStorage ? window.localStorage.getItem('theme') : null;
-          if (saved === 'light') {
+          var theme = (saved === 'light' || saved === 'dark')
+            ? saved
+            : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          if (theme === 'light') {
             document.documentElement.classList.remove('dark');
             document.documentElement.classList.add('light');
           } else {
@@ -175,38 +178,70 @@
         }
 
         html.light {
-            --app-base: #F8FAFC;
+            --app-base: #F2F4EF;
             --surface-card: #FFFFFF;
-            --surface-raised: #F1F5F9;
-            --border-subtle: #E2E8F0;
-            --border-prominent: #CBD5E1;
-            --primary-lime: #16A34A;
-            --primary-lime-hover: #15803D;
-            --primary-lime-dim: rgba(22, 163, 74, 0.10);
-            --primary-lime-glow: rgba(22, 163, 74, 0.25);
-            --text-primary: #0F172A;
-            --text-secondary: #475569;
-            --text-tertiary: #64748B;
+            --surface-raised: #F0F1F3;
+            --border-subtle: #E2E5DF;
+            --border-prominent: #C9CEC6;
+            --primary-lime: #3F6212;
+            --primary-lime-hover: #365314;
+            --primary-lime-dim: rgba(168, 255, 0, 0.22);
+            --primary-lime-glow: rgba(63, 98, 18, 0.25);
+            --text-primary: #1A1D23;
+            --text-secondary: #444A55;
+            --text-tertiary: #5F6672;
             --text-disabled: #94A3B8;
             --accent-text: #FFFFFF;
 
-            --color-bg: 248 250 252;
+            /* NEW Brand, CTA, and Nav Tokens */
+            --brand-lime: #A8FF00;
+            --brand-ink: #282B32;
+            --cta-bg: #282B32;
+            --cta-bg-hover: #343841;
+            --cta-text: #A8FF00;
+            --nav-bg: #282B32;
+            --nav-text: #F4F4F5;
+            --nav-text-muted: #A1A1AA;
+            --nav-active-bg: rgba(168, 255, 0, 0.12);
+            --nav-active-text: #A8FF00;
+            --nav-border: rgba(255, 255, 255, 0.08);
+            --nav-owner: #38BDF8;
+            --nav-admin: #A78BFA;
+            --nav-bg-glass: rgba(40, 43, 50, 0.95);
+            --nav-owner-tint: rgba(56, 189, 248, 0.12);
+            --nav-admin-tint: rgba(167, 139, 250, 0.12);
+            --nav-owner-border: rgba(56, 189, 248, 0.25);
+            --nav-admin-border: rgba(167, 139, 250, 0.25);
+
+            /* Status & Portal Tokens */
+            --success: #166534;
+            --success-tint: rgba(21, 128, 61, 0.10);
+            --warning: #A16207;
+            --warning-tint: #FEF9C3;
+            --error: #B91C1C;
+            --error-tint: rgba(220, 38, 38, 0.08);
+            --owner: #0369A1;
+            --owner-tint: rgba(3, 105, 161, 0.08);
+            --admin: #7C3AED;
+            --admin-tint: rgba(124, 58, 237, 0.08);
+
+            --color-bg: 242 244 239;
             --color-surface: 255 255 255;
-            --color-surface-elevated: 241 245 249;
+            --color-surface-elevated: 240 241 243;
             --color-soft-card: 255 255 255;
-            --color-border: #E2E8F0;
-            --color-border-light: #E2E8F0;
-            --color-text-primary: 15 23 42;
-            --color-text-secondary: 71 85 105;
-            --color-text-muted: 100 116 139;
+            --color-border: #E2E5DF;
+            --color-border-light: #E2E5DF;
+            --color-text-primary: 26 29 35;
+            --color-text-secondary: 68 74 85;
+            --color-text-muted: 95 102 114;
             --color-text-disabled: 148 163 184;
-            --color-accent: 22 163 74;
-            --color-accent-hover: 21 128 61;
+            --color-accent: 63 98 18;
+            --color-accent-hover: 54 83 20;
             --color-accent-text: 255 255 255;
-            --color-warning: 217 119 6;
-            --color-error: 220 38 38;
-            --color-success: 22 163 74;
-            --color-info: 2 132 199;
+            --color-warning: 161 98 7;
+            --color-error: 185 28 28;
+            --color-success: 22 101 52;
+            --color-info: 3 105 161;
         }
 
         html.dark {
@@ -225,6 +260,38 @@
             --text-disabled: #52525B;
             --accent-text: #0D0D0D;
 
+            /* NEW Brand, CTA, and Nav Tokens */
+            --brand-lime: #A8FF00;
+            --brand-ink: #282B32;
+            --cta-bg: #A8FF00;
+            --cta-bg-hover: #96E600;
+            --cta-text: #0D0D0D;
+            --nav-bg: #161616;
+            --nav-text: #F4F4F5;
+            --nav-text-muted: #A1A1AA;
+            --nav-active-bg: rgba(168, 255, 0, 0.12);
+            --nav-active-text: #A8FF00;
+            --nav-border: rgba(255, 255, 255, 0.08);
+            --nav-owner: #38BDF8;
+            --nav-admin: #A78BFA;
+            --nav-bg-glass: rgba(22, 22, 22, 0.95);
+            --nav-owner-tint: rgba(56, 189, 248, 0.12);
+            --nav-admin-tint: rgba(167, 139, 250, 0.12);
+            --nav-owner-border: rgba(56, 189, 248, 0.25);
+            --nav-admin-border: rgba(167, 139, 250, 0.25);
+
+            /* Status & Portal Tokens */
+            --success: #22C55E;
+            --success-tint: rgba(34, 197, 94, 0.12);
+            --warning: #FACC15;
+            --warning-tint: rgba(250, 204, 21, 0.12);
+            --error: #F87171;
+            --error-tint: rgba(239, 68, 68, 0.12);
+            --owner: #38BDF8;
+            --owner-tint: rgba(56, 189, 248, 0.12);
+            --admin: #A78BFA;
+            --admin-tint: rgba(167, 139, 250, 0.12);
+
             --color-bg: 13 13 13;
             --color-surface: 22 22 22;
             --color-surface-dark: 22 22 22;
@@ -240,7 +307,7 @@
             --color-accent-hover: 150 230 0;
             --color-accent-text: 13 13 13;
             --color-warning: 250 204 21;
-            --color-error: 239 68 68;
+            --color-error: 248 113 113;
             --color-success: 34 197 94;
             --color-info: 56 189 248;
         }

@@ -23,6 +23,26 @@ export default {
         'primary-lime-hover': 'var(--primary-lime-hover)',
         'primary-lime-dim': 'var(--primary-lime-dim)',
         'primary-lime-glow': 'var(--primary-lime-glow)',
+        'brand-lime': 'var(--brand-lime)',
+        'brand-ink': 'var(--brand-ink)',
+
+        // Action & Navigation
+        'cta-bg': 'var(--cta-bg)',
+        'cta-bg-hover': 'var(--cta-bg-hover)',
+        'cta-text': 'var(--cta-text)',
+        'nav-bg': 'var(--nav-bg)',
+        'nav-text': 'var(--nav-text)',
+        'nav-text-muted': 'var(--nav-text-muted)',
+        'nav-active-bg': 'var(--nav-active-bg)',
+        'nav-active-text': 'var(--nav-active-text)',
+        'nav-border': 'var(--nav-border)',
+        'nav-owner': 'var(--nav-owner)',
+        'nav-admin': 'var(--nav-admin)',
+        'nav-bg-glass': 'var(--nav-bg-glass)',
+        'nav-owner-tint': 'var(--nav-owner-tint)',
+        'nav-admin-tint': 'var(--nav-admin-tint)',
+        'nav-owner-border': 'var(--nav-owner-border)',
+        'nav-admin-border': 'var(--nav-admin-border)',
 
         // Typography
         'text-primary': 'var(--text-primary)',
@@ -31,16 +51,33 @@ export default {
         'text-disabled': 'var(--text-disabled)',
         'text-on-lime': 'var(--accent-text)',
 
-        // Distinct Portal Accents
-        'portal-player': '#16A34A',
-        'portal-owner': '#0284C7',
-        'portal-admin': '#7C3AED',
+        // Status & Portal Semantic Tokens
+        'success': 'var(--success)',
+        'success-tint': 'var(--success-tint)',
+        'status-success': 'var(--success)',
+        'status-success-tint': 'var(--success-tint)',
 
-        // Semantic Status Colors
-        'status-success': '#16A34A',
-        'status-warning': '#D97706',
-        'status-error': '#DC2626',
-        'status-info': '#0284C7',
+        'warning': 'var(--warning)',
+        'warning-tint': 'var(--warning-tint)',
+        'status-warning': 'var(--warning)',
+        'status-warning-tint': 'var(--warning-tint)',
+
+        'error': 'var(--error)',
+        'error-tint': 'var(--error-tint)',
+        'status-error': 'var(--error)',
+        'status-error-tint': 'var(--error-tint)',
+
+        'owner': 'var(--owner)',
+        'owner-tint': 'var(--owner-tint)',
+        'portal-owner': 'var(--owner)',
+        'portal-owner-tint': 'var(--owner-tint)',
+
+        'admin': 'var(--admin)',
+        'admin-tint': 'var(--admin-tint)',
+        'portal-admin': 'var(--admin)',
+        'portal-admin-tint': 'var(--admin-tint)',
+
+        'portal-player': 'var(--primary-lime)',
 
         // Backward Compatibility Aliases
         'deep-black': 'var(--app-base)',
@@ -51,14 +88,11 @@ export default {
         'accent-hover': 'var(--primary-lime-hover)',
         'accent-text': 'var(--accent-text)',
         'accent-purple': '#8B5CF6',
-        'warning': '#D97706',
-        'error': '#DC2626',
-        'success': '#16A34A',
-        'info': '#0284C7',
-        'success-token': '#16A34A',
-        'warning-token': '#D97706',
-        'error-token': '#DC2626',
-        'info-token': '#0284C7',
+        'info': 'var(--owner)',
+        'info-token': 'var(--owner)',
+        'success-token': 'var(--success)',
+        'warning-token': 'var(--warning)',
+        'error-token': 'var(--error)',
       },
       borderRadius: {
         'sm': '6px',

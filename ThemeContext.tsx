@@ -17,9 +17,25 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [hasExplicitChoice, setHasExplicitChoice] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('theme');
+      return stored === 'light' || stored === 'dark';
+    } catch {
+      return false;
+    }
+  });
+
   const [theme, setTheme] = useState<Theme>(() => {
     try {
-      return (localStorage.getItem('theme') as Theme) || 'dark';
+      const stored = localStorage.getItem('theme');
+      if (stored === 'light' || stored === 'dark') {
+        return stored;
+      }
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      return 'dark';
     } catch {
       return 'dark';
     }
@@ -33,6 +49,31 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
+  // Follow live system changes only if the user has NOT stored an explicit choice
+  useEffect(() => {
+    if (hasExplicitChoice || typeof window === 'undefined' || !window.matchMedia) return;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      setTheme(e.matches ? 'dark' : 'light');
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+    } else if ((mediaQuery as any).addListener) {
+      (mediaQuery as any).addListener(handleChange);
+    }
+
+    return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleChange);
+      } else if ((mediaQuery as any).removeListener) {
+        (mediaQuery as any).removeListener(handleChange);
+      }
+    };
+  }, [hasExplicitChoice]);
+
+  // Apply theme class to documentElement, update meta theme-color, and persist explicit choices
   useEffect(() => {
     try {
       const root = window.document.documentElement;
@@ -43,11 +84,21 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         root.classList.add('dark');
         root.classList.remove('light');
       }
-      localStorage.setItem('theme', theme);
+
+      // Update meta theme-color tag
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute('content', theme === 'dark' ? '#0D0D0D' : '#F2F4EF');
+      }
+
+      // If user made an explicit choice, store it
+      if (hasExplicitChoice) {
+        localStorage.setItem('theme', theme);
+      }
     } catch (e) {
       console.warn('Theme save error:', e);
     }
-  }, [theme]);
+  }, [theme, hasExplicitChoice]);
 
   useEffect(() => {
     try {
@@ -56,7 +107,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [isEcoMode]);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme((prev) => {
+      const next: Theme = prev === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('theme', next);
+      } catch (e) {
+        console.warn('Theme save error:', e);
+      }
+      return next;
+    });
+    setHasExplicitChoice(true);
   };
 
   const toggleEcoMode = () => {

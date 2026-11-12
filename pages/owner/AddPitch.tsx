@@ -38,7 +38,8 @@ import {
   Star,
   RefreshCw,
   Smartphone,
-  ImageOff
+  ImageOff,
+  ChevronRight
 } from 'lucide-react';
 import { pitchService } from '../../services/pitchService';
 import { storageService } from '../../services/storageService';
@@ -96,6 +97,7 @@ export const AddPitch: React.FC = () => {
   const [error, setError] = useState('');
   const [loadingPitch, setLoadingPitch] = useState(false);
   const [originalPitch, setOriginalPitch] = useState<any>(null);
+  const [submittedPitchName, setSubmittedPitchName] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'info' | 'location' | 'specs' | 'pricing' | 'amenities' | 'rules' | 'media' | 'preview'>('info');
 
   const [formData, setFormData] = useState({
@@ -671,9 +673,7 @@ export const AddPitch: React.FC = () => {
           formattedAddress: formData.formattedAddress || formData.location,
         } as any);
 
-        navigate('/owner/pitches', {
-          state: { showSubmittedForReview: true }
-        });
+        setSubmittedPitchName(formData.name.trim());
       }
     } catch (err: any) {
       console.error("Error saving pitch:", err);
@@ -2009,6 +2009,98 @@ export const AddPitch: React.FC = () => {
           </form>
         </div>
       </div>
+
+      {/* POST-SUBMISSION APPROVAL COMMUNICATION MODAL */}
+      {submittedPitchName && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface-card border border-border-subtle rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl space-y-5 animate-scaleUp">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-primary-lime/15 text-primary-lime flex items-center justify-center border border-primary-lime/30 shrink-0">
+                <ShieldCheck size={26} />
+              </div>
+              <div>
+                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider bg-[#FACC15]/15 text-[#FACC15] px-2 py-0.5 rounded-md border border-[#FACC15]/30 mb-1">
+                  <Clock size={10} /> Status: PENDING_APPROVAL
+                </span>
+                <h2 className="text-lg sm:text-xl font-extrabold text-text-primary tracking-tight">
+                  Pitch Submitted for Verification!
+                </h2>
+              </div>
+            </div>
+
+            <div className="bg-surface-raised rounded-2xl p-4 border border-border-subtle space-y-2">
+              <p className="text-xs text-text-secondary leading-relaxed">
+                <strong className="text-text-primary">{submittedPitchName}</strong> has been registered on Pitchly.
+                To ensure player trust and match safety, our team conducts a quick verification before making the pitch bookable.
+              </p>
+            </div>
+
+            {/* 3-Step Lifecycle */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-text-primary">
+                Verification Stages (Typically 12–24 Hours):
+              </h3>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-5 h-5 rounded-full bg-primary-lime text-black font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                    1
+                  </div>
+                  <div>
+                    <p className="font-bold text-text-primary">Facility Specs & Location Validation</p>
+                    <p className="text-text-tertiary text-[11px]">We confirm surface type, formats, hourly rates, and map coordinates.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <div className="w-5 h-5 rounded-full bg-primary-lime text-black font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                    2
+                  </div>
+                  <div>
+                    <p className="font-bold text-text-primary">Direct Payment & Contact Check</p>
+                    <p className="text-text-tertiary text-[11px]">We verify your receiving MTN / Airtel MoMo number for player deposits.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <div className="w-5 h-5 rounded-full bg-surface-raised border border-border-subtle text-text-tertiary font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                    3
+                  </div>
+                  <div>
+                    <p className="font-bold text-text-secondary">Public Marketplace Activation</p>
+                    <p className="text-text-tertiary text-[11px]">Your pitch goes live and bookable on the Explore Map and Search.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Next Steps Guidance */}
+            <div className="bg-[#38BDF8]/10 border border-[#38BDF8]/20 rounded-xl p-3 text-xs text-text-secondary space-y-1">
+              <p className="font-bold text-[#38BDF8] flex items-center gap-1.5">
+                <Info size={13} /> While you wait for review:
+              </p>
+              <p className="text-[11px] leading-relaxed text-text-tertiary">
+                Ensure your Mobile Money phone and account name match your Business Profile so player deposits route smoothly.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+              <button
+                type="button"
+                onClick={() => navigate('/owner/pitches', { state: { showSubmittedForReview: true } })}
+                className="flex-1 py-3 px-4 bg-primary-lime hover:bg-[#96E600] text-black font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer active:scale-95"
+              >
+                <span>View Facilities & Status</span>
+                <ChevronRight size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/owner')}
+                className="py-3 px-4 bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-secondary hover:text-text-primary font-bold text-xs rounded-xl transition-all cursor-pointer active:scale-95"
+              >
+                Owner Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
