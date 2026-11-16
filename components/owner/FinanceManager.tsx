@@ -74,7 +74,7 @@ export const FinanceManager: React.FC = () => {
       (filterMethod === "MTN" && (txn.paymentMethod?.includes("MTN") || txn.paymentMethod?.includes("MOBILE_MONEY"))) ||
       (filterMethod === "AIRTEL" && txn.paymentMethod?.includes("AIRTEL")) ||
       (filterMethod === "CASH" && (txn.paymentMethod?.includes("CASH") || !txn.paymentMethod)) ||
-      (filterMethod === "PENDING" && (txn.status === "PAYMENT_SUBMITTED" || txn.status === "TENTATIVE"));
+      (filterMethod === "PENDING" && txn.status === "PAYMENT_SUBMITTED");
 
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =

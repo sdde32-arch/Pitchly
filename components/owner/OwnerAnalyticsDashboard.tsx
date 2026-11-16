@@ -29,6 +29,7 @@ import { Pitch } from '../../types/firebase';
 import { pitchService } from '../../services/pitchService';
 import { bookingService } from '../../services/bookingService';
 import { useUser } from '../../context/UserContext';
+import { getCollectedAmount } from '../../utils/revenue';
 
 interface OwnerAnalyticsDashboardProps {
   pitches?: Pitch[];
@@ -113,34 +114,12 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
       '19:00', '20:00', '21:00', '22:00', '23:00'
     ];
 
-    // Standard baseline distribution typical for Kampala turf facilities
-    const baselineDistribution: Record<string, number> = {
-      '07:00': 2,
-      '08:00': 3,
-      '09:00': 4,
-      '10:00': 3,
-      '11:00': 2,
-      '12:00': 4,
-      '13:00': 3,
-      '14:00': 4,
-      '15:00': 6,
-      '16:00': 9,
-      '17:00': 14,
-      '18:00': 22,
-      '19:00': 28,
-      '20:00': 26,
-      '21:00': 18,
-      '22:00': 10,
-      '23:00': 3,
-    };
-
-    // Calculate real counts from bookings
+    // Calculate real counts and collected revenue from bookings
     const counts: Record<string, { count: number; revenue: number }> = {};
     hours.forEach((h) => {
       counts[h] = { count: 0, revenue: 0 };
     });
 
-    let realBookingCountInHours = 0;
     relevantBookings.forEach((b) => {
       const timeStr = (b.time || '').trim();
       const match = timeStr.match(/^(\d{1,2}):/);
@@ -148,23 +127,15 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
         const hour = `${match[1].padStart(2, '0')}:00`;
         if (counts[hour]) {
           counts[hour].count += 1;
-          counts[hour].revenue += b.price || b.totalPrice || 0;
-          realBookingCountInHours += 1;
+          counts[hour].revenue += getCollectedAmount(b);
         }
       }
     });
 
-    const isUsingBaselineWeight = realBookingCountInHours < 5;
-    const avgPrice = 120000;
-
     return hours.map((hour) => {
       const real = counts[hour];
-      const count = isUsingBaselineWeight
-        ? real.count + baselineDistribution[hour]
-        : real.count;
-      const revenue = isUsingBaselineWeight
-        ? real.revenue + baselineDistribution[hour] * avgPrice
-        : real.revenue;
+      const count = real.count;
+      const revenue = real.revenue;
 
       const hourNum = parseInt(hour.split(':')[0], 10);
       const isPeak = hourNum >= 18 && hourNum <= 21;
@@ -194,12 +165,12 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
       if (h.bookings > maxHour.bookings) maxHour = h;
     });
 
-    const primePercentage = totalBookings > 0 
-      ? Math.round((primePeakBookings / totalBookings) * 100) 
-      : 60;
+    const primePercentage = totalBookings > 0
+      ? Math.round((primePeakBookings / totalBookings) * 100)
+      : 0;
 
     return {
-      busiestHour: maxHour.hour,
+      busiestHour: totalBookings > 0 ? maxHour.hour : '—',
       busiestCount: maxHour.bookings,
       primePercentage,
       totalTrackedMatches: totalBookings,
@@ -223,17 +194,6 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
       });
     }
 
-    // Benchmark monthly revenue curve in Kampala (UGX)
-    const benchmarkRevenue: Record<string, { rev: number; count: number }> = {
-      0: { rev: 2150000, count: 18 },
-      1: { rev: 2650000, count: 22 },
-      2: { rev: 3100000, count: 26 },
-      3: { rev: 2950000, count: 25 },
-      4: { rev: 3800000, count: 32 },
-      5: { rev: 4450000, count: 38 },
-    };
-
-    let totalRealRevenue = 0;
     const realByMonth: Record<string, { rev: number; count: number }> = {};
     months.forEach((m) => {
       realByMonth[m.key] = { rev: 0, count: 0 };
@@ -243,21 +203,17 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
       if (b.date) {
         const monthKey = b.date.slice(0, 7);
         if (realByMonth[monthKey]) {
-          const val = b.price || b.totalPrice || 0;
+          const val = getCollectedAmount(b);
           realByMonth[monthKey].rev += val;
           realByMonth[monthKey].count += 1;
-          totalRealRevenue += val;
         }
       }
     });
 
-    const isUsingBenchmark = totalRealRevenue < 100000;
-
-    return months.map((m, idx) => {
+    return months.map((m) => {
       const real = realByMonth[m.key];
-      const benchmark = benchmarkRevenue[idx] || { rev: 2500000, count: 20 };
-      const revenue = isUsingBenchmark ? benchmark.rev + real.rev : real.rev;
-      const matches = isUsingBenchmark ? benchmark.count + real.count : real.count;
+      const revenue = real.rev;
+      const matches = real.count;
 
       return {
         monthKey: m.key,
@@ -279,8 +235,10 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
     });
 
     const currentMonthRev = monthlyRevenueData[monthlyRevenueData.length - 1]?.revenue || 0;
-    const prevMonthRev = monthlyRevenueData[monthlyRevenueData.length - 2]?.revenue || 1;
-    const momGrowth = Math.round(((currentMonthRev - prevMonthRev) / prevMonthRev) * 100);
+    const prevMonthRev = monthlyRevenueData[monthlyRevenueData.length - 2]?.revenue || 0;
+    const momGrowth = prevMonthRev > 0
+      ? Math.round(((currentMonthRev - prevMonthRev) / prevMonthRev) * 100)
+      : 0;
 
     return {
       totalRevenue: total,
@@ -471,7 +429,7 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
               <Flame size={14} className="text-amber-400" />
             </div>
             <div className="text-base sm:text-lg font-black text-text-primary tracking-tight font-display">
-              18:00 – 21:00
+              {relevantBookings.length > 0 ? '18:00 – 21:00' : '—'}
             </div>
             <p className="text-[10px] text-text-secondary mt-0.5">
               {peakInsights.primePercentage}% of total match bookings
@@ -484,7 +442,7 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
               <Clock size={14} className="text-[#38BDF8]" />
             </div>
             <div className="text-base sm:text-lg font-black text-text-primary tracking-tight font-display">
-              {peakInsights.busiestHour} Slot
+              {relevantBookings.length > 0 ? `${peakInsights.busiestHour} Slot` : '—'}
             </div>
             <p className="text-[10px] text-text-secondary mt-0.5">
               {peakInsights.busiestCount} bookings logged
@@ -497,7 +455,7 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
               <TrendingUp size={14} className="text-emerald-400" />
             </div>
             <div className="text-base sm:text-lg font-black text-emerald-400 tracking-tight font-display flex items-center gap-1">
-              +{revenueMetrics.momGrowth}%
+              {revenueMetrics.momGrowth >= 0 ? `+${revenueMetrics.momGrowth}%` : `${revenueMetrics.momGrowth}%`}
               <ArrowUpRight size={15} />
             </div>
             <p className="text-[10px] text-text-secondary mt-0.5">
@@ -520,7 +478,22 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
         </div>
       </div>
 
-      {/* Visual Charts Grid: Side-by-side on wide screens, stacked on mobile/tablet */}
+      {/* Empty State or Visual Charts Grid */}
+      {relevantBookings.length === 0 ? (
+        <div className="bg-surface-card rounded-2xl p-8 sm:p-10 border border-border-subtle shadow-xs text-center space-y-2">
+          <TrendingUp size={32} className="mx-auto text-text-tertiary opacity-50" />
+          <p className="text-sm font-bold text-text-primary">
+            {bookings.length === 0
+              ? 'No bookings yet. Your analytics will appear here after your first bookings.'
+              : 'No bookings match the selected pitch or time range yet.'}
+          </p>
+          <p className="text-xs text-text-secondary max-w-md mx-auto">
+            {bookings.length === 0
+              ? 'Peak hours and monthly revenue charts will appear here as players book your pitches.'
+              : 'Try selecting All Time or switching to All Managed Pitches.'}
+          </p>
+        </div>
+      ) : (
       <div className={`grid gap-5 sm:gap-6 ${activeTab === 'both' ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}>
         {/* CHART 1: PEAK BOOKING HOURS BREAKDOWN */}
         {(activeTab === 'both' || activeTab === 'hours') && (
@@ -618,7 +591,7 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
               </div>
 
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-lime/10 text-primary-lime border border-primary-lime/30">
-                MoM +{revenueMetrics.momGrowth}%
+                MoM {revenueMetrics.momGrowth >= 0 ? `+${revenueMetrics.momGrowth}%` : `${revenueMetrics.momGrowth}%`}
               </span>
             </div>
 
@@ -678,6 +651,7 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
           </div>
         )}
       </div>
+      )}
 
       {/* Facilities Breakdown Matrix if Owner Manages Multiple Pitches */}
       {pitches.length > 1 && (
@@ -694,8 +668,8 @@ export const OwnerAnalyticsDashboard: React.FC<OwnerAnalyticsDashboardProps> = (
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
             {pitches.map((pitch, idx) => {
-              const pitchBookings = bookings.filter((b) => b.pitchId === pitch.id && b.status !== 'CANCELLED');
-              const pitchRev = pitchBookings.reduce((sum, b) => sum + (b.price || b.totalPrice || pitch.pricePerHour || 0), 0);
+              const pitchBookings = bookings.filter((b) => b.pitchId === pitch.id && b.status !== 'CANCELLED' && b.status !== 'REJECTED');
+              const pitchRev = pitchBookings.reduce((sum, b) => sum + getCollectedAmount(b), 0);
               const isSelected = activePitchId === pitch.id;
 
               return (

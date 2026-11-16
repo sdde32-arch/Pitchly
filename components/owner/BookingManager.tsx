@@ -249,7 +249,10 @@ export const BookingManager: React.FC = () => {
       updates.reviewedAt = new Date().toISOString();
     }
 
+    const previousBooking = bookings.find((b) => b.id === booking.id) ?? booking;
     try {
+      const previousStatus = previousBooking.status;
+
       // Optimistic update immediately for zero-lag UI response
       setBookings((prev) =>
         prev.map((b) => (b.id === booking.id ? { ...b, ...updates } : b)),
@@ -261,6 +264,25 @@ export const BookingManager: React.FC = () => {
       }
 
       await bookingService.update(booking.id, updates);
+
+      const wasPendingOrSubmitted =
+        previousStatus === BookingStatus.PAYMENT_SUBMITTED ||
+        previousStatus === BookingStatus.PENDING_PAYMENT;
+
+      if (
+        wasPendingOrSubmitted &&
+        (updates.status === BookingStatus.CONFIRMED ||
+          updates.status === BookingStatus.DEPOSIT_PAID)
+      ) {
+        await bookingService.notifyPlayerOfOwnerDecision(booking, "APPROVED");
+      } else if (
+        wasPendingOrSubmitted &&
+        updates.status === BookingStatus.REJECTED
+      ) {
+        await bookingService.notifyPlayerOfOwnerDecision(booking, "DECLINED");
+      } else if (updates.status === BookingStatus.CANCELLED) {
+        await bookingService.notifyPlayerOfOwnerDecision(booking, "CANCELLED");
+      }
 
       if (action === "CONFIRMED") {
         setToast({
@@ -283,7 +305,11 @@ export const BookingManager: React.FC = () => {
       }
     } catch (e: any) {
       console.error("Booking action failed:", e);
-      // Revert if error
+      // Restore only this booking's exact previous state
+      setBookings((prev) =>
+        prev.map((b) => (b.id === booking.id ? previousBooking : b)),
+      );
+      setJustConfirmedId((prev) => (prev === booking.id ? null : prev));
       setToast({
         type: "error",
         title: "Update Failed",
@@ -302,6 +328,7 @@ export const BookingManager: React.FC = () => {
       paymentStatus: "PAID",
       updatedAt: new Date().toISOString()
     };
+    const previousBooking = bookings.find((b) => b.id === booking.id) ?? booking;
     try {
       setBookings((prev) =>
         prev.map((b) => (b.id === booking.id ? { ...b, ...updates } : b)),
@@ -313,6 +340,11 @@ export const BookingManager: React.FC = () => {
         message: `Marked booking for ${booking.userName || "Player"} as PAID.`
       });
     } catch (e: any) {
+      console.error("Failed to mark booking as paid:", e);
+      // Restore only this booking's exact previous state
+      setBookings((prev) =>
+        prev.map((b) => (b.id === booking.id ? previousBooking : b)),
+      );
       setToast({
         type: "error",
         title: "Payment Update Failed",

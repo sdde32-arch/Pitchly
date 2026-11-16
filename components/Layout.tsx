@@ -21,11 +21,11 @@ import {
   ExternalLink,
   ChevronRight,
   Sparkles,
-  MoreHorizontal,
   X,
   Repeat,
   Building,
 } from "lucide-react";
+import { MobileBottomNav } from "./layout/MobileBottomNav";
 import { useUser } from "../context/UserContext";
 import { useInteractiveWalkthrough } from "../context/InteractiveWalkthroughContext";
 import { PlayerAvatar } from "./PlayerAvatars";
@@ -652,7 +652,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         )}
         <main id="main-content-scroll" className="flex-1 overflow-y-auto no-scrollbar scroll-smooth w-full">
-          <div className="w-full min-h-full lg:max-w-7xl lg:mx-auto pb-16 overflow-x-hidden">
+          <div className={`w-full min-h-full lg:max-w-7xl lg:mx-auto overflow-x-hidden ${hideMobileNav ? "pb-10" : "pb-24 lg:pb-12"}`}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
@@ -667,100 +667,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </AnimatePresence>
           </div>
         </main>
-        {/* MOBILE NAVIGATION - SLEEK MODERN FLOATING DOCK */}
-        {/* MOBILE NAVIGATION - SLEEK MODERN FLOATING DOCK */}
+        {/* MOBILE BOTTOM NAVIGATION BAR */}
         {!hideMobileNav && (
-          <div className="lg:hidden fixed bottom-5 inset-x-0 z-40 px-4 pointer-events-none flex justify-center">
-            <nav 
-              className="pointer-events-auto w-full max-w-[390px] h-[58px] px-2 rounded-full bg-nav-bg-glass backdrop-blur-xl shadow-[0_12px_36px_rgba(0,0,0,0.35)] border border-nav-border flex justify-between items-center" 
-              id="app-bottom-nav"
-            >
-              {isOwner ? (
-                <>
-                  {[
-                    { path: "/owner", search: "tab=Dashboard", label: "Overview", icon: LayoutDashboard },
-                    { path: "/owner/pitches", search: "", label: "Facilities", icon: Building2 },
-                    { path: "/owner", search: "tab=Bookings", label: "Bookings", icon: CalendarCheck },
-                    { path: "/owner", search: "tab=Finances", label: "Finances", icon: Wallet },
-                  ].map((item, index) => {
-                    const active = isActive(item.path, item.search) && !showOwnerMoreMenu;
-                    const IconComponent = item.icon;
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          setShowOwnerMoreMenu(false);
-                          navigate(item.search ? `${item.path}?${item.search}` : item.path);
-                        }}
-                        className={`relative flex flex-col items-center justify-center flex-1 h-[44px] rounded-full transition-all duration-200 cursor-pointer focus-visible:outline-none ${
-                          active 
-                            ? "bg-nav-active-bg text-nav-active-text font-extrabold shadow-sm" 
-                            : "text-nav-text-muted hover:text-nav-text hover:bg-white/[0.06]"
-                        }`}
-                      >
-                        <IconComponent
-                          size={18}
-                          strokeWidth={active ? 2.5 : 2}
-                          className="mb-0.5 shrink-0"
-                        />
-                        <span className={`text-[10px] leading-tight tracking-tight whitespace-nowrap text-center ${active ? 'font-black' : 'font-semibold'}`}>
-                          {item.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-
-                  {/* 5th Tab: More Drawer Trigger */}
-                  <button
-                    onClick={() => setShowOwnerMoreMenu(prev => !prev)}
-                    className={`relative flex flex-col items-center justify-center flex-1 h-[44px] rounded-full transition-all duration-200 cursor-pointer focus-visible:outline-none ${
-                      showOwnerMoreMenu 
-                        ? "bg-nav-active-bg text-nav-active-text font-extrabold shadow-sm" 
-                        : "text-nav-text-muted hover:text-nav-text hover:bg-white/[0.06]"
-                    }`}
-                  >
-                    <MoreHorizontal
-                      size={18}
-                      strokeWidth={showOwnerMoreMenu ? 2.5 : 2}
-                      className="mb-0.5 shrink-0"
-                    />
-                    <span className={`text-[10px] leading-tight tracking-tight whitespace-nowrap text-center ${showOwnerMoreMenu ? 'font-black' : 'font-semibold'}`}>
-                      More
-                    </span>
-                  </button>
-                </>
-              ) : (
-                links.slice(0, 5).map((link, index) => {
-                  const active = isActive(link.path, link.search);
-                  const IconComponent = link.icon;
-                  return (
-                    <button
-                      key={index}
-                      onClick={() =>
-                        navigate(
-                          link.search ? `${link.path}?${link.search}` : link.path,
-                        )
-                      }
-                      className={`relative flex flex-col items-center justify-center flex-1 h-[44px] rounded-full transition-all duration-200 cursor-pointer focus-visible:outline-none ${
-                        active 
-                          ? "bg-nav-active-bg text-nav-active-text font-extrabold shadow-sm" 
-                          : "text-nav-text-muted hover:text-nav-text hover:bg-white/[0.06]"
-                      }`}
-                    >
-                      <IconComponent
-                        size={18}
-                        strokeWidth={active ? 2.5 : 2}
-                        className="mb-0.5 shrink-0"
-                      />
-                      <span className={`text-[10px] leading-tight tracking-tight whitespace-nowrap text-center ${active ? 'font-black' : 'font-semibold'}`}>
-                        {link.label}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
-            </nav>
-          </div>
+          <MobileBottomNav
+            isOwner={Boolean(isOwner)}
+            pathname={location.pathname}
+            search={location.search}
+            showOwnerMoreMenu={showOwnerMoreMenu}
+            onNavigate={(target) => navigate(target)}
+            onToggleOwnerMore={() => setShowOwnerMoreMenu((prev) => !prev)}
+            onCloseOwnerMore={() => setShowOwnerMoreMenu(false)}
+          />
         )}
 
         {/* OWNER MORE OPERATIONS BOTTOM SHEET DRAWER */}

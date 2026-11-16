@@ -1,5 +1,5 @@
 import { AdminReview, Pitch } from "../types/firebase";
-import { BookingStatus, Report, ReportStatus } from "../types";
+import { BookingStatus, PitchStatus, Report, ReportStatus } from "../types";
 import { db } from "../lib/firebase";
 import {
   collection,
@@ -17,6 +17,40 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { pitchService } from "./pitchService";
+
+const MANAGED_PRIMARY_ROLES = new Set([
+  "PLAYER",
+  "OWNER",
+  "ADMIN",
+  "SUPER_ADMIN",
+]);
+
+export function computeUpdatedRoles(
+  newRole: string,
+  currentRoles?: unknown
+): string[] {
+  const normalizedTarget = newRole.trim().toUpperCase();
+  const existingRoles = Array.isArray(currentRoles)
+    ? currentRoles.filter((r): r is string => typeof r === "string" && r.trim().length > 0)
+    : [];
+
+  const preservedSecondary = existingRoles.filter(
+    (r) => !MANAGED_PRIMARY_ROLES.has(r.trim().toUpperCase())
+  );
+
+  let baseRoles: string[];
+  if (normalizedTarget === "OWNER") {
+    baseRoles = ["OWNER", "PLAYER"];
+  } else if (normalizedTarget === "ADMIN" || normalizedTarget === "SUPER_ADMIN") {
+    baseRoles = [normalizedTarget === "SUPER_ADMIN" ? "SUPER_ADMIN" : "ADMIN"];
+  } else if (normalizedTarget === "PLAYER") {
+    baseRoles = ["PLAYER"];
+  } else {
+    baseRoles = [normalizedTarget, "PLAYER"];
+  }
+
+  return Array.from(new Set([...baseRoles, ...preservedSecondary]));
+}
 
 export const adminService = {
   collectionPath: "adminReviews",
@@ -298,8 +332,10 @@ export const adminService = {
       const userSnap = await getDoc(userRef);
       const userData = userSnap.exists() ? userSnap.data() : null;
       
+      const updatedRoles = computeUpdatedRoles(newRole, userData?.roles);
       const updates: any = {
         role: newRole,
+        roles: updatedRoles,
         updatedAt: serverTimestamp(),
       };
 
@@ -901,6 +937,65 @@ export const adminService = {
       }
     } catch (error) {
       console.error("Failed to request changes for pitch", error);
+      throw error;
+    }
+  },
+
+  async advancePitchToInspection(
+    pitchId: string,
+    adminId: string,
+    note?: string,
+  ): Promise<void> {
+    console.log(`Advancing pitch ${pitchId} to Stage 2 physical inspection`);
+    try {
+      await updateDoc(doc(db, "pitches", pitchId), {
+        status: PitchStatus.PENDING_INSPECTION,
+        reviewedAt: serverTimestamp(),
+        reviewedBy: adminId,
+        updatedAt: serverTimestamp(),
+      });
+      await this.createReview(
+        pitchId,
+        adminId,
+        'APPROVED',
+        note || "Stage 1 details approved. Pending physical inspection."
+      );
+      await this.logAdminAction({
+        adminId,
+        action: "Pitch Advanced to Stage 2 Inspection",
+        targetType: "Pitch",
+        targetId: pitchId,
+        metadata: note ? { note } : {}
+      });
+
+      try {
+        const pitchSnap = await getDoc(doc(db, "pitches", pitchId));
+        const pitchData = pitchSnap.data();
+        if (pitchData?.ownerId) {
+          const notifRef = doc(collection(db, "notifications"));
+          const pitchName = pitchData.name || "Your pitch";
+          const msg = `${pitchName}: Stage 1 approved — your pitch details were approved. A physical inspection will be scheduled next.`;
+          const nowIso = new Date().toISOString();
+          await setDoc(notifRef, {
+            id: notifRef.id,
+            userId: pitchData.ownerId,
+            type: "SYSTEM",
+            title: "Stage 1 approved",
+            body: msg,
+            message: msg,
+            pitchId,
+            link: "/owner/pitches",
+            read: false,
+            isRead: false,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          });
+        }
+      } catch (notifErr) {
+        console.warn("Failed to notify owner about Stage 1 approval:", notifErr);
+      }
+    } catch (error) {
+      console.error("Failed to advance pitch to Stage 2 inspection", error);
       throw error;
     }
   },

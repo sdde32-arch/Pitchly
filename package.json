@@ -13,6 +13,7 @@
     "test:storage": "tsx tests/storage-emulator.test.ts",
     "test:launch": "tsx tests/launch-corrections.test.ts",
     "test:rules": "firebase emulators:exec --project demo-footlink-security-test --only firestore \"npx tsx tests/tour-3e-rules.test.ts\"",
+    "test:notifications-rules": "firebase emulators:exec --project demo-footlink-security-test --only firestore \"npx tsx tests/notifications-rules.test.ts\"",
     "start": "node server.ts",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
@@ -40,7 +41,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
-    "@firebase/rules-unit-testing": "^6.0.0",
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/express": "^5.0.6",

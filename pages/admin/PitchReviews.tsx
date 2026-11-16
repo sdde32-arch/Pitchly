@@ -161,7 +161,7 @@ export const PitchReviews: React.FC = () => {
         showToast("info", "Modification request sent to pitch owner.");
       } else if (newStatus === "PENDING_INSPECTION") {
         // Move to Stage 2 Inspection
-        await adminService.requestPitchChanges(
+        await adminService.advancePitchToInspection(
           pitchId,
           user.uid,
           "Stage 1 Details Approved. Pending physical ground inspection."

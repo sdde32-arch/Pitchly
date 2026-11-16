@@ -13,11 +13,20 @@ import { formatBookingDate, formatBookingTime } from "../lib/dateUtils";
 import { bookingService } from "../services/bookingService";
 import { formatCutoffLabel, formatKampalaTime } from "../utils/paymentCutoff";
 import { PhotoPlaceholder } from "../components/ui/PhotoPlaceholder";
+import { getSupportMailto } from "../utils/contact";
+
+const PLAYER_CANCELLABLE_STATUSES = new Set<string>([
+  BookingStatus.PENDING_PAYMENT,
+  BookingStatus.PAYMENT_SUBMITTED,
+  "temporarily_held",
+  BookingStatus.PENDING,
+  BookingStatus.TENTATIVE,
+]);
 
 export const Bookings: React.FC = () => {
   const navigate = useNavigate();
   const { user, userProfile } = useUser();
-  const { bookings, loading, updateBookingStatus, removeBooking } = useBooking();
+  const { turfs, bookings, loading, updateBookingStatus, removeBooking } = useBooking();
   const [activeTab, setActiveTab] = useState<"upcoming" | "completed" | "cancelled">("upcoming");
   const [failedBookingIds, setFailedBookingIds] = useState<Set<string>>(new Set());
   const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string } | null>(null);
@@ -121,7 +130,13 @@ export const Bookings: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Booking action failed:", err);
-      setFeedbackToast({ type: "error", message: err?.message || "Failed to update booking." });
+      setFeedbackToast({
+        type: "error",
+        message:
+          action === "CANCEL"
+            ? "Could not cancel this booking. Please contact the pitch owner or support."
+            : err?.message || "Failed to update booking.",
+      });
     } finally {
       setActionLoadingId(null);
       setTimeout(() => setFeedbackToast(null), 4000);
@@ -231,6 +246,14 @@ export const Bookings: React.FC = () => {
                 const isPendingPayment = b.status === BookingStatus.PENDING || b.status === BookingStatus.PENDING_PAYMENT || (b.paymentStatus === 'UNPAID' && b.status !== BookingStatus.CONFIRMED);
                 const isPendingExpired = isPendingPayment && bookingService.isPendingBookingExpired(bAny);
                 const remainingMs = isPendingPayment ? bookingService.getRemainingPaymentTimeMs(bAny) : 0;
+                const isPlayerCancellable = PLAYER_CANCELLABLE_STATUSES.has(String(b.status || ""));
+                const matchedTurf = turfs.find((t) => t.id === (b.pitchId || bAny.turfId));
+                const ownerContact = bAny.contactPhone || matchedTurf?.contactPhone || matchedTurf?.contactEmail;
+                const bookingRefCode = (b.id || "").slice(-6).toUpperCase();
+                const supportCancelHref = getSupportMailto(
+                  `Cancellation request for booking #${bookingRefCode}`,
+                  `Hi Pitchly Support,\n\nPlease help me cancel booking #${bookingRefCode} at ${bAny.pitchName || bAny.turfName || "Football Pitch"} (${b.date} ${b.time}).\n`
+                );
 
                 // If expired in memory or Firestore, trigger background auto-release
                 if (isPendingExpired && b.status !== BookingStatus.CANCELLED) {
@@ -432,23 +455,25 @@ export const Bookings: React.FC = () => {
                           </button>
                         )}
 
-                        <button
-                          disabled={actionLoadingId === b.id}
-                          className="px-3 py-1.5 rounded-xl bg-surface-raised hover:bg-[#EF4444]/20 hover:text-[#EF4444] border border-border-subtle text-text-secondary text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-                          onClick={() => {
-                            setConfirmModal({
-                              bookingId: b.id,
-                              action: "CANCEL",
-                              title: "Cancel Match Booking?",
-                              message: "Are you sure you want to cancel this booking? This will release the slot for other players."
-                            });
-                          }}
-                        >
-                          {actionLoadingId === b.id ? (
-                            <Loader2 size={13} className="animate-spin text-[#EF4444]" />
-                          ) : null}
-                          <span>Cancel</span>
-                        </button>
+                        {isPlayerCancellable && (
+                          <button
+                            disabled={actionLoadingId === b.id}
+                            className="px-3 py-1.5 rounded-xl bg-surface-raised hover:bg-[#EF4444]/20 hover:text-[#EF4444] border border-border-subtle text-text-secondary text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                            onClick={() => {
+                              setConfirmModal({
+                                bookingId: b.id,
+                                action: "CANCEL",
+                                title: "Cancel Match Booking?",
+                                message: "Are you sure you want to cancel this booking? This will release the slot for other players."
+                              });
+                            }}
+                          >
+                            {actionLoadingId === b.id ? (
+                              <Loader2 size={13} className="animate-spin text-[#EF4444]" />
+                            ) : null}
+                            <span>Cancel</span>
+                          </button>
+                        )}
                         <button
                           className={`px-4 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 ${
                             isOpenTentative
@@ -460,6 +485,19 @@ export const Bookings: React.FC = () => {
                           <QrCode size={13} />
                           <span>{isOpenTentative ? "View Details" : "View Pass"}</span>
                         </button>
+                        {!isPlayerCancellable && (
+                          <div className="w-full pt-1 text-right">
+                            <span className="text-[11px] text-text-secondary">
+                              <a
+                                href={supportCancelHref}
+                                className="hover:text-primary-lime underline underline-offset-2 transition-colors"
+                              >
+                                To cancel, contact the pitch owner or support
+                              </a>
+                              {ownerContact ? ` (${ownerContact})` : ""}
+                            </span>
+                          </div>
+                        )}
                       </>
                     )}
                     {activeTab === "completed" && (

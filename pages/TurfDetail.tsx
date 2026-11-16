@@ -1907,7 +1907,7 @@ export const TurfDetail: React.FC = () => {
                 <div className="pt-2 border-t border-border-subtle/70 flex items-center justify-between text-[11px] text-text-tertiary">
                   <span className="flex items-center gap-1">
                     <ShieldCheck size={13} className="text-primary-lime" />
-                    24h Reschedule
+                    Owner-assisted changes
                   </span>
                   <span>·</span>
                   <span className="flex items-center gap-1">
@@ -2334,10 +2334,10 @@ export const TurfDetail: React.FC = () => {
                 <div className="p-3 rounded-xl bg-surface-raised border border-border-subtle space-y-1">
                   <span className="font-bold text-text-primary text-xs flex items-center gap-1.5">
                     <CheckCircle2 size={14} className="text-primary-lime shrink-0" />
-                    Free Cancellation &amp; Reschedule
+                    Cancellations &amp; Time Changes
                   </span>
                   <p>
-                    Cancel or reschedule without fee up to 24 hours prior to match kickoff. Full refund credited to your original payment method.
+                    Unpaid bookings can be cancelled in My Bookings and booked again. To change or cancel a confirmed or deposit-paid booking, contact the pitch owner or Pitchly support.
                   </p>
                 </div>
 

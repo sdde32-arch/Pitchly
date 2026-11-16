@@ -34,7 +34,6 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
 }) => {
   const navigate = useNavigate();
   const [selectedTime, setSelectedTime] = useState<string>(initialTimeSlot);
-  const [duration, setDuration] = useState<number>(1); // hours
   const [paymentOption, setPaymentOption] = useState<"deposit" | "full" | "tentative">("deposit");
   const [fetchedPitch, setFetchedPitch] = useState<Pitch | null>(null);
 
@@ -69,7 +68,7 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
   const rawPricePerHour = effectivePitch?.pricePerHour ?? pitch.pricePerHour;
   const pricePerHour = typeof rawPricePerHour === "number" && rawPricePerHour > 0 ? rawPricePerHour : null;
   const hasValidPrice = pricePerHour !== null;
-  const totalPrice = hasValidPrice ? pricePerHour * duration : null;
+  const totalPrice = hasValidPrice ? pricePerHour : null;
   const depositCalc = hasValidPrice ? computeDeposit(totalPrice!, depositPercentage) : null;
   const depositAmount = depositCalc ? depositCalc.depositAmount : null;
   const isFull = depositCalc ? depositCalc.isFull : false;
@@ -101,7 +100,6 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
     const queryParams = new URLSearchParams({
       date: selectedDate,
       time: selectedTime,
-      duration: duration.toString(),
       tier: paymentOption,
       deposit: paymentOption === "deposit" ? "true" : "false",
     });
@@ -210,31 +208,27 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
           </div>
         </div>
 
-        {/* Match Duration Selector */}
+        {/* Match Duration (60-minute slot) */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-text-primary block">
-            Match Duration
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { hours: 1, label: "1 Hour (60m)" },
-              { hours: 1.5, label: "1.5 Hours (90m)" },
-              { hours: 2, label: "2 Hours (120m)" },
-            ].map((d) => (
-              <button
-                key={d.hours}
-                type="button"
-                id={`duration-${d.hours}`}
-                onClick={() => setDuration(d.hours)}
-                className={`py-2 px-2 rounded-xl text-xs font-bold text-center transition-all cursor-pointer ${
-                  duration === d.hours
-                    ? "bg-surface-raised text-primary-lime border-2 border-primary-lime"
-                    : "bg-surface-raised/60 hover:bg-surface-raised text-text-secondary border border-border-subtle"
-                }`}
-              >
-                {d.label}
-              </button>
-            ))}
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-text-primary block">
+              Match Duration
+            </label>
+            <span className="text-[11px] text-text-tertiary font-medium">
+              Add extra hours on next screen
+            </span>
+          </div>
+          <div
+            id="duration-1"
+            className="py-2 px-3 rounded-xl text-xs font-bold bg-surface-raised text-primary-lime border-2 border-primary-lime flex items-center justify-between"
+          >
+            <span>1 Hour (60m)</span>
+            <span className="text-[11px] font-medium text-text-secondary">
+              {selectedTime} – {(() => {
+                const startH = parseInt(selectedTime.split(":")[0], 10);
+                return !isNaN(startH) ? `${String((startH + 1) % 24).padStart(2, "0")}:00` : "";
+              })()}
+            </span>
           </div>
         </div>
 
@@ -327,7 +321,7 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
             <span>{hasValidPrice ? `UGX ${pricePerHour.toLocaleString()}` : "Price shown at checkout"}</span>
           </div>
           <div className="flex justify-between text-xs text-text-secondary">
-            <span>Duration ({duration} hr)</span>
+            <span>Duration (1 hr)</span>
             <span>{hasValidPrice && totalPrice !== null ? `UGX ${totalPrice.toLocaleString()}` : "Price shown at checkout"}</span>
           </div>
           <div className="flex justify-between text-xs text-text-secondary">

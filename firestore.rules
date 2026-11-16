@@ -640,9 +640,27 @@ service cloud.firestore {
     // ─────────────────────────────────────────────────────────────
     // NOTIFICATIONS
     // ─────────────────────────────────────────────────────────────
+    function isValidNotificationCreate(d, notifId) {
+      return d.keys().hasAll(['id', 'userId', 'type', 'title', 'body', 'isRead', 'createdAt', 'updatedAt'])
+        && d.keys().hasOnly(['id', 'userId', 'type', 'title', 'body', 'message', 'bookingId', 'pitchId', 'link', 'read', 'isRead', 'createdAt', 'updatedAt'])
+        && d.id is string && d.id == notifId && d.id.size() > 0 && d.id.size() <= 128
+        && d.userId is string && d.userId.size() > 0 && d.userId.size() <= 128
+        && d.type in ['BOOKING_REMINDER', 'MATCH_INVITE', 'PAYMENT_RECEIVED', 'SYSTEM', 'BOOKING_PREEMPTED']
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+        && d.body is string && d.body.size() > 0 && d.body.size() <= 1000
+        && (!d.keys().hasAny(['message']) || (d.message is string && d.message.size() > 0 && d.message.size() <= 1000))
+        && (!d.keys().hasAny(['bookingId']) || (d.bookingId is string && d.bookingId.size() > 0 && d.bookingId.size() <= 128))
+        && (!d.keys().hasAny(['pitchId']) || (d.pitchId is string && d.pitchId.size() > 0 && d.pitchId.size() <= 128))
+        && (!d.keys().hasAny(['link']) || (d.link is string && d.link.size() > 0 && d.link.size() <= 200 && d.link.matches('/.*')))
+        && d.isRead is bool && d.isRead == false
+        && (!d.keys().hasAny(['read']) || (d.read is bool && d.read == false))
+        && d.createdAt is string && d.createdAt.size() > 0 && d.createdAt.size() <= 50
+        && d.updatedAt is string && d.updatedAt.size() > 0 && d.updatedAt.size() <= 50;
+    }
+
     match /notifications/{notificationId} {
       allow read, update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidNotificationCreate(request.resource.data, notificationId);
     }
 
     // ─────────────────────────────────────────────────────────────

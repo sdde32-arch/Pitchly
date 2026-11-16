@@ -1119,6 +1119,59 @@ export const bookingService = {
     }
   },
 
+  async notifyPlayerOfOwnerDecision(
+    booking: Partial<Booking>,
+    decision: 'APPROVED' | 'DECLINED' | 'CANCELLED'
+  ): Promise<void> {
+    const playerUserId = booking.userId || booking.playerId;
+    if (!playerUserId) return;
+
+    const pitchName = booking.turfName || booking.pitchName || 'the pitch';
+    const slotText = booking.time || (booking.slots && booking.slots[0]) || '';
+    const datePart = booking.date ? ` on ${booking.date}` : '';
+    const timePart = slotText ? ` ${slotText}` : '';
+    const whenText = `${datePart}${timePart}`;
+
+    let title: string;
+    let body: string;
+
+    if (decision === 'APPROVED') {
+      title = 'Payment confirmed';
+      body = `Your booking at ${pitchName}${whenText} is confirmed.`;
+    } else if (decision === 'DECLINED') {
+      title = 'Payment not accepted';
+      body = `The pitch owner could not verify your payment for ${pitchName}${whenText}. Open your booking or contact the owner.`;
+    } else {
+      title = 'Booking cancelled by owner';
+      body = `${pitchName}${whenText} was cancelled by the pitch owner.`;
+    }
+
+    const link = booking.id ? `/booking-confirmation/${booking.id}` : '/bookings';
+
+    try {
+      const notifRef = doc(collection(db, 'notifications'));
+      const nowIso = new Date().toISOString();
+      const pitchId = booking.pitchId || booking.turfId;
+      await setDoc(notifRef, {
+        id: notifRef.id,
+        userId: playerUserId,
+        type: 'SYSTEM',
+        title,
+        body,
+        message: body,
+        ...(booking.id ? { bookingId: booking.id } : {}),
+        ...(pitchId ? { pitchId } : {}),
+        link,
+        read: false,
+        isRead: false,
+        createdAt: nowIso,
+        updatedAt: nowIso
+      });
+    } catch (notifErr) {
+      console.warn('Could not create owner decision notification:', notifErr);
+    }
+  },
+
   async delete(id: string): Promise<void> {
     console.log(`Deleting booking ${id} from ${this.collectionPath}`);
     try {

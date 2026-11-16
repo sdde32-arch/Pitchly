@@ -17,9 +17,6 @@ import {
   Shield,
   Eye,
   EyeOff,
-  Copy,
-  Check,
-  ExternalLink,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -30,6 +27,8 @@ import {
   hasWhatsApp,
   getWhatsAppUrl,
 } from "../utils/contact";
+import { ADMIN_UID } from "../utils/admin";
+import { getAuthErrorMessage } from "../utils/authErrors";
 
 type AuthMode = "SIGN_IN" | "SIGN_UP" | "FORGOT_PASSWORD";
 export const Auth: React.FC = () => {
@@ -49,8 +48,7 @@ export const Auth: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [isUnauthorizedDomain, setIsUnauthorizedDomain] = useState(false);
-  const [copiedDomain, setCopiedDomain] = useState(false);
+  const [unauthorizedDomainMessage, setUnauthorizedDomainMessage] = useState<string | null>(null);
   /* Form State */ const [email, setEmail] = useState(prefilledEmail);
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -116,6 +114,7 @@ export const Auth: React.FC = () => {
     setIsSubmitting(true);
     setError(null);
     setSuccessMessage(null);
+    setUnauthorizedDomainMessage(null);
     try {
       if (mode === "SIGN_UP") {
         console.log("Starting SIGN_UP flow...");
@@ -147,6 +146,7 @@ export const Auth: React.FC = () => {
             avatar: photoURL,
             avatarId: `avatar_${String(Math.floor(Math.random() * 20) + 1).padStart(2, "0")}`,
             bio: isOwner ? "Turf Business Owner" : "Football enthusiast",
+            hasCompletedOnboarding: false,
             createdAt: new Date().toISOString(),
           }, { merge: true });
           console.log("Firestore profile saved successfully.");
@@ -180,7 +180,7 @@ export const Auth: React.FC = () => {
         }
         let targetRoute = from;
         const isAdminUser = 
-          user.uid === "0uVlAOWTy7dpqAW5tsgxQVs4PW43" ||
+          user.uid === ADMIN_UID ||
           userRole === "admin" ||
           userRole === "ADMIN" ||
           userRole === "super_admin";
@@ -191,13 +191,12 @@ export const Auth: React.FC = () => {
         setSuccessMessage("Password reset link sent to your email!");
         setMode("SIGN_IN");
       }
-    } catch (err: any) {
-      const msg = err.message || "";
-      if (msg.includes("already registered"))
-        setError("This email is already registered. Try logging in.");
-      else if (msg.includes("Invalid login credentials"))
-        setError("Incorrect email or password.");
-      else setError(msg || "An unexpected error occurred.");
+    } catch (err: unknown) {
+      console.error("Email authentication error:", err);
+      const friendlyMessage = getAuthErrorMessage(err);
+      if (friendlyMessage) {
+        setError(friendlyMessage);
+      }
     } finally {
       setLoading(false);
       setIsSubmitting(false);
@@ -209,6 +208,7 @@ export const Auth: React.FC = () => {
     setIsGoogleLoading(true);
     setError(null);
     setSuccessMessage(null);
+    setUnauthorizedDomainMessage(null);
     try {
       const preferredRole = isOwner ? "OWNER" : "PLAYER";
       const firebaseUser = await signInWithGoogle(preferredRole);
@@ -224,29 +224,27 @@ export const Auth: React.FC = () => {
       }
 
       const isAdminUser =
-        firebaseUser.uid === "0uVlAOWTy7dpqAW5tsgxQVs4PW43" ||
+        firebaseUser.uid === ADMIN_UID ||
         userRole === "admin" ||
         userRole === "ADMIN" ||
         userRole === "super_admin";
 
       // Navigation is handled by the useEffect above when user context updates.
-    } catch (err: any) {
-      if (
-        err.code === "auth/popup-closed-by-user" ||
-        err.code === "auth/cancelled-popup-request"
-      ) {
+    } catch (err: unknown) {
+      const friendlyMessage = getAuthErrorMessage(err);
+      if (!friendlyMessage) {
         return;
       }
       console.error("Google sign-in error:", err);
-      const isUnauthDomain =
-        err.code === "auth/unauthorized-domain" ||
-        (typeof err.message === "string" && err.message.toLowerCase().includes("unauthorized-domain"));
-      
-      if (isUnauthDomain) {
-        setIsUnauthorizedDomain(true);
+      const code =
+        err && typeof err === "object" && "code" in err && typeof (err as { code?: unknown }).code === "string"
+          ? (err as { code: string }).code
+          : "";
+      if (code === "auth/unauthorized-domain") {
+        setUnauthorizedDomainMessage(friendlyMessage);
         setError(null);
       } else {
-        setError(err.message || "Failed to sign in with Google. Please try again.");
+        setError(friendlyMessage);
       }
     } finally {
       setIsGoogleLoading(false);
@@ -299,6 +297,7 @@ export const Auth: React.FC = () => {
                 onClick={() => {
                   setMode("SIGN_IN");
                   setError(null);
+                  setUnauthorizedDomainMessage(null);
                 }}
                 className={`flex-1 py-2.5 text-[11.5px] font-bold uppercase tracking-widest rounded-full transition-all ${mode === "SIGN_IN" ? "bg-primary-lime text-accent-text shadow-sm shadow-primary-lime/20" : "text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"}`}
               >
@@ -308,6 +307,7 @@ export const Auth: React.FC = () => {
                 onClick={() => {
                   setMode("SIGN_UP");
                   setError(null);
+                  setUnauthorizedDomainMessage(null);
                 }}
                 className={`flex-1 py-2.5 text-[11.5px] font-bold uppercase tracking-widest rounded-full transition-all ${mode === "SIGN_UP" ? "bg-primary-lime text-accent-text shadow-sm shadow-primary-lime/20" : "text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"}`}
               >
@@ -366,70 +366,21 @@ export const Auth: React.FC = () => {
             </div>
           )}
           
-          {isUnauthorizedDomain && (
-            <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl space-y-3 mb-4 animate-fadeIn text-left">
+          {unauthorizedDomainMessage && (
+            <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl space-y-2 mb-4 animate-fadeIn text-left">
               <div className="flex items-start gap-2.5">
                 <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={17} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                    Google Sign-In: Domain Whitelist Required
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <p className="text-xs font-medium text-text-primary leading-relaxed">
+                    {unauthorizedDomainMessage}
                   </p>
-                  <p className="text-[11px] text-text-secondary mt-0.5 leading-relaxed">
-                    Firebase Auth requires this preview domain to be added to Authorized Domains in your Firebase Console.
-                  </p>
+                  <a
+                    href={getSupportMailto("Pitchly Google sign-in help")}
+                    className="inline-block text-xs font-bold text-primary-lime hover:underline"
+                  >
+                    Contact support
+                  </a>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-2 bg-surface-card p-2 rounded-xl border border-border-subtle">
-                <code className="text-[11px] font-mono font-semibold text-text-primary truncate flex-1 px-1">
-                  {typeof window !== "undefined" ? window.location.hostname : ""}
-                </code>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof window !== "undefined") {
-                      navigator.clipboard.writeText(window.location.hostname);
-                      setCopiedDomain(true);
-                      setTimeout(() => setCopiedDomain(false), 2500);
-                    }
-                  }}
-                  className="flex items-center gap-1 text-[10.5px] font-bold px-2.5 py-1 rounded-lg bg-primary-lime/15 text-primary-lime hover:bg-primary-lime/25 transition-colors shrink-0 cursor-pointer"
-                >
-                  {copiedDomain ? (
-                    <>
-                      <Check size={12} />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={12} />
-                      <span>Copy Domain</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <div className="text-[11px] text-text-secondary space-y-1 pl-1">
-                <p className="font-semibold text-text-primary text-[10.5px] uppercase tracking-wider">
-                  How to authorize:
-                </p>
-                <ol className="list-decimal list-inside space-y-0.5 text-[10.5px]">
-                  <li>Open Firebase Console Settings (link below)</li>
-                  <li>Under <strong>Authorized domains</strong>, click <strong>Add domain</strong></li>
-                  <li>Paste the copied domain and click <strong>Save</strong></li>
-                </ol>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                <a
-                  href="https://console.firebase.google.com/project/pitchlink-c4df3/authentication/settings"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-surface-card border border-border-subtle text-text-primary text-[11px] font-bold hover:border-amber-500/40 transition-colors"
-                >
-                  <span>Open Firebase Settings</span>
-                  <ExternalLink size={12} />
-                </a>
               </div>
             </div>
           )}

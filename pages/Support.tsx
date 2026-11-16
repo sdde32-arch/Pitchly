@@ -38,7 +38,7 @@ export const Support: React.FC = () => {
     },
     {
       q: "What happens if it rains?",
-      a: "Most turfs have their own rain policies. Generally, if the pitch is unplayable, you can reschedule your booking at no extra cost. Contact the turf owner directly for specifics.",
+      a: "Most turfs have their own rain policies. Unpaid bookings can be cancelled in My Bookings and booked again. For confirmed or deposit-paid matches, contact the pitch owner or Pitchly support to arrange a new time.",
     },
   ];
   const handleSendMessage = (e: React.FormEvent) => {

@@ -136,7 +136,7 @@ export const AddPitch: React.FC = () => {
 
     // Rules & Policies
     footwearPolicy: 'Turf trainers (TF) or Multi-ground boots (AG/MG). Metal studs strictly prohibited.',
-    cancellationPolicy: 'Free cancellation or reschedule up to 4 hours before match kickoff.',
+    cancellationPolicy: 'Unpaid bookings can be cancelled in My Bookings. To change or cancel a confirmed booking, contact the pitch owner.',
     rules: [
       'Arrive 10 minutes before your reserved kickoff time',
       'No smoking or alcohol on the artificial playing surface',
@@ -223,7 +223,7 @@ export const AddPitch: React.FC = () => {
               paymentAccountName: pitch.paymentAccountName || '',
               amenities: pitch.amenities || [],
               footwearPolicy: pitch.footwearPolicy || 'Turf trainers (TF) or Multi-ground boots (AG/MG). Metal studs strictly prohibited.',
-              cancellationPolicy: pitch.cancellationPolicy || 'Free cancellation or reschedule up to 4 hours before match kickoff.',
+              cancellationPolicy: pitch.cancellationPolicy || 'Unpaid bookings can be cancelled in My Bookings. To change or cancel a confirmed booking, contact the pitch owner.',
               rules: pitch.rules || [
                 'Arrive 10 minutes before your reserved kickoff time',
                 'No smoking or alcohol on the artificial playing surface'
@@ -1329,7 +1329,7 @@ export const AddPitch: React.FC = () => {
                     </span>
                     <div>
                       <h2 className="text-base font-extrabold text-text-primary">Pitch Rules & Cancellation Policies</h2>
-                      <p className="text-xs text-text-secondary">Set player expectations regarding footwear, arrival, and reschedule cutoffs</p>
+                      <p className="text-xs text-text-secondary">Set player expectations regarding footwear, arrival, and cancellations</p>
                     </div>
                   </div>
                 </div>
@@ -1351,7 +1351,7 @@ export const AddPitch: React.FC = () => {
 
                 <div>
                   <label htmlFor="pitch-cancellationPolicy" className="text-[11px] font-extrabold text-text-secondary uppercase tracking-wider mb-2 block">
-                    Cancellation & Reschedule Window
+                    Cancellation & Time-Change Policy
                   </label>
                   <input
                     id="pitch-cancellationPolicy"
@@ -1359,7 +1359,7 @@ export const AddPitch: React.FC = () => {
                     name="cancellationPolicy"
                     value={formData.cancellationPolicy}
                     onChange={handleInputChange}
-                    placeholder="e.g. Free cancellation or slot reschedule up to 4 hours before kickoff."
+                    placeholder="e.g. Unpaid bookings can be cancelled in My Bookings; contact the owner to change a confirmed time."
                     className="w-full bg-surface-raised border border-border-subtle rounded-xl px-4 py-3 text-base min-h-11 font-bold text-text-primary focus:border-primary-lime outline-none transition-all"
                   />
                 </div>

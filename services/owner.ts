@@ -1,8 +1,13 @@
 import { db, auth } from '../lib/firebase';
 import { pitchService } from './pitchService';
 import { bookingService } from './bookingService';
-import { Booking, Payout, StaffMember, Transaction, Turf, BusinessProfile, PitchStatus } from '../types';
+import { Booking, BookingStatus, Payout, StaffMember, Transaction, Turf, BusinessProfile, PitchStatus } from '../types';
 import { collection, doc } from 'firebase/firestore';
+import {
+  getCollectedAmount,
+  getOutstandingBalance,
+  getPendingVerificationAmount,
+} from '../utils/revenue';
 
 export const OwnerService = {
   // 1. DASHBOARD STATS
@@ -13,11 +18,12 @@ export const OwnerService = {
     const today = new Date().toISOString().split('T')[0];
     const bookings = await bookingService.listByOwner(user.uid);
     const todayBookings = bookings.filter((b) => b.date === today && b.status !== 'CANCELLED');
-    const revenue = todayBookings.reduce((sum, b) => sum + (b.price || 0), 0);
-    const pending = bookings.filter((b) => b.status === 'PENDING').length;
+    const revenue = todayBookings.reduce((sum, b) => sum + getCollectedAmount(b), 0);
+    const pending = bookings.filter((b) => String(b.status || '').toUpperCase() === BookingStatus.PAYMENT_SUBMITTED).length;
 
     const pitches = await pitchService.listByOwner(user.uid);
-    const totalSlots = pitches.length * 10;
+    const activePitchesCount = pitches.filter((p) => p.status === PitchStatus.ACTIVE).length;
+    const totalSlots = activePitchesCount * 10;
     const occupancyRate = totalSlots > 0 ? Math.round((todayBookings.length / totalSlots) * 100) : 0;
 
     return { todayRevenue: revenue, todayBookingsCount: todayBookings.length, occupancyRate, pendingRequests: pending };
@@ -34,7 +40,9 @@ export const OwnerService = {
     const chartData = days.map(day => ({ name: day, sales: 0 }));
     activeBookings.forEach((b) => {
       const dayIndex = new Date(b.date).getDay();
-      chartData[dayIndex].sales += (b.price || 0);
+      if (!Number.isNaN(dayIndex) && chartData[dayIndex]) {
+        chartData[dayIndex].sales += getCollectedAmount(b);
+      }
     });
     return chartData;
   },
@@ -160,8 +168,12 @@ export const OwnerService = {
     }
 
     const bookings = await bookingService.listByOwner(user.uid);
-    const confirmedStatuses = ['CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'DEPOSIT_PAID'];
-    const pendingStatuses = ['PAYMENT_SUBMITTED', 'TENTATIVE', 'PENDING_PAYMENT', 'PENDING'];
+    const collectedStatuses = new Set<string>([
+      BookingStatus.CONFIRMED,
+      BookingStatus.CHECKED_IN,
+      BookingStatus.COMPLETED,
+      BookingStatus.DEPOSIT_PAID,
+    ]);
 
     let confirmedRevenue = 0;
     let pendingRevenue = 0;
@@ -173,22 +185,23 @@ export const OwnerService = {
     let cashRevenue = 0;
 
     bookings.forEach((b) => {
-      const amt = b.price || b.totalPrice || 0;
-      const status = String(b.status || '');
+      const collected = getCollectedAmount(b);
+      const pending = getPendingVerificationAmount(b);
+      const status = String(b.status || '').toUpperCase();
       const method = String(b.paymentMethod || '').toUpperCase();
 
-      if (confirmedStatuses.includes(status)) {
-        confirmedRevenue += amt;
+      if (collectedStatuses.has(status)) {
+        confirmedRevenue += collected;
         confirmedCount += 1;
         if (method.includes('AIRTEL')) {
-          airtelRevenue += amt;
+          airtelRevenue += collected;
         } else if (method.includes('MTN') || method.includes('MOBILE_MONEY')) {
-          momoRevenue += amt;
+          momoRevenue += collected;
         } else {
-          cashRevenue += amt;
+          cashRevenue += collected;
         }
-      } else if (pendingStatuses.includes(status)) {
-        pendingRevenue += amt;
+      } else if (status === BookingStatus.PAYMENT_SUBMITTED) {
+        pendingRevenue += pending;
         pendingCount += 1;
       }
     });
@@ -196,12 +209,15 @@ export const OwnerService = {
     const transactions = bookings
       .filter((b) => String(b.status) !== 'CANCELLED' && String(b.status) !== 'REJECTED')
       .map((b) => {
-        const amt = b.price || b.totalPrice || 0;
+        const collected = getCollectedAmount(b);
+        const pending = getPendingVerificationAmount(b);
+        const outstanding = getOutstandingBalance(b);
         return {
           id: `txn-${b.id}`,
           bookingId: b.id,
           type: 'CREDIT' as const,
-          amount: amt,
+          amount: collected > 0 ? collected : pending,
+          outstandingBalance: outstanding,
           turfName: b.turfName || b.pitchName || 'Pitch',
           userName: b.userName || 'Player',
           playerPhone: b.playerPhone || '',

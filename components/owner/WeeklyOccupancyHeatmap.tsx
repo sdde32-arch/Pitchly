@@ -20,6 +20,7 @@ import {
   Layers
 } from 'lucide-react';
 import { Pitch } from '../../types/firebase';
+import { getCollectedAmount } from '../../utils/revenue';
 
 interface WeeklyOccupancyHeatmapProps {
   pitches: Pitch[];
@@ -146,7 +147,7 @@ export const WeeklyOccupancyHeatmap: React.FC<WeeklyOccupancyHeatmapProps> = ({
 
         const count = matching.length;
         const occupancyRate = Math.min(100, Math.round((count / capacity) * 100));
-        const revenue = matching.reduce((sum, b) => sum + (b.totalPrice || b.price || 0), 0);
+        const revenue = matching.reduce((sum, b) => sum + getCollectedAmount(b), 0);
 
         map[key] = {
           count,
@@ -647,7 +648,7 @@ export const WeeklyOccupancyHeatmap: React.FC<WeeklyOccupancyHeatmapProps> = ({
             {/* Modal Footer */}
             <div className="pt-3 border-t border-border-subtle flex items-center justify-between text-xs">
               <span className="text-text-secondary">
-                Total Revenue: <strong className="text-text-primary">UGX {selectedCell.bookings.reduce((sum, b) => sum + (b.totalPrice || b.price || 0), 0).toLocaleString()}</strong>
+                Total Revenue: <strong className="text-text-primary">UGX {selectedCell.bookings.reduce((sum, b) => sum + getCollectedAmount(b), 0).toLocaleString()}</strong>
               </span>
               <button
                 onClick={() => setSelectedCell(null)}

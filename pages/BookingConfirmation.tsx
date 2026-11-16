@@ -31,6 +31,7 @@ import {
   X
 } from "lucide-react";
 import { PhotoPlaceholder } from "../components/ui/PhotoPlaceholder";
+import { getSupportMailto } from "../utils/contact";
 
 export const BookingConfirmation: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -147,6 +148,7 @@ export const BookingConfirmation: React.FC = () => {
   const isDepositPaid = booking?.status === BookingStatus.DEPOSIT_PAID;
   const isDepositAwaitingVerification = (booking?.status === BookingStatus.PAYMENT_SUBMITTED || booking?.status === BookingStatus.PENDING_PAYMENT) && booking?.bookingTier === 'DEPOSIT';
   const isCancelled = booking?.status === BookingStatus.CANCELLED;
+  const isRejected = booking?.status === BookingStatus.REJECTED;
 
   // Open upgrade modal from ?openUpgrade=true only when booking is TENTATIVE, not expired, and not preempted
   useEffect(() => {
@@ -324,7 +326,12 @@ export const BookingConfirmation: React.FC = () => {
     year: 'numeric' 
   });
 
-  const isConfirmed = booking.status === "confirmed" || booking.status === "active";
+  const isConfirmed =
+    booking.status === BookingStatus.CONFIRMED ||
+    booking.status === BookingStatus.CHECKED_IN ||
+    booking.status === BookingStatus.COMPLETED ||
+    booking.status === "confirmed" ||
+    booking.status === "active";
 
   return (
     <Layout>
@@ -368,7 +375,7 @@ export const BookingConfirmation: React.FC = () => {
               <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-[#EF4444]/15 border-2 border-[#EF4444]/30 flex items-center justify-center mb-4 shadow-sm text-[#EF4444]">
                 <Clock size={38} strokeWidth={2.5} />
               </div>
-            ) : booking.status === BookingStatus.CANCELLED ? (
+            ) : isRejected || isCancelled ? (
               <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-[#EF4444]/15 border-2 border-[#EF4444]/30 flex items-center justify-center mb-4 shadow-sm text-[#EF4444]">
                 <AlertTriangle size={38} strokeWidth={2.5} />
               </div>
@@ -392,26 +399,30 @@ export const BookingConfirmation: React.FC = () => {
                 ? "Slot Taken by Another Player"
                 : isHoldExpired
                   ? "Reservation Expired"
-                  : booking.status === BookingStatus.CANCELLED
-                    ? "Reservation Released"
-                    : isTentative
-                      ? "Reservation (pay at the pitch) Placed"
-                      : isDepositPaid
-                        ? "Match Locked In (Deposit Paid)!"
-                        : isDepositAwaitingVerification
-                          ? "Deposit Submitted (Awaiting Verification)"
-                          : remainingSeconds !== null
-                            ? "Payment Pending"
-                            : "Match Locked In!"}
+                  : isRejected
+                    ? "Payment Not Accepted"
+                    : isCancelled
+                      ? "Reservation Released"
+                      : isTentative
+                        ? "Reservation (pay at the pitch) Placed"
+                        : isDepositPaid
+                          ? "Match Locked In (Deposit Paid)!"
+                          : isDepositAwaitingVerification
+                            ? "Deposit Submitted (Awaiting Verification)"
+                            : remainingSeconds !== null
+                              ? "Payment Pending"
+                              : "Match Locked In!"}
             </h1>
             <p className="text-text-secondary text-xs sm:text-sm mb-6 max-w-xs font-medium">
               {isPreempted
                 ? "Another player completed a payment and secured this time slot."
                 : isHoldExpired
                   ? "This reservation has reached its kick-off time without a deposit."
-                  : booking.status === BookingStatus.CANCELLED
-                    ? (booking.cancellationReason || "This booking reservation has expired or been cancelled.")
-                    : isTentative
+                  : isRejected
+                    ? "The pitch owner could not verify your payment. Contact the owner or support if you think this is a mistake."
+                    : isCancelled
+                      ? (booking.cancellationReason || "This booking reservation has expired or been cancelled.")
+                      : isTentative
                       ? `Your slot at ${turf.name} is provisionally held. If another team pays a deposit or pays in full, it will be reallocated to them!`
                       : isDepositPaid
                         ? `Your deposit is registered. Your slot at ${turf.name} is 100% secured.`
@@ -514,8 +525,8 @@ export const BookingConfirmation: React.FC = () => {
               </div>
             )}
             
-            {/* Official Pitch Pass Card (Never shown for PREEMPTED or EXPIRED holds) */}
-            {!isPreempted && !isHoldExpired ? (
+            {/* Official Pitch Pass Card (Never shown for PREEMPTED, EXPIRED, REJECTED, or CANCELLED) */}
+            {!isPreempted && !isHoldExpired && !isRejected && !isCancelled ? (
               <div 
                 id="official-pitch-pass-card"
                 className="w-full bg-surface-card rounded-3xl p-5 sm:p-6 border border-border-subtle text-left relative overflow-hidden mb-6 shadow-xl"
@@ -762,7 +773,13 @@ export const BookingConfirmation: React.FC = () => {
                 <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
                   <span className="text-xs font-bold text-text-secondary">Reservation Details</span>
                   <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border tracking-wider bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/30">
-                    {isPreempted ? "TAKEN BY ANOTHER PLAYER" : "RESERVATION EXPIRED"}
+                    {isPreempted
+                      ? "TAKEN BY ANOTHER PLAYER"
+                      : isRejected
+                        ? "BOOKING REJECTED"
+                        : isCancelled
+                          ? "BOOKING CANCELLED"
+                          : "RESERVATION EXPIRED"}
                   </span>
                 </div>
                 <div>
@@ -780,6 +797,27 @@ export const BookingConfirmation: React.FC = () => {
                     <span className="font-bold text-text-primary">{slotText} – {formattedEndTime}</span>
                   </div>
                 </div>
+                {(isRejected || isCancelled) && (
+                  <div className="pt-3 border-t border-border-subtle flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                    <a
+                      href={getSupportMailto(
+                        `Help with booking #${bookingRef}`,
+                        `Hi Pitchly Support,\n\nI need help with my ${isRejected ? "rejected" : "cancelled"} booking #${bookingRef} at ${turf.name} on ${formattedDate} (${slotText} – ${formattedEndTime}).\n`
+                      )}
+                      className="text-xs font-bold text-text-secondary hover:text-text-primary underline underline-offset-2 transition-colors text-center sm:text-left py-1.5"
+                    >
+                      Contact support about this booking
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/bookings', { replace: true })}
+                      className="px-4 py-2 bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-primary rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                    >
+                      <span>Back to My Bookings</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

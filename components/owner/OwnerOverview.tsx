@@ -25,7 +25,9 @@ import {
   Layers,
   Zap,
   HelpCircle,
-  Check
+  Check,
+  X,
+  Info
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { pitchService } from '../../services/pitchService';
@@ -33,6 +35,8 @@ import { bookingService } from '../../services/bookingService';
 import { useUser } from '../../context/UserContext';
 import { useInteractiveWalkthrough } from '../../context/InteractiveWalkthroughContext';
 import { Pitch, SlotAvailability } from '../../types/firebase';
+import { PitchStatus } from '../../types';
+import { getCollectedAmount } from '../../utils/revenue';
 import { WeeklyOccupancyHeatmap } from './WeeklyOccupancyHeatmap';
 import { OwnerAnalyticsDashboard } from './OwnerAnalyticsDashboard';
 
@@ -110,6 +114,17 @@ export const OwnerOverview: React.FC = () => {
   const [slotsAvailability, setSlotsAvailability] = useState<SlotAvailability[]>([]);
   const [loadingSlots, setLoadingSlots] = useState<boolean>(false);
   const [togglingSlot, setTogglingSlot] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    type: "success" | "error" | "info";
+    title: string;
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -190,6 +205,11 @@ export const OwnerOverview: React.FC = () => {
       );
     } catch (err) {
       console.error('Failed to toggle slot lock state', err);
+      setToast({
+        type: "error",
+        title: "Slot Update Failed",
+        message: "Could not update this slot. Please try again."
+      });
     } finally {
       setTogglingSlot(null);
     }
@@ -480,20 +500,19 @@ export const OwnerOverview: React.FC = () => {
   const todaysBookingsCount = todaysBookings.length;
 
   const revenueThisMonth = activeBookings
-    .filter(b => {
-      const isCurrentMonth = b.date && b.date.startsWith(currentYearMonth);
-      const isConfirmedOrPaid = 
-        b.status === 'CONFIRMED' || 
-        b.status === 'CHECKED_IN' || 
-        b.status === 'COMPLETED' || 
-        b.paymentStatus === 'PAID' || 
-        b.paymentStatus === 'APPROVED';
-      return isCurrentMonth && isConfirmedOrPaid;
-    })
-    .reduce((sum, b) => sum + (b.price || b.totalPrice || 0), 0);
+    .filter((b) => Boolean(b.date && b.date.startsWith(currentYearMonth)))
+    .reduce((sum, b) => sum + getCollectedAmount(b), 0);
+
+  const activePitches = pitches.filter((p) => p.status === PitchStatus.ACTIVE);
+  const activePitchesCount = activePitches.length;
+  const awaitingApprovalCount = pitches.filter(
+    (p) =>
+      p.status === PitchStatus.PENDING_APPROVAL ||
+      p.status === PitchStatus.PENDING_INSPECTION
+  ).length;
 
   // Pitch Utilization Calculation
-  const totalOperatingSlotsToday = pitches.reduce((sum, p) => {
+  const totalOperatingSlotsToday = activePitches.reduce((sum, p) => {
     if (!p.openingHour || !p.closingHour) return sum;
     const openH = parseInt(p.openingHour.split(':')[0], 10);
     const closeH = parseInt(p.closingHour.split(':')[0], 10);
@@ -535,7 +554,8 @@ export const OwnerOverview: React.FC = () => {
             Facility Overview
           </h1>
           <p className="text-xs text-text-secondary">
-            {pitches.length} active {pitches.length === 1 ? 'pitch' : 'pitches'} · Kampala, Uganda
+            {activePitchesCount} active {activePitchesCount === 1 ? 'pitch' : 'pitches'} · Kampala, Uganda
+            {awaitingApprovalCount > 0 ? ` · ${awaitingApprovalCount} awaiting approval` : ''}
           </p>
         </div>
 
@@ -596,8 +616,8 @@ export const OwnerOverview: React.FC = () => {
         <BentoKpiCard
           id="kpi-facilities"
           title="Active Grounds"
-          value={pitches.length}
-          subtitle="Managed turf arenas"
+          value={activePitchesCount}
+          subtitle={awaitingApprovalCount > 0 ? `${awaitingApprovalCount} awaiting approval` : 'Managed turf arenas'}
           icon={Building2}
           accentColor="text-[#FACC15]"
           badgeText="Active"
@@ -871,6 +891,57 @@ export const OwnerOverview: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Floating Dynamic Feedback Toast */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[140] animate-fadeIn max-w-sm w-[calc(100%-3rem)] shadow-2xl">
+          <div
+            className={`p-3.5 sm:p-4 rounded-2xl border flex items-center justify-between gap-3 backdrop-blur-xl shadow-2xl ${
+              toast.type === "success"
+                ? "bg-[#091a10]/95 border-[#22C55E]/60 text-[#22C55E]"
+                : toast.type === "error"
+                ? "bg-[#1f0909]/95 border-[#EF4444]/60 text-[#EF4444]"
+                : "bg-[#071321]/95 border-[#38BDF8]/60 text-[#38BDF8]"
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                  toast.type === "success"
+                    ? "bg-[#22C55E]/20 border-[#22C55E]/40 text-[#22C55E]"
+                    : toast.type === "error"
+                    ? "bg-[#EF4444]/20 border-[#EF4444]/40 text-[#EF4444]"
+                    : "bg-[#38BDF8]/20 border-[#38BDF8]/40 text-[#38BDF8]"
+                }`}
+              >
+                {toast.type === "success" ? (
+                  <CheckCircle2 size={18} />
+                ) : toast.type === "error" ? (
+                  <AlertCircle size={18} />
+                ) : (
+                  <Info size={18} />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-black text-text-primary tracking-wide">
+                  {toast.title}
+                </p>
+                <p className="text-[11px] text-text-secondary truncate mt-0.5">
+                  {toast.message}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              aria-label="Dismiss notification"
+              onClick={() => setToast(null)}
+              className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-white/10 shrink-0 cursor-pointer"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

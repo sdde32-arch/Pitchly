@@ -16,6 +16,7 @@ import { useMatchReminders } from './hooks/useMatchReminders';
 import { RequireAuth, RequireAdmin, RequireOwner, RequireOrganizer } from './components/RouteGuards';
 import { Loader2 } from 'lucide-react';
 import { Logo } from './components/Logo';
+import { ADMIN_UID } from './utils/admin';
 
 // Pages
 import { Onboarding } from './pages/Onboarding';
@@ -123,7 +124,7 @@ const RootRedirect = () => {
           parsed.role === 'ADMIN' || 
           parsed.role === 'admin' || 
           parsed.role === 'super_admin' || 
-          parsed.id === "0uVlAOWTy7dpqAW5tsgxQVs4PW43"
+          parsed.id === ADMIN_UID
         );
         if (isParsedAdmin) {
           // Send Admin straight to /auth with email prefilled, bypassing welcome-back

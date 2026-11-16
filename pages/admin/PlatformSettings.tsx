@@ -22,6 +22,7 @@ import {
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { migrateBookings } from "../../scripts/migrateBookings";
+import { SUPPORT_EMAIL } from "../../utils/contact";
 
 export const PlatformSettings: React.FC = () => {
   const { user, isSuperAdmin, isAdmin, loading: authLoading } = useUser();
@@ -294,7 +295,7 @@ export const PlatformSettings: React.FC = () => {
               <input
                 type="email"
                 name="supportEmail"
-                placeholder="support@pitchly.live"
+                placeholder={SUPPORT_EMAIL}
                 value={settings.supportEmail || ""}
                 onChange={handleChange}
                 disabled={!isSuperAdmin}

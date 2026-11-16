@@ -10,6 +10,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { userService } from "../services/userService";
+import { ADMIN_UID } from "../utils/admin";
 
 export interface Badge {
   id: string;
@@ -131,7 +132,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
               bio: data.bio || "Ready to play.",
               role: data.role || "PLAYER",
               roles: data.roles || ["PLAYER", "OWNER"],
-              hasCompletedOnboarding: data.hasCompletedOnboarding || false,
+              hasCompletedOnboarding: typeof data.hasCompletedOnboarding === "boolean" ? data.hasCompletedOnboarding : undefined,
               onboardingCompletedAt: data.onboardingCompletedAt,
               avatarId: data.avatarId || fallbackAvatarId,
             };
@@ -309,7 +310,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
           bio: isOwnerRole ? "Turf Business Owner" : "Ready to play on Pitchly.",
           role: assignedRole,
           roles: isOwnerRole ? ["OWNER", "PLAYER"] : ["PLAYER"],
-          hasCompletedOnboarding: true,
+          hasCompletedOnboarding: false,
           createdAt: new Date().toISOString(),
         };
         
@@ -338,7 +339,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     setUser(null);
   };
 
-  const targetUid = "qC5nIOnLw3TdGko6OdStE7OvDBG3";
+  const targetUid = ADMIN_UID;
   const isHardcodedAdmin = user?.uid === targetUid;
   const isAdmin =
     isHardcodedAdmin ||

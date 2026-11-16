@@ -244,20 +244,16 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }); 
     } catch (err) {
       console.error("Error in updateBookingStatus", err);
-      try {
-        const nowIso = new Date().toISOString();
-        if (status === BookingStatus.CANCELLED) {
-          await updateDoc(doc(db, 'bookings', id), {
-            status: BookingStatus.CANCELLED,
-            cancelledAt: nowIso,
-            cancellationReason: 'Cancelled by player',
-            updatedAt: nowIso
-          });
-        } else {
-          await updateDoc(doc(db, 'bookings', id), { status, updatedAt: nowIso });
-        }
-      } catch (fallbackErr) {
-        console.warn("Fallback updateDoc error:", fallbackErr);
+      const nowIso = new Date().toISOString();
+      if (status === BookingStatus.CANCELLED) {
+        await updateDoc(doc(db, 'bookings', id), {
+          status: BookingStatus.CANCELLED,
+          cancelledAt: nowIso,
+          cancellationReason: 'Cancelled by player',
+          updatedAt: nowIso
+        });
+      } else {
+        await updateDoc(doc(db, 'bookings', id), { status, updatedAt: nowIso });
       }
       setBookings(prev => {
         const updated = prev.map(item => item.id === id ? { ...item, status } : item);

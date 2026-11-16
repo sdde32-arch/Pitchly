@@ -159,7 +159,7 @@ export const MASTER_WALKTHROUGH_STEPS: WalkthroughStepDetail[] = [
     keyAdvantage:
       "Offline-ready! Even if cellular data drops at the arena, your ticket loads from local cache without error.",
     proTip:
-      "Need to cancel or reschedule? Self-service options are available right from the booking pass view.",
+      "Need to change plans? Unpaid bookings can be cancelled in My Bookings; contact the pitch owner or support to change a confirmed or deposit-paid booking.",
     interactiveWidgetType: "qr_pass"
   },
   {
