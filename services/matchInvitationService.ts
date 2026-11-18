@@ -1,4 +1,4 @@
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import {
   collection,
   doc,
@@ -67,11 +67,18 @@ export const matchInvitationService = {
    * Query previous bookers of a specific pitch (excluding cancelled/rejected)
    */
   async getPreviousBookersForPitch(pitchId: string, excludeUserId?: string): Promise<string[]> {
-    if (!pitchId) return [];
+    const currentUid = auth.currentUser?.uid;
+    if (!pitchId || !currentUid) return [];
     try {
+      const pitchSnap = await getDoc(doc(db, 'pitches', pitchId));
+      if (!pitchSnap.exists() || pitchSnap.data()?.ownerId !== currentUid) {
+        return [];
+      }
+
       const q = query(
         collection(db, 'bookings'),
-        where('pitchId', '==', pitchId)
+        where('pitchId', '==', pitchId),
+        where('ownerId', '==', currentUid)
       );
       const snapshot = await getDocs(q);
       const userIds = new Set<string>();

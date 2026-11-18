@@ -359,11 +359,11 @@ export const PitchReviews: React.FC = () => {
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#FACC15]/10 text-[#FACC15] border border-[#FACC15]/30">
                           Stage 1 Review
                         </span>
-                      ) : pitch.status === "PENDING_INSPECTION" ? (
+                      ) : (pitch.status || "").toUpperCase() === "PENDING_INSPECTION" ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#38BDF8]/10 text-[#38BDF8] border border-[#38BDF8]/30">
                           Stage 2 Inspection
                         </span>
-                      ) : pitch.status === "changes_requested" ? (
+                      ) : (pitch.status || "").toUpperCase() === "CHANGES_REQUESTED" ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30">
                           Changes Needed
                         </span>

@@ -42,9 +42,10 @@ export const UpcomingMatchesBell: React.FC = () => {
           const soonest = upcoming[0];
           const matchKey = `notified_${soonest.id}`;
           if (!localStorage.getItem(matchKey)) {
+            const isLightTheme = document.documentElement.classList.contains('light');
             const notif = new Notification('Upcoming Match', {
               body: `Your match at ${soonest.turfName || 'the turf'} starts at ${soonest.time}.${soonest.mapUrl ? ' Click to view location on map.' : ''}`,
-              icon: '/logo.svg'
+              icon: isLightTheme ? '/icon-light-192.png' : '/icon-192.png'
             });
             if (soonest.mapUrl) {
               notif.onclick = () => {

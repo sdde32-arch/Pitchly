@@ -579,7 +579,7 @@ export const AddPitch: React.FC = () => {
         const isApproved = originalPitch.status === 'ACTIVE' || originalPitch.status === 'approved';
         const hasCriticalChange = isCriticalFieldChanged(originalPitch, formData);
 
-        let newStatus = originalPitch.status;
+        let newStatus = originalPitch.status === 'approved' ? PitchStatus.ACTIVE : originalPitch.status;
         let triggeredReReview = false;
 
         if (isApproved) {

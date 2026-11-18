@@ -264,7 +264,7 @@ export const BookPitch: React.FC = () => {
     setHasError(false);
 
     // Auto-release any expired pending slots/bookings before loading availability
-    bookingService.autoReleasePendingBookings({ pitchId: turf.id, date: selectedDate }).catch(console.warn);
+    bookingService.autoReleasePendingBookings({ pitchId: turf.id, date: selectedDate, skipBookingRelease: true }).catch(console.warn);
 
     const unsubscribe = bookingService.subscribeSlotAvailabilityByPitchAndDate(turf.id, selectedDate, (slots) => {
       setSlotAvailabilityList(slots);
@@ -292,7 +292,7 @@ export const BookPitch: React.FC = () => {
         setBookingStep(1);
         setErrorMsg("Your 15-minute payment window has expired. The held time slots have been automatically released back to the pitch schedule.");
         if (turf?.id) {
-          bookingService.releaseExpiredSlotLocks(turf.id, selectedDate).catch(console.warn);
+          bookingService.releaseExpiredSlotLocks(turf.id, selectedDate, true).catch(console.warn);
         }
       } else {
         setHoldSecondsRemaining(Math.ceil(remainingMs / 1000));
@@ -484,7 +484,7 @@ export const BookPitch: React.FC = () => {
         image: turf.image || (turf.images && turf.images[0]) || "",
         location: turf.location || (turf as any).fullAddress || "Kampala, Uganda",
         bookingRef: `FTL-${bookingId.substring(0, 6).toUpperCase()}`,
-        pitchFormat: turf.pitchFormats?.[0] || turf.type || "7-a-side AstroTurf",
+        pitchFormat: realPitch?.pitchFormats?.[0] || turf.pitchFormats?.[0] || "",
         managerName: (turf as any).managerName || "",
         contactPhone: turf.contactPhone || "",
         playerId: user.uid,

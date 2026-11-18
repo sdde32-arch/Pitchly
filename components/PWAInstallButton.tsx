@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download, Share2, Smartphone, X, Check } from 'lucide-react';
 import { usePWA } from '../context/PWAContext';
+import { useTheme } from '../ThemeContext';
 
 interface PWAInstallButtonProps {
   variant?: 'compact' | 'full' | 'sidebar';
@@ -12,6 +13,9 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   className = '',
 }) => {
   const { isInstalled, isInstallable, isIOS, installApp, showIOSGuide, setShowIOSGuide } = usePWA();
+  const { theme } = useTheme();
+  const appIconSrc = theme === 'light' ? '/icon-light-192.png' : '/icon-192.png';
+  const appleIconSrc = theme === 'light' ? '/apple-touch-icon-light.png' : '/apple-touch-icon.png';
 
   // If app is already installed and running as standalone, don't show the button
   if (isInstalled) {
@@ -52,7 +56,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
         <div className={`p-4 rounded-2xl bg-surface-card border border-border-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${className}`}>
           <div className="flex items-center gap-3">
             <img
-              src="/icon-192.png"
+              src={appIconSrc}
               alt="Pitchly App Icon"
               className="w-11 h-11 rounded-xl shadow-md border border-border-subtle object-cover shrink-0"
             />
@@ -94,7 +98,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
 
             <div className="flex items-center gap-3 mb-3">
               <img
-                src="/apple-touch-icon.png"
+                src={appleIconSrc}
                 alt="Pitchly App Icon"
                 className="w-11 h-11 rounded-xl shadow-md border border-border-subtle object-cover shrink-0"
               />

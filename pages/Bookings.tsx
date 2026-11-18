@@ -86,7 +86,7 @@ export const Bookings: React.FC = () => {
 
   const handleChatOwner = async (b: any) => {
     if (!user) {
-      navigate('/login');
+      navigate('/auth');
       return;
     }
     const targetOwnerId = b.ownerId || "owner_facility_default";
@@ -357,11 +357,13 @@ export const Bookings: React.FC = () => {
                         <span className="truncate">{(b as any).location || "Kampala, Uganda"}</span>
                       </div>
 
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        <span className="text-[10px] font-bold text-text-secondary bg-surface-raised px-2 py-0.5 rounded-md border border-border-subtle">
-                          {(b as any).pitchFormat || (b as any).type || "7-a-side AstroTurf"}
-                        </span>
-                      </div>
+                      {(b as any).pitchFormat?.trim() ? (
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <span className="text-[10px] font-bold text-text-secondary bg-surface-raised px-2 py-0.5 rounded-md border border-border-subtle">
+                            {(b as any).pitchFormat.trim()}
+                          </span>
+                        </div>
+                      ) : null}
 
                       {/* Tentative Preemption Warning Note */}
                       {b.status === BookingStatus.TENTATIVE && !isHoldExpired && (

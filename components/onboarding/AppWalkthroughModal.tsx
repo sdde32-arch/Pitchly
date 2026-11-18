@@ -38,6 +38,7 @@ import {
   Info
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useUser } from "../../context/UserContext";
 
 /* -------------------------------------------------------------------------- */
 /* INTERACTIVE SIMULATOR WIDGETS                                              */
@@ -542,6 +543,7 @@ export const AppWalkthroughModal: React.FC = () => {
   } = useInteractiveWalkthrough();
 
   const navigate = useNavigate();
+  const { isOwner } = useUser();
 
   // Close on Escape
   React.useEffect(() => {
@@ -856,14 +858,16 @@ export const AppWalkthroughModal: React.FC = () => {
                       <ArrowRight size={12} />
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleNavigateToFeature(step.route)}
-                      className="px-3 py-1.5 rounded-xl bg-surface-card hover:bg-surface-raised border border-border-subtle text-xs font-bold text-text-primary flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-                    >
-                      <span>{step.actionLabel}</span>
-                      <ExternalLink size={12} />
-                    </button>
+                    {(step.route !== "/owner" || isOwner) && (
+                      <button
+                        type="button"
+                        onClick={() => handleNavigateToFeature(step.route)}
+                        className="px-3 py-1.5 rounded-xl bg-surface-card hover:bg-surface-raised border border-border-subtle text-xs font-bold text-text-primary flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                      >
+                        <span>{step.actionLabel}</span>
+                        <ExternalLink size={12} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -921,15 +925,17 @@ export const AppWalkthroughModal: React.FC = () => {
                 )}
 
                 {/* Direct feature jump */}
-                <button
-                  type="button"
-                  onClick={() => handleNavigateToFeature(currentStep.route)}
-                  className="px-3.5 py-2 rounded-xl bg-surface-base hover:bg-surface-raised border border-border-subtle text-xs font-bold text-text-primary transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-                  title="Navigate directly to this section in Pitchly"
-                >
-                  <span>{currentStep.actionLabel}</span>
-                  <ExternalLink size={13} className="text-primary-lime" />
-                </button>
+                {(currentStep.route !== "/owner" || isOwner) && (
+                  <button
+                    type="button"
+                    onClick={() => handleNavigateToFeature(currentStep.route)}
+                    className="px-3.5 py-2 rounded-xl bg-surface-base hover:bg-surface-raised border border-border-subtle text-xs font-bold text-text-primary transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    title="Navigate directly to this section in Pitchly"
+                  >
+                    <span>{currentStep.actionLabel}</span>
+                    <ExternalLink size={13} className="text-primary-lime" />
+                  </button>
+                )}
 
                 {/* Next / Finish */}
                 <button

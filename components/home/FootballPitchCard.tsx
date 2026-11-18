@@ -127,7 +127,7 @@ export const FootballPitchCard: React.FC<FootballPitchCardProps> = ({
           <div className="space-y-1.5">
             {/* Title */}
             <h3 className="font-display text-base font-bold text-text-primary tracking-tight leading-snug group-hover:text-primary-lime transition-colors line-clamp-1">
-              {pitch.name || "Kampala Arena Turf"}
+              {pitch.name || "Unnamed Pitch"}
             </h3>
 
             {/* Location & Proximity Distance */}

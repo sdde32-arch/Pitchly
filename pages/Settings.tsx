@@ -6,9 +6,7 @@ import { Card } from "../components/ui/Card";
 import { Toggle } from "../components/ui/Toggle";
 import {
   Bell,
-  Globe,
   Shield,
-  CreditCard,
   ChevronRight,
   LogOut,
   ArrowLeft,
@@ -24,8 +22,7 @@ import { useUser } from "../context/UserContext";
 import { RoleOnboarding } from "../components/onboarding/RoleOnboarding";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { Moon, Sun, Sparkles } from "lucide-react";
-import { useMatchReminder } from "../context/MatchReminderContext";
+import { Moon, Sun } from "lucide-react";
 import { PWAInstallButton } from "../components/PWAInstallButton";
 import { offlineCacheService } from "../services/offlineCacheService";
 import { Database, RefreshCw, Wifi, Building2 } from "lucide-react";
@@ -75,7 +72,6 @@ const SettingItem = ({
 export const Settings: React.FC = () => {
   const { isEcoMode, toggleEcoMode, theme, toggleTheme } = useTheme();
   const { isInstallable, installApp } = usePWA();
-  const { triggerTestNotification, hasBrowserPermission, requestBrowserPermission } = useMatchReminder();
   const {
     user,
     userProfile,
@@ -306,20 +302,6 @@ export const Settings: React.FC = () => {
                 />
               }
             />
-            <SettingItem
-              icon={Sparkles}
-              title="Test 1-Hour Match Alert"
-              description="Preview the in-app & browser notification"
-              action={
-                <button
-                  type="button"
-                  onClick={() => triggerTestNotification()}
-                  className="px-3.5 py-1.5 bg-primary-lime/15 text-primary-lime hover:bg-primary-lime/25 border border-primary-lime/30 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>Test Trigger</span>
-                </button>
-              }
-            />
           </div>
           
           <SectionHeader title="Account" />
@@ -368,32 +350,10 @@ export const Settings: React.FC = () => {
                 />
               )}
             <SettingItem
-              icon={Shield}
-              title="Privacy & Security"
-              action={
-                <ChevronRight size={18} className="text-[#71717A]" />
-              }
-            />
-            <SettingItem
               icon={HelpCircle}
               title="Help & Support"
               description="FAQs, contact support and platform guides"
               onClick={() => navigate("/support")}
-              action={
-                <ChevronRight size={18} className="text-[#71717A]" />
-              }
-            />
-            <SettingItem
-              icon={CreditCard}
-              title="Payment Methods"
-              action={
-                <ChevronRight size={18} className="text-[#71717A]" />
-              }
-            />
-            <SettingItem
-              icon={Globe}
-              title="Language"
-              description="English (UK)"
               action={
                 <ChevronRight size={18} className="text-[#71717A]" />
               }

@@ -472,7 +472,7 @@ export const OwnerOverview: React.FC = () => {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={() => openWalkthrough(8)}
+              onClick={() => navigate('/support')}
               className="px-3.5 py-2 rounded-xl bg-primary-lime/10 hover:bg-primary-lime/20 text-primary-lime border border-primary-lime/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <HelpCircle size={13} />

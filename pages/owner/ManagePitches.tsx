@@ -85,28 +85,27 @@ export const ManagePitches: React.FC = () => {
   }, [user, authLoading]);
 
   const getStatusBadge = (pitch: Turf) => {
-    switch (pitch.status as any) {
-      case 'ACTIVE':
+    switch (String(pitch.status || '').toLowerCase()) {
+      case 'active':
       case 'approved':
         return (
           <div className="flex items-center gap-1 bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">
             <ShieldCheck size={12} /> Verified & Active
           </div>
         );
-      case 'PENDING_APPROVAL':
+      case 'pending_approval':
       case 'pending_review':
         return (
           <div className="flex items-center gap-1 bg-[#FACC15]/15 border border-[#FACC15]/30 text-[#FACC15] px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">
             <Clock3 size={12} /> Pending Review
           </div>
         );
-      case 'PENDING_INSPECTION':
+      case 'pending_inspection':
         return (
           <div className="flex items-center gap-1 bg-[#38BDF8]/15 border border-[#38BDF8]/30 text-[#38BDF8] px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">
             <MapPin size={12} /> Pending Inspection
           </div>
         );
-      case 'REJECTED':
       case 'rejected':
       case 'changes_requested':
         return (

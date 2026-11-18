@@ -1,7 +1,7 @@
 // Pitchly Progressive Web App Service Worker
 // Production App Shell Caching & Offline Resilience
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `pitchly-app-shell-${CACHE_VERSION}`;
 
 const PRECACHE_ASSETS = [
@@ -12,10 +12,20 @@ const PRECACHE_ASSETS = [
   '/favicon-16x16.png',
   '/icon-192.png',
   '/icon-512.png',
+  '/pwa-192x192.png',
+  '/pwa-512x512.png',
   '/pwa-maskable-192x192.png',
   '/pwa-maskable-512x512.png',
   '/apple-touch-icon.png',
-  '/logo.svg',
+  '/favicon-light-32x32.png',
+  '/favicon-light-16x16.png',
+  '/icon-light-192.png',
+  '/icon-light-512.png',
+  '/pwa-light-192x192.png',
+  '/pwa-light-512x512.png',
+  '/pwa-maskable-light-192x192.png',
+  '/pwa-maskable-light-512x512.png',
+  '/apple-touch-icon-light.png',
 ];
 
 // Install: precache static app shell assets and activate immediately

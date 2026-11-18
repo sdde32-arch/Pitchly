@@ -91,6 +91,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         metaThemeColor.setAttribute('content', theme === 'dark' ? '#0D0D0D' : '#F2F4EF');
       }
 
+      // Sync app favicons and apple-touch-icon with active theme
+      const isLightTheme = theme === 'light';
+      const iconMap: Record<string, string> = {
+        'app-favicon-32': isLightTheme ? '/favicon-light-32x32.png' : '/favicon-32x32.png',
+        'app-favicon-16': isLightTheme ? '/favicon-light-16x16.png' : '/favicon-16x16.png',
+        'app-favicon-192': isLightTheme ? '/icon-light-192.png' : '/icon-192.png',
+        'app-favicon-512': isLightTheme ? '/icon-light-512.png' : '/icon-512.png',
+        'app-apple-touch-icon': isLightTheme ? '/apple-touch-icon-light.png' : '/apple-touch-icon.png',
+      };
+      Object.entries(iconMap).forEach(([id, href]) => {
+        const el = document.getElementById(id);
+        if (el) el.setAttribute('href', href);
+      });
+
       // If user made an explicit choice, store it
       if (hasExplicitChoice) {
         localStorage.setItem('theme', theme);

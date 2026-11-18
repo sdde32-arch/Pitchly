@@ -305,7 +305,7 @@ export const Onboarding: React.FC = () => {
               <div className="flex items-center justify-between text-xs text-text-tertiary pt-1 px-1">
                 <span>Already have a squad? <button onClick={() => navigate("/auth")} className="text-text-primary font-bold hover:underline cursor-pointer">Sign in</button></span>
                 <button
-                  onClick={() => navigate("/owner")}
+                  onClick={() => navigate("/auth?role=owner", { state: { isOwner: true, role: "owner" } })}
                   className="text-primary-lime hover:underline font-bold flex items-center gap-1 cursor-pointer"
                 >
                   <span>Venue Owner Portal</span>

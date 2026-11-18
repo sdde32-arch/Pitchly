@@ -385,8 +385,8 @@ export const bookingService = {
               title: 'Your unpaid reservation was taken',
               message: notifMessage,
               body: notifMessage,
-              bookingId: bumped.bookingId,
-              pitchId: bumped.pitchId,
+              ...(bumped.bookingId ? { bookingId: bumped.bookingId } : {}),
+              ...(bumped.pitchId ? { pitchId: bumped.pitchId } : {}),
               read: false,
               isRead: false,
               createdAt: nowIso,
@@ -646,6 +646,7 @@ export const bookingService = {
       const title = "Payment proof submitted";
       const bodyMsg = `${(finalBooking as any).userName || "Player"} · ${finalBooking.date} ${finalBooking.time} · ${(finalBooking as any).pitchName || (finalBooking as any).turfName || "Pitch"}`;
       const nowIso = new Date().toISOString();
+      const upgradePitchId = finalBooking.pitchId || (finalBooking as any).turfId;
       setDoc(notifRef, {
         id: notifRef.id,
         userId: targetOwnerId,
@@ -653,8 +654,8 @@ export const bookingService = {
         title,
         body: bodyMsg,
         message: bodyMsg,
-        bookingId: finalBooking.id,
-        pitchId: finalBooking.pitchId || (finalBooking as any).turfId,
+        ...(finalBooking.id ? { bookingId: finalBooking.id } : {}),
+        ...(upgradePitchId ? { pitchId: upgradePitchId } : {}),
         link: "/owner",
         read: false,
         isRead: false,
@@ -957,6 +958,10 @@ export const bookingService = {
    *    message: "<pitch> on <date> <time> is confirmed. Pay UGX <balance> at the pitch."
    */
   async confirmUnpaidReservation(booking: Booking): Promise<void> {
+    const ownerUid = auth.currentUser?.uid;
+    if (!ownerUid) {
+      throw new Error('You must be signed in as the pitch owner to confirm a reservation.');
+    }
     const bookingId = booking.id;
     const bookingRef = doc(db, this.collectionPath, bookingId);
     const nowIso = new Date().toISOString();
@@ -965,6 +970,7 @@ export const bookingService = {
     let bookingDate = '';
     let bookingTime = '';
     let playerUserId = '';
+    let resolvedPitchId = '';
 
     await runTransaction(db, async (transaction) => {
       // 1. ALL READS FIRST
@@ -983,6 +989,7 @@ export const bookingService = {
       }
 
       const pitchId = b.pitchId || b.turfId;
+      resolvedPitchId = pitchId || '';
       const slots = b.slots && b.slots.length > 0 ? b.slots : [b.time];
 
       // Read all slot lock documents
@@ -1030,7 +1037,8 @@ export const bookingService = {
             time: item.slot,
             slots: slots,
             bookingId: b.id,
-            userId: b.userId || b.playerId,
+            userId: ownerUid,
+            playerId: b.playerId || b.userId || '',
             status: 'active',
             tier: 'CONFIRMED',
             createdAt: nowIso,
@@ -1057,6 +1065,7 @@ export const bookingService = {
       try {
         const notifRef = doc(collection(db, 'notifications'));
         const notifMessage = `${pitchName} on ${bookingDate} ${bookingTime} is confirmed. Pay UGX ${balanceDueNumber.toLocaleString()} at the pitch.`;
+        const notifPitchId = resolvedPitchId || booking.pitchId || booking.turfId;
         await setDoc(notifRef, {
           id: notifRef.id,
           userId: playerUserId,
@@ -1064,8 +1073,8 @@ export const bookingService = {
           title: 'Reservation confirmed',
           message: notifMessage,
           body: notifMessage,
-          bookingId: bookingId,
-          pitchId: booking.pitchId || booking.turfId,
+          ...(bookingId ? { bookingId } : {}),
+          ...(notifPitchId ? { pitchId: notifPitchId } : {}),
           read: false,
           isRead: false,
           createdAt: nowIso,
@@ -1099,6 +1108,7 @@ export const bookingService = {
         const pitchName = booking.turfName || booking.pitchName || 'the pitch';
         const notifMessage = `Your reservation at ${pitchName} on ${booking.date} was declined by the owner.`;
         const nowIso = new Date().toISOString();
+        const declinePitchId = booking.pitchId || booking.turfId;
         await setDoc(notifRef, {
           id: notifRef.id,
           userId: playerUserId,
@@ -1106,8 +1116,8 @@ export const bookingService = {
           title: 'Reservation declined',
           message: notifMessage,
           body: notifMessage,
-          bookingId: booking.id,
-          pitchId: booking.pitchId || booking.turfId,
+          ...(booking.id ? { bookingId: booking.id } : {}),
+          ...(declinePitchId ? { pitchId: declinePitchId } : {}),
           read: false,
           isRead: false,
           createdAt: nowIso,
@@ -1666,8 +1676,8 @@ export const bookingService = {
               title: 'Booking cancelled',
               message: playerMsg,
               body: playerMsg,
-              bookingId: bookingId,
-              pitchId: pitchId,
+              ...(bookingId ? { bookingId } : {}),
+              ...(pitchId ? { pitchId } : {}),
               read: false,
               isRead: false,
               createdAt: nowIso,
@@ -1685,8 +1695,8 @@ export const bookingService = {
               title: 'Unconfirmed booking cancelled',
               message: ownerMsg,
               body: ownerMsg,
-              bookingId: bookingId,
-              pitchId: pitchId,
+              ...(bookingId ? { bookingId } : {}),
+              ...(pitchId ? { pitchId } : {}),
               read: false,
               isRead: false,
               createdAt: nowIso,
@@ -1768,15 +1778,24 @@ export const bookingService = {
     userId?: string;
     bookingId?: string;
     forceNow?: boolean;
+    skipBookingRelease?: boolean;
   }): Promise<{ releasedCount: number; releasedBookingIds: string[] }> {
     console.log("Checking and auto-releasing expired pending bookings (15m window)...", options);
     const releasedBookingIds: string[] = [];
 
     try {
-      // Direct single booking release check
+      const currentUid = auth.currentUser?.uid;
+      if (!currentUid) {
+        return { releasedCount: 0, releasedBookingIds: [] };
+      }
+
+      // Direct single booking release check (caller's own or owner's booking)
       if (options?.bookingId) {
         const b = await this.getById(options.bookingId);
-        if (b && (options.forceNow || this.isPendingBookingExpired(b))) {
+        const isParticipant = Boolean(
+          b && (b.playerId === currentUid || b.userId === currentUid || b.ownerId === currentUid)
+        );
+        if (b && isParticipant && (options.forceNow || this.isPendingBookingExpired(b))) {
           const ok = await this.releasePendingBooking(
             options.bookingId,
             'Payment window expired (15-minute window exceeded without completed payment)'
@@ -1786,31 +1805,16 @@ export const bookingService = {
         return { releasedCount: releasedBookingIds.length, releasedBookingIds };
       }
 
-      const currentUid = auth.currentUser?.uid || options?.userId;
-      const queries = [];
-
-      if (options?.pitchId && options?.date) {
-        queries.push(
-          query(
-            collection(db, this.collectionPath),
-            where('pitchId', '==', options.pitchId),
-            where('date', '==', options.date)
-          )
-        );
-      } else if (currentUid) {
-        queries.push(
-          query(
-            collection(db, this.collectionPath),
-            where('playerId', '==', currentUid)
-          )
-        );
-        queries.push(
-          query(
-            collection(db, this.collectionPath),
-            where('userId', '==', currentUid)
-          )
-        );
-      }
+      const queries = [
+        query(
+          collection(db, this.collectionPath),
+          where('playerId', '==', currentUid)
+        ),
+        query(
+          collection(db, this.collectionPath),
+          where('userId', '==', currentUid)
+        ),
+      ];
 
       const docMap = new Map<string, Booking>();
       for (const q of queries) {
@@ -1825,17 +1829,19 @@ export const bookingService = {
       }
 
       // Check cached bookings for any pending items needing release
-      if (currentUid) {
-        const cached = offlineCacheService.getCachedUserBookings(currentUid);
-        for (const b of cached) {
-          if (!docMap.has(b.id)) {
-            docMap.set(b.id, b);
-          }
+      const cached = offlineCacheService.getCachedUserBookings(currentUid);
+      for (const b of cached) {
+        if (!docMap.has(b.id) && (b.playerId === currentUid || b.userId === currentUid)) {
+          docMap.set(b.id, b);
         }
       }
 
-      // Evaluate and release each expired pending booking
+      // Evaluate and release each expired pending booking belonging to the signed-in user
       for (const booking of docMap.values()) {
+        const bPitchId = booking.pitchId || booking.turfId;
+        if (options?.pitchId && bPitchId !== options.pitchId) continue;
+        if (options?.date && booking.date !== options.date) continue;
+
         if (options?.forceNow || this.isPendingBookingExpired(booking)) {
           console.log(`Booking ${booking.id} pending payment exceeded 15 minutes. Releasing now.`);
           const released = await this.releasePendingBooking(
@@ -1848,8 +1854,8 @@ export const bookingService = {
         }
       }
 
-      // Clean up any remaining expired slotLocks for this pitch or user
-      await this.releaseExpiredSlotLocks(options?.pitchId, options?.date);
+      // Clean up any remaining expired slotLocks for this pitch or date
+      await this.releaseExpiredSlotLocks(options?.pitchId, options?.date, options?.skipBookingRelease);
 
       return { releasedCount: releasedBookingIds.length, releasedBookingIds };
     } catch (err) {
@@ -1859,9 +1865,12 @@ export const bookingService = {
   },
 
   // Helper for clearing expired slots safely in frontend.
-  async releaseExpiredSlotLocks(pitchId?: string, date?: string): Promise<void> {
+  async releaseExpiredSlotLocks(pitchId?: string, date?: string, skipBookingRelease: boolean = false): Promise<void> {
     console.log("Checking for expired slot locks...");
     try {
+      const currentUid = auth.currentUser?.uid;
+      if (!currentUid) return;
+
       const constraints: any[] = [];
       if (pitchId) constraints.push(where('pitchId', '==', pitchId));
       if (date) constraints.push(where('date', '==', date));
@@ -1922,7 +1931,7 @@ export const bookingService = {
           }, { merge: true });
           count++;
 
-          if (data.bookingId) {
+          if (!skipBookingRelease && data.bookingId && data.userId === currentUid) {
             associatedBookingIds.add(data.bookingId);
           }
         }
@@ -1933,7 +1942,7 @@ export const bookingService = {
         console.log(`Released ${count} expired slot locks`);
       }
 
-      // Release any pending bookings that held those expired slot locks
+      // Release only the current user's own pending bookings when allowed
       for (const bookingId of associatedBookingIds) {
         await this.releasePendingBooking(
           bookingId,

@@ -11,12 +11,17 @@
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/icon-512.png" />
     <link rel="canonical" href="https://pitchly.live" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-light-32x32.png" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-light-16x16.png" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-light-192.png" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" media="(prefers-color-scheme: dark)" />
+    <link id="app-favicon-32" rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link id="app-favicon-16" rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link id="app-favicon-192" rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link id="app-favicon-512" rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <link id="app-apple-touch-icon" rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -76,19 +81,33 @@
           }
         });
 
-        // 3. Theme initialization to eliminate flash of wrong background (stored value if light/dark, else system)
+        // 3. Theme & favicon initialization to eliminate flash of wrong background/icon
         try {
           var saved = window.localStorage ? window.localStorage.getItem('theme') : null;
           var theme = (saved === 'light' || saved === 'dark')
             ? saved
             : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-          if (theme === 'light') {
+          var isLightTheme = theme === 'light';
+          if (isLightTheme) {
             document.documentElement.classList.remove('dark');
             document.documentElement.classList.add('light');
           } else {
             document.documentElement.classList.add('dark');
             document.documentElement.classList.remove('light');
           }
+          var metaTheme = document.querySelector('meta[name="theme-color"]');
+          if (metaTheme) metaTheme.setAttribute('content', isLightTheme ? '#F2F4EF' : '#0D0D0D');
+          var iconMap = {
+            'app-favicon-32': isLightTheme ? '/favicon-light-32x32.png' : '/favicon-32x32.png',
+            'app-favicon-16': isLightTheme ? '/favicon-light-16x16.png' : '/favicon-16x16.png',
+            'app-favicon-192': isLightTheme ? '/icon-light-192.png' : '/icon-192.png',
+            'app-favicon-512': isLightTheme ? '/icon-light-512.png' : '/icon-512.png',
+            'app-apple-touch-icon': isLightTheme ? '/apple-touch-icon-light.png' : '/apple-touch-icon.png'
+          };
+          Object.keys(iconMap).forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.setAttribute('href', iconMap[id]);
+          });
         } catch (e) {
           document.documentElement.classList.add('dark');
         }

@@ -89,7 +89,7 @@ export const BookingConfirmation: React.FC = () => {
               fullAddress: foundBooking.location || "Kampala, Uganda",
               pricePerHour: foundBooking.price || 0,
               image: foundBooking.image || "",
-              pitchFormats: [foundBooking.pitchFormat || "7-a-side AstroTurf"],
+              pitchFormats: foundBooking.pitchFormat?.trim() ? [foundBooking.pitchFormat.trim()] : [],
               contactPhone: foundBooking.contactPhone || ""
             };
           }

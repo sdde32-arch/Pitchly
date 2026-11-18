@@ -12,6 +12,7 @@ import {
   Mail,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "../context/UserContext";
 import {
   SUPPORT_EMAIL,
   getSupportMailto,
@@ -20,7 +21,9 @@ import {
 } from "../utils/contact";
 export const Support: React.FC = () => {
   const navigate = useNavigate();
+  const { isOwner } = useUser();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [openOwnerFaq, setOpenOwnerFaq] = useState<number | null>(null);
   const [isSent, setIsSent] = useState(false);
   const [message, setMessage] = useState("");
   const FAQs = [
@@ -41,6 +44,28 @@ export const Support: React.FC = () => {
       a: "Most turfs have their own rain policies. Unpaid bookings can be cancelled in My Bookings and booked again. For confirmed or deposit-paid matches, contact the pitch owner or Pitchly support to arrange a new time.",
     },
   ];
+  const OWNER_FAQS = [
+    {
+      q: "How does my pitch go live?",
+      a: "New pitches start in Pending Review for team verification. Reviewers can approve your pitch (making it active for bookings), request changes with comments, or reject it. You can track the status and any feedback in Manage Pitches, and you receive a notification when a decision is made.",
+    },
+    {
+      q: "What happens if I edit a live pitch?",
+      a: "Editing key fields on an active pitch sends it back to Pending Review for re-approval: facility name, location or formatted address, map coordinates (latitude and longitude), hourly price, and cover photo. Other updates like deposit percentage, unpaid reservation settings, gallery photos, amenities, rules, or hours keep your pitch active.",
+    },
+    {
+      q: "How do deposits work?",
+      a: "You set the advance deposit requirement (10% to 100%) per pitch and can choose whether to allow unpaid pay-at-the-pitch reservations. Players pay deposits via MTN MoMo or Airtel Money to your registered payment phone and submit a payment screenshot or transaction reference.",
+    },
+    {
+      q: "What happens to payment proofs?",
+      a: "You receive a notification when a player submits a booking or payment proof so you can review it in the Owner Portal. If a submitted payment proof is not confirmed 1 hour before kickoff (or by kickoff if submitted less than 1 hour before kickoff), the booking is automatically cancelled and the slot reopens.",
+    },
+    {
+      q: "Can two people book the same slot?",
+      a: "No. Booking uses atomic slot locks so two players cannot hold the same confirmed or active slot at the same time. If unpaid reservations are allowed on your pitch, a player paying a deposit or full amount can claim an unpaid tentative hold, which cancels that unpaid hold.",
+    },
+  ];
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
@@ -58,11 +83,11 @@ export const Support: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                navigate("/home");
+                navigate(isOwner ? "/owner" : "/home");
               }}
               className="mr-4 w-10 h-10 flex items-center justify-center bg-surface-raised rounded-full text-text-primary hover:bg-slate-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
               title="Go back"
-              aria-label="Go back to home"
+              aria-label={isOwner ? "Go back to owner portal" : "Go back to home"}
             >
               <ArrowLeft size={20} />
             </button>
@@ -144,6 +169,45 @@ export const Support: React.FC = () => {
               ))}
             </div>
           </div>
+
+          {isOwner && (
+            <div className="bg-surface-card rounded-[16px] border border-border-subtle overflow-hidden shadow-sm">
+              <div className="p-4  border-b border-border-subtle flex items-center gap-3">
+                <Book className="text-primary-lime" size={20} />
+                <h2 className="text-sm font-medium text-text-primary">
+                  For pitch owners
+                </h2>
+              </div>
+              <div className="divide-y divide-slate-100 dark:divide-white/5">
+                {OWNER_FAQS.map((faq, index) => (
+                  <div key={index} className="px-2 py-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOpenOwnerFaq(openOwnerFaq === index ? null : index)
+                      }
+                      className="w-full min-h-[48px] flex items-center justify-between p-4 text-left hover:bg-surface-raised/50 rounded-[12px] transition-colors cursor-pointer"
+                    >
+                      <span className="font-medium text-text-primary pr-4 text-xs sm:text-sm">
+                        {faq.q}
+                      </span>
+                      <ChevronDown
+                        size={18}
+                        className={`text-slate-400 transition-transform duration-300 ${openOwnerFaq === index ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    <div
+                      className={`overflow-hidden transition-all duration-300 ease-in-out ${openOwnerFaq === index ? "max-h-60 opacity-100 pb-4" : "max-h-0 opacity-0"}`}
+                    >
+                      <p className="px-4 text-xs sm:text-sm text-text-secondary leading-relaxed">
+                        {faq.a}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Contact Form */}
           <div className="bg-surface-card rounded-[16px] border border-border-subtle p-4  shadow-sm">

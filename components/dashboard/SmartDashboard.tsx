@@ -17,12 +17,42 @@ import { useUser } from "../../context/UserContext";
 import { Booking } from "../../types/firebase";
 import { MatchWeatherWidget } from "../weather/MatchWeatherWidget";
 import { SmartDashboardSkeleton } from "../ui/Skeleton";
+import { EmptyState } from "../ui/EmptyState";
 import { SITE_URL } from "../../utils/contact";
 
 interface SmartDashboardProps {
   upcomingBooking?: Booking | null;
   onExplorePitches?: () => void;
   loading?: boolean;
+}
+
+function getCountdownParts(booking?: Booking | null) {
+  if (!booking?.date) {
+    return { days: 0, hours: 0, minutes: 0 };
+  }
+  const timeStr = booking.timeSlot || booking.time || booking.slots?.[0] || "00:00";
+  const timeMatch = String(timeStr).match(/(\d{1,2}):(\d{2})(?:\s*(AM|PM))?/i);
+  let hours24 = 0;
+  let mins = 0;
+  if (timeMatch) {
+    hours24 = parseInt(timeMatch[1], 10);
+    mins = parseInt(timeMatch[2], 10);
+    const meridiem = timeMatch[3]?.toUpperCase();
+    if (meridiem === "PM" && hours24 < 12) hours24 += 12;
+    if (meridiem === "AM" && hours24 === 12) hours24 = 0;
+  }
+  const target = new Date(
+    `${booking.date}T${String(hours24).padStart(2, "0")}:${String(mins).padStart(2, "0")}:00`
+  );
+  const diffMs = target.getTime() - Date.now();
+  if (Number.isNaN(diffMs) || diffMs <= 0) {
+    return { days: 0, hours: 0, minutes: 0 };
+  }
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+  return { days, hours, minutes };
 }
 
 export const SmartDashboard: React.FC<SmartDashboardProps> = ({
@@ -45,36 +75,47 @@ export const SmartDashboard: React.FC<SmartDashboardProps> = ({
   const [selectedQuickTime, setSelectedQuickTime] = useState<string>("Tonight 07:00 PM");
 
   // Live countdown timer for the next match
-  const [countdown, setCountdown] = useState({
-    days: 2,
-    hours: 5,
-    minutes: 42,
-  });
+  const [countdown, setCountdown] = useState(() => getCountdownParts(upcomingBooking));
 
   useEffect(() => {
+    setCountdown(getCountdownParts(upcomingBooking));
     const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1 };
-        }
-        if (prev.hours > 0) {
-          return { ...prev, hours: prev.hours - 1, minutes: 59 };
-        }
-        if (prev.days > 0) {
-          return { ...prev, days: prev.days - 1, hours: 23, minutes: 59 };
-        }
-        return prev;
-      });
+      setCountdown(getCountdownParts(upcomingBooking));
     }, 60000);
     return () => clearInterval(timer);
-  }, []);
+  }, [upcomingBooking]);
 
   if (loading) {
     return <SmartDashboardSkeleton />;
   }
 
+  if (!upcomingBooking) {
+    return (
+      <div id="home-smart-dashboard" className="scroll-mt-24">
+        <EmptyState
+          icon={Calendar}
+          title="No matches yet"
+          description="Book a pitch to see your next matchday pass and kickoff details here."
+          actionText={onExplorePitches ? "Find a pitch" : undefined}
+          onAction={onExplorePitches}
+          accentColor="lime"
+          className="max-w-none"
+        />
+      </div>
+    );
+  }
+
+  const pitchLabel = upcomingBooking.pitchName || upcomingBooking.turfName || "Booked Pitch";
+  const timeLabel =
+    upcomingBooking.timeSlot || upcomingBooking.time || upcomingBooking.slots?.[0] || "Time TBD";
+  const refCode = (upcomingBooking.bookingRef || upcomingBooking.id || "").slice(-8).toUpperCase();
+
   const handleCopyMatchInvite = () => {
-    const matchText = `⚽ Matchday Invite: Lugogo AstroTurf 7v7 on Friday 07:00 PM!\nSlot reference: #PTC-8821\nJoin our squad lineup on Pitchly App: ${SITE_URL}/match/8821`;
+    const targetPitchId = upcomingBooking.pitchId || upcomingBooking.turfId;
+    const shareUrl = targetPitchId
+      ? `${SITE_URL}/#/turf/${targetPitchId}`
+      : `${SITE_URL}/#/home`;
+    const matchText = `⚽ Matchday Invite: ${pitchLabel} on ${upcomingBooking.date || "Upcoming"} (${timeLabel})\nRef: #${refCode}\nDetails: ${shareUrl}`;
     navigator.clipboard?.writeText(matchText);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
@@ -94,7 +135,7 @@ export const SmartDashboard: React.FC<SmartDashboardProps> = ({
 
           <div className="flex items-center gap-2 text-xs text-text-secondary font-medium">
             <span className="w-2 h-2 rounded-full bg-primary-lime animate-pulse" />
-            <span className="text-[11px] font-semibold text-text-tertiary">Live Fixture</span>
+            <span className="text-[11px] font-semibold text-text-tertiary">Upcoming</span>
           </div>
         </div>
 
@@ -103,28 +144,24 @@ export const SmartDashboard: React.FC<SmartDashboardProps> = ({
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="px-2.5 py-0.5 rounded-full bg-primary-lime/10 text-primary-lime border border-primary-lime/25 text-[10px] font-bold uppercase tracking-wider">
-                  {upcomingBooking ? "Active Reservation" : "Confirmed Fixture"}
+                  Active Reservation
                 </span>
                 <div className="flex items-center gap-1 text-xs text-text-secondary font-medium">
                   <Calendar size={12} className="text-text-tertiary" />
                   <span>
-                    {upcomingBooking?.date
-                      ? `${upcomingBooking.date} • ${upcomingBooking.timeSlot || upcomingBooking.time || upcomingBooking.slots?.[0] || "Evening Slot"}`
-                      : "Friday Matchday • 07:00 PM"}
+                    {upcomingBooking.date || "Date TBD"} • {timeLabel}
                   </span>
                 </div>
               </div>
 
               <h3 id="heading-next-matchday" className="font-display text-base sm:text-lg font-bold text-text-primary tracking-tight truncate scroll-mt-24">
-                {upcomingBooking
-                  ? `Match at ${upcomingBooking.pitchName || "Turf Ground"}`
-                  : "Playmakers FC vs Naguru Stars"}
+                {`Match at ${pitchLabel}`}
               </h3>
 
               <p className="text-xs text-text-secondary flex items-center gap-1.5 truncate">
                 <MapPin size={13} className="text-primary-lime shrink-0" />
                 <span className="truncate">
-                  {upcomingBooking?.pitchName || "Lugogo AstroTurf Grounds"} • Pitch 2 (Floodlit)
+                  {upcomingBooking.location || pitchLabel}
                 </span>
               </p>
             </div>
@@ -162,7 +199,7 @@ export const SmartDashboard: React.FC<SmartDashboardProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-3 pt-3.5 border-t border-border-subtle">
             <div className="flex items-center gap-2 text-xs text-text-secondary">
               <span className="w-1.5 h-1.5 rounded-full bg-primary-lime shrink-0" />
-              <span>Lineup: <strong className="text-text-primary font-semibold">8/10</strong> confirmed</span>
+              <span>Ref: <strong className="text-text-primary font-semibold">#{refCode}</strong></span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -238,22 +275,22 @@ export const SmartDashboard: React.FC<SmartDashboardProps> = ({
                     </div>
                   </div>
                 </div>
-                <span className="font-mono text-xs font-bold tracking-widest text-neutral-700">#PTC-8821-PASS</span>
+                <span className="font-mono text-xs font-bold tracking-widest text-neutral-700">#{refCode}</span>
               </div>
 
               {/* Pass details */}
               <div className="bg-surface-raised p-3 rounded-xl border border-border-subtle space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-text-secondary">Fixture:</span>
-                  <span className="font-bold text-text-primary">Playmakers vs Naguru Stars</span>
+                <div className="flex justify-between gap-2">
+                  <span className="text-text-secondary">Pitch:</span>
+                  <span className="font-bold text-text-primary truncate">{pitchLabel}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-2">
                   <span className="text-text-secondary">Venue:</span>
-                  <span className="font-medium text-text-primary">Lugogo AstroTurf • Pitch 2</span>
+                  <span className="font-medium text-text-primary truncate">{upcomingBooking.location || "Location not specified"}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-text-secondary">Gate Code:</span>
-                  <span className="font-mono font-bold text-primary-lime">7429</span>
+                <div className="flex justify-between gap-2">
+                  <span className="text-text-secondary">Kickoff:</span>
+                  <span className="font-mono font-bold text-primary-lime">{upcomingBooking.date || "TBD"} • {timeLabel}</span>
                 </div>
               </div>
 

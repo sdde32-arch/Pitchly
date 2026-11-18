@@ -41,7 +41,17 @@ export const Auth: React.FC = () => {
   const from = stateParams.from?.pathname || "/home";
   const prefilledEmail = stateParams.email || "";
   const searchParams = new URLSearchParams(location.search);
-  const [mode, setMode] = useState<AuthMode>("SIGN_IN");
+  const [mode, setMode] = useState<AuthMode>(() => {
+    const stateRole = typeof stateParams.role === "string" ? stateParams.role.toLowerCase() : "";
+    const roleParam = searchParams.get("role")?.toLowerCase();
+    const ownerParam = searchParams.get("isOwner")?.toLowerCase();
+    const isOwnerIntent =
+      Boolean(stateParams.isOwner) ||
+      stateRole === "owner" ||
+      roleParam === "owner" ||
+      ownerParam === "true";
+    return isOwnerIntent ? "SIGN_UP" : "SIGN_IN";
+  });
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);

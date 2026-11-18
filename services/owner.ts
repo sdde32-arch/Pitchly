@@ -253,7 +253,22 @@ export const OwnerService = {
   // 6. BUSINESS PROFILE
   getBusinessProfile: async (): Promise<BusinessProfile> => {
     const user = auth.currentUser;
-    if (!user) return OwnerService.getBusinessProfileById('guest');
+    if (!user) {
+      return {
+        businessName: 'My Turf Business',
+        contactEmail: '',
+        contactPhone: '',
+        mobileMoneyNumber: '',
+        operatingHours: { open: '08:00', close: '23:00' },
+        paymentDetails: {
+            mtnNumber: '',
+            mtnAccountName: '',
+            airtelNumber: '',
+            airtelAccountName: '',
+            acceptsCash: true
+        }
+      };
+    }
     return OwnerService.getBusinessProfileById(user.uid);
   },
 
@@ -272,6 +287,7 @@ export const OwnerService = {
           acceptsCash: true
       }
     };
+    if (!ownerId || ownerId === 'guest') return defaults;
     try {
       const { doc, getDoc } = await import('firebase/firestore');
       const docRef = doc(db, 'users', ownerId);

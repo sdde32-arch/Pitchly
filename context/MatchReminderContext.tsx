@@ -21,7 +21,6 @@ export interface MatchReminderAlert {
 interface MatchReminderContextType {
   activeToast: MatchReminderAlert | null;
   dismissToast: () => void;
-  triggerTestNotification: () => void;
   hasBrowserPermission: boolean;
   requestBrowserPermission: () => Promise<boolean>;
   checkReminders: () => Promise<void>;
@@ -116,10 +115,11 @@ export const MatchReminderProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       const minsText = alertItem.minutesLeft > 0 ? `in ~${alertItem.minutesLeft} minutes` : 'in 1 hour';
+      const isLightTheme = document.documentElement.classList.contains('light');
       const notification = new Notification('Match Kickoff in 1 Hour! ⚽', {
         body: `Your match at ${alertItem.turfName} starts ${minsText} (${alertItem.time}). Tap for directions & pitch info.`,
-        icon: '/icon-192.png',
-        badge: '/logo.svg',
+        icon: isLightTheme ? '/icon-light-192.png' : '/icon-192.png',
+        badge: isLightTheme ? '/favicon-light-32x32.png' : '/favicon-32x32.png',
         tag: `pitchly-1hr-${alertItem.bookingId}`,
       });
 
@@ -216,35 +216,6 @@ export const MatchReminderProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user, triggerBrowserNotification]);
 
-  // Test Notification Trigger for manual verification
-  const triggerTestNotification = useCallback(() => {
-    const testAlert: MatchReminderAlert = {
-      id: `test-alert-${Date.now()}`,
-      bookingId: 'test-booking-123',
-      turfName: 'Lugogo Turf Arena',
-      pitchName: 'Main Pitch 1 (Floodlit)',
-      time: '19:00',
-      date: new Date().toISOString().split('T')[0],
-      minutesLeft: 58,
-      mapUrl: 'https://maps.google.com/?q=Lugogo+Arena+Kampala',
-      isTest: true,
-    };
-
-    setActiveToast(testAlert);
-    playReminderChime();
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate([100, 50, 100]);
-    }
-
-    try {
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        triggerBrowserNotification(testAlert);
-      }
-    } catch {
-      // Ignore notification permission errors in iframes
-    }
-  }, [triggerBrowserNotification]);
-
   // Periodic polling every 30 seconds
   useEffect(() => {
     if (!user) return;
@@ -258,7 +229,6 @@ export const MatchReminderProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         activeToast,
         dismissToast,
-        triggerTestNotification,
         hasBrowserPermission,
         requestBrowserPermission,
         checkReminders,

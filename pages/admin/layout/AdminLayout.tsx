@@ -101,7 +101,7 @@ export const AdminLayout: React.FC = () => {
       <aside className="hidden lg:flex flex-col w-72 bg-nav-bg border-r border-nav-border h-full shrink-0 p-4 shadow-xs text-nav-text">
         {/* Brand & Role Header */}
         <div className="flex items-center justify-between gap-3 mb-6">
-          <div className="cursor-pointer" onClick={() => navigate("/admin/overview")}>
+          <div className="cursor-pointer" onClick={() => navigate(isAdmin ? "/admin/overview" : "/admin/tournaments")}>
             <Logo
               size={32}
               showText={true}
@@ -165,26 +165,30 @@ export const AdminLayout: React.FC = () => {
 
         {/* Footer Actions */}
         <div className="mt-auto pt-4 border-t border-nav-border space-y-1 shrink-0">
-          <button
-            onClick={() => navigate("/home")}
-            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full text-xs font-medium text-nav-text-muted hover:bg-white/[0.06] hover:text-nav-active-text transition-all group cursor-pointer"
-            title="Switch to Player Portal view"
-          >
-            <Eye size={18} className="text-nav-active-text group-hover:scale-110 transition-transform" />
-            <span>Player Portal</span>
-            <ArrowRightCircle size={14} className="ml-auto opacity-60 group-hover:opacity-100 text-nav-text-muted" />
-          </button>
+          {!isAdmin && (
+            <button
+              onClick={() => navigate("/home")}
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full text-xs font-medium text-nav-text-muted hover:bg-white/[0.06] hover:text-nav-active-text transition-all group cursor-pointer"
+              title="Switch to Player Portal view"
+            >
+              <Eye size={18} className="text-nav-active-text group-hover:scale-110 transition-transform" />
+              <span>Player Portal</span>
+              <ArrowRightCircle size={14} className="ml-auto opacity-60 group-hover:opacity-100 text-nav-text-muted" />
+            </button>
+          )}
 
-          <button
-            onClick={() => navigate("/admin/settings")}
-            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full text-xs font-medium text-nav-text-muted hover:bg-white/[0.06] hover:text-nav-text transition-all cursor-pointer group"
-          >
-            <Settings
-              size={18}
-              className="group-hover:rotate-90 transition-transform duration-300 text-nav-text-muted"
-            />
-            <span>Settings</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => navigate("/admin/settings")}
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl w-full text-xs font-medium text-nav-text-muted hover:bg-white/[0.06] hover:text-nav-text transition-all cursor-pointer group"
+            >
+              <Settings
+                size={18}
+                className="group-hover:rotate-90 transition-transform duration-300 text-nav-text-muted"
+              />
+              <span>Settings</span>
+            </button>
+          )}
 
           <button
             onClick={handleSignOut}
@@ -206,7 +210,7 @@ export const AdminLayout: React.FC = () => {
           <div className="flex items-center gap-2">
             <div
               className="flex items-center gap-2 cursor-pointer"
-              onClick={() => navigate("/admin/overview")}
+              onClick={() => navigate(isAdmin ? "/admin/overview" : "/admin/tournaments")}
             >
               <Logo
                 size={30}
@@ -224,14 +228,16 @@ export const AdminLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate("/home")}
-              className="px-2.5 py-1.5 rounded-full bg-white/[0.06] border border-nav-border text-[11px] font-bold text-nav-active-text flex items-center gap-1 cursor-pointer active:scale-95"
-              title="Player View"
-            >
-              <Eye size={13} />
-              <span className="hidden sm:inline">Player View</span>
-            </button>
+            {!isAdmin && (
+              <button
+                onClick={() => navigate("/home")}
+                className="px-2.5 py-1.5 rounded-full bg-white/[0.06] border border-nav-border text-[11px] font-bold text-nav-active-text flex items-center gap-1 cursor-pointer active:scale-95"
+                title="Player View"
+              >
+                <Eye size={13} />
+                <span className="hidden sm:inline">Player View</span>
+              </button>
+            )}
             <button
               onClick={handleSignOut}
               className="w-9 h-9 rounded-full bg-white/[0.06] border border-nav-border text-[#EF4444] hover:bg-[#EF4444]/10 flex items-center justify-center cursor-pointer transition-colors"

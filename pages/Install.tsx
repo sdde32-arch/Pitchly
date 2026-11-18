@@ -7,12 +7,16 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '../ThemeContext';
 
 // Primary live canonical HTTPS URL for Pitchly app
 const LIVE_APP_BASE_URL = 'https://ais-pre-e35syz3bvfqlhjdx424sss-248959928861.europe-west2.run.app';
 
 export const Install: React.FC = () => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const smallAppIcon = theme === 'light' ? '/icon-light-192.png' : '/icon-192.png';
+  const heroAppIcon = theme === 'light' ? '/icon-light-512.png' : '/icon-512.png';
 
   // Install Prompt & State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -245,7 +249,7 @@ export const Install: React.FC = () => {
           </button>
 
           <div className="flex items-center gap-2">
-            <img src="/icon-192.png" alt="Pitchly" className="w-6 h-6 rounded-md object-cover" />
+            <img src={smallAppIcon} alt="Pitchly" className="w-6 h-6 rounded-md object-cover" />
             <span className="font-extrabold text-sm tracking-tight text-text-primary">Install Pitchly</span>
           </div>
 
@@ -267,7 +271,7 @@ export const Install: React.FC = () => {
           <div className="relative inline-block mx-auto">
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-surface-card border-2 border-primary-lime/40 p-1.5 shadow-2xl shadow-primary-lime/10 flex items-center justify-center mx-auto">
               <img
-                src="/icon-192.png"
+                src={heroAppIcon}
                 alt="Pitchly App Icon"
                 className="w-full h-full rounded-2xl object-cover shadow-sm"
               />

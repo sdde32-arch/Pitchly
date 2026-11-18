@@ -30,7 +30,8 @@ export enum PitchStatus {
   CLOSED = 'CLOSED',
   PENDING_APPROVAL = 'PENDING_APPROVAL',
   PENDING_INSPECTION = 'PENDING_INSPECTION',
-  REJECTED = 'REJECTED'
+  REJECTED = 'REJECTED',
+  CHANGES_REQUESTED = 'changes_requested'
 }
 
 export interface Turf {

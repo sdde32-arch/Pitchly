@@ -825,13 +825,15 @@ export const BookingManager: React.FC = () => {
                           </span>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="text-xs sm:text-sm font-extrabold text-text-primary truncate">
-                              {booking.turfName || booking.pitchName || "Area Arena"}
+                              {booking.turfName || booking.pitchName || "Pitch"}
                             </span>
                           </div>
                           <p className="text-[11px] text-text-secondary flex items-center gap-1 mt-0.5">
                             <MapPin size={11} className="text-primary-lime shrink-0" />
-                            <span className="truncate">{booking.location || "Lugogo, Kampala"}</span>
-                            <span className="text-text-tertiary font-bold">• 7-a-side AstroTurf</span>
+                            <span className="truncate">{booking.location || "Location not specified"}</span>
+                            {booking.pitchFormat?.trim() ? (
+                              <span className="text-text-tertiary font-bold">• {booking.pitchFormat.trim()}</span>
+                            ) : null}
                           </p>
                         </div>
 
@@ -1693,17 +1695,16 @@ export const BookingManager: React.FC = () => {
                 </p>
               </div>
 
-              <div className="bg-surface-raised rounded-xl p-3 border border-border-subtle">
-                <span className="text-[10px] font-bold text-text-tertiary uppercase block">
-                  Surface & Arena
-                </span>
-                <p className="text-xs font-bold text-text-primary mt-1">
-                  7-a-side AstroTurf
-                </p>
-                <p className="text-[11px] text-text-secondary mt-0.5">
-                  Floodlit · Changing Rooms
-                </p>
-              </div>
+              {viewDetailsBooking.pitchFormat?.trim() ? (
+                <div className="bg-surface-raised rounded-xl p-3 border border-border-subtle">
+                  <span className="text-[10px] font-bold text-text-tertiary uppercase block">
+                    Surface & Arena
+                  </span>
+                  <p className="text-xs font-bold text-text-primary mt-1">
+                    {viewDetailsBooking.pitchFormat.trim()}
+                  </p>
+                </div>
+              ) : null}
 
               <div className="bg-surface-raised rounded-xl p-3 border border-border-subtle">
                 <span className="text-[10px] font-bold text-text-tertiary uppercase block">

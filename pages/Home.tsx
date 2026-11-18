@@ -198,15 +198,37 @@ export const Home: React.FC = () => {
     setLoadingBooking(true);
     try {
       const bookings = await bookingService.listByUser(user.uid);
-      const active = bookings.find((b) => {
-        return (
-          b.status === BookingStatus.CONFIRMED ||
-          b.status === BookingStatus.PENDING_PAYMENT ||
-          b.status === BookingStatus.PAYMENT_SUBMITTED ||
-          b.status === BookingStatus.PENDING
-        );
-      });
-      setUserUpcomingBooking(active || null);
+      const nowMs = Date.now();
+      const liveStatuses = new Set<string>([
+        BookingStatus.CONFIRMED,
+        BookingStatus.DEPOSIT_PAID,
+        BookingStatus.TENTATIVE,
+        BookingStatus.PAYMENT_SUBMITTED,
+        BookingStatus.PENDING_PAYMENT,
+        BookingStatus.PENDING,
+      ]);
+
+      const getKickoffMs = (b: Booking): number => {
+        if (!b.date) return NaN;
+        const normalized =
+          Array.isArray(b.slots) && b.slots.length > 0
+            ? b
+            : { ...b, time: b.time || b.timeSlot || "23:59" };
+        return bookingService.getBookingKickoffMs(normalized);
+      };
+
+      const upcoming = bookings
+        .filter((b) => {
+          const status = String(b.status || "").toUpperCase();
+          if (!liveStatuses.has(status)) return false;
+          if (status === BookingStatus.TENTATIVE && bookingService.isHoldExpired(b)) return false;
+          if (bookingService.isPaymentCutoffPassed(b)) return false;
+          const kickoffMs = getKickoffMs(b);
+          return Number.isFinite(kickoffMs) && kickoffMs > nowMs;
+        })
+        .sort((a, b) => getKickoffMs(a) - getKickoffMs(b));
+
+      setUserUpcomingBooking(upcoming[0] || null);
     } catch (err) {
       console.warn("Could not fetch user booking", err);
     } finally {
