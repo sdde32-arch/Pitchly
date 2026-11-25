@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db } from "../../lib/firebase";
+import { FEATURES } from "../../config/features";
 
 export const UserManagement: React.FC = () => {
   const { isAdmin, user, loading: authLoading } = useUser();
@@ -623,7 +624,7 @@ export const UserManagement: React.FC = () => {
               </div>
 
               {/* Tournament Organizer Toggle (Admin Only) */}
-              {isAdmin && (
+              {isAdmin && FEATURES.tournaments && (
                 <div className="bg-surface-raised rounded-2xl p-4 border border-border-subtle flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${

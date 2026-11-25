@@ -507,16 +507,38 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+        .splash-screen {
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--app-base, #0D0D0D);
+            color: var(--text-primary, #FFFFFF);
+            font-family: 'Sora', sans-serif;
+        }
+        .splash-icon-dark { display: block; }
+        .splash-icon-light { display: none; }
+        html.light .splash-icon-dark { display: none; }
+        html.light .splash-icon-light { display: block; }
+        .splash-spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid var(--primary-lime-dim, rgba(168, 255, 0, 0.15));
+            border-top-color: var(--primary-lime, #A8FF00);
+            border-radius: 50%;
+        }
     </style>
   </head>
   <body>
     <div id="root">
-      <div style="min-height: 100vh; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #0D0D0D; color: #FFFFFF; font-family: 'Sora', sans-serif;">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
-          <span style="font-size: 32px; font-weight: 900; letter-spacing: -0.04em;">Pitchly</span>
-          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #A8FF00;"></span>
+      <div class="splash-screen">
+        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+          <img class="splash-icon-dark" src="/icon-192.png" alt="Pitchly" width="96" height="96" style="width: 96px; height: 96px; object-fit: contain;" />
+          <img class="splash-icon-light" src="/icon-light-192.png" alt="Pitchly" width="96" height="96" style="width: 96px; height: 96px; object-fit: contain;" />
         </div>
-        <div class="pre-loader-spin" style="width: 28px; height: 28px; border: 3px solid rgba(168, 255, 0, 0.15); border-top-color: #A8FF00; border-radius: 50%;"></div>
+        <div class="pre-loader-spin splash-spinner"></div>
       </div>
     </div>
     <script type="module" src="/index.tsx"></script>

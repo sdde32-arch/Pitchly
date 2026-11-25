@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Logo } from "../../../components/Logo";
 import { PlayerAvatar } from "../../../components/PlayerAvatars";
+import { FEATURES } from "../../../config/features";
 
 export const AdminLayout: React.FC = () => {
   const { userProfile, user, signOut, isAdmin } = useUser();
@@ -32,7 +33,7 @@ export const AdminLayout: React.FC = () => {
     navigate("/auth");
   };
 
-  const isOrganizer = Boolean(
+  const isOrganizer = FEATURES.tournaments && Boolean(
     userProfile &&
       ((userProfile.roles as string[] | undefined)?.includes("ORGANIZER") ||
         (userProfile.role as string | undefined) === "ORGANIZER")
@@ -44,11 +45,15 @@ export const AdminLayout: React.FC = () => {
       label: "Overview",
       icon: <LayoutDashboard size={18} />,
     },
-    {
-      path: "/admin/tournaments",
-      label: "Tournament Manager",
-      icon: <Trophy size={18} />,
-    },
+    ...(FEATURES.tournaments
+      ? [
+          {
+            path: "/admin/tournaments",
+            label: "Tournament Manager",
+            icon: <Trophy size={18} />,
+          },
+        ]
+      : []),
     { 
       path: "/admin/pitches", 
       label: "Pitch Reviews", 
@@ -93,7 +98,9 @@ export const AdminLayout: React.FC = () => {
 
   const navItems = isAdmin
     ? allNavItems
-    : allNavItems.filter((item) => item.path === "/admin/tournaments");
+    : FEATURES.tournaments && isOrganizer
+    ? allNavItems.filter((item) => item.path === "/admin/tournaments")
+    : [];
 
   return (
     <div className="min-h-screen h-screen w-full overflow-hidden bg-app-base flex flex-col lg:flex-row text-text-primary font-sans">
@@ -101,7 +108,7 @@ export const AdminLayout: React.FC = () => {
       <aside className="hidden lg:flex flex-col w-72 bg-nav-bg border-r border-nav-border h-full shrink-0 p-4 shadow-xs text-nav-text">
         {/* Brand & Role Header */}
         <div className="flex items-center justify-between gap-3 mb-6">
-          <div className="cursor-pointer" onClick={() => navigate(isAdmin ? "/admin/overview" : "/admin/tournaments")}>
+          <div className="cursor-pointer" onClick={() => navigate(isAdmin ? "/admin/overview" : FEATURES.tournaments ? "/admin/tournaments" : "/home")}>
             <Logo
               size={32}
               showText={true}
@@ -210,7 +217,7 @@ export const AdminLayout: React.FC = () => {
           <div className="flex items-center gap-2">
             <div
               className="flex items-center gap-2 cursor-pointer"
-              onClick={() => navigate(isAdmin ? "/admin/overview" : "/admin/tournaments")}
+              onClick={() => navigate(isAdmin ? "/admin/overview" : FEATURES.tournaments ? "/admin/tournaments" : "/home")}
             >
               <Logo
                 size={30}

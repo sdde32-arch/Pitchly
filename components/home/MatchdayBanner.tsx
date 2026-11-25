@@ -1,6 +1,7 @@
 import React from "react";
 import { Zap, Moon, Users, ChevronRight, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { FEATURES } from "../../config/features";
 
 interface MatchdayBannerProps {
   onFilterFloodlit: () => void;
@@ -41,7 +42,9 @@ export const MatchdayBanner: React.FC<MatchdayBannerProps> = ({
             </h3>
 
             <p className="text-xs text-text-secondary leading-relaxed max-w-lg">
-              Book nighttime turf sessions with crystal LED floodlights. Split fees easily with your squad or join community pickups.
+              {FEATURES.squads
+                ? "Book nighttime turf sessions with crystal LED floodlights. Split fees easily with your squad or join community pickups."
+                : "Book nighttime turf sessions with crystal LED floodlights and instant Mobile Money confirmation."}
             </p>
           </div>
         </div>
@@ -57,14 +60,16 @@ export const MatchdayBanner: React.FC<MatchdayBannerProps> = ({
             <ChevronRight size={14} strokeWidth={2.5} />
           </button>
 
-          <button
-            id="banner-squads-btn"
-            type="button"
-            onClick={() => navigate("/teams")}
-            className="h-10 px-3.5 rounded-xl bg-surface-raised hover:bg-border-subtle border border-border-subtle text-xs font-bold text-text-primary transition-colors cursor-pointer"
-          >
-            Squad Hub
-          </button>
+          {FEATURES.squads && (
+            <button
+              id="banner-squads-btn"
+              type="button"
+              onClick={() => navigate("/teams")}
+              className="h-10 px-3.5 rounded-xl bg-surface-raised hover:bg-border-subtle border border-border-subtle text-xs font-bold text-text-primary transition-colors cursor-pointer"
+            >
+              Squad Hub
+            </button>
+          )}
         </div>
       </div>
     </section>

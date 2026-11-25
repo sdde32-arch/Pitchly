@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useUser, UserRole } from "../../context/UserContext";
+import { useUser } from "../../context/UserContext";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronRight,
@@ -7,184 +7,194 @@ import {
   CheckCircle,
   Search,
   Wallet,
-  Users,
-  Settings,
   PlusCircle,
-  CheckSquare,
   ClipboardList,
   ShieldAlert,
   Monitor,
   CheckCircle2,
-  ShieldCheck,
-  MapPin,
-  EyeOff,
+  QrCode,
 } from "lucide-react";
+
 interface Slide {
   id: number;
   title: string;
   text: string;
   icon: React.ReactNode;
 }
+
 const PLAYER_SLIDES: Slide[] = [
   {
     id: 1,
-    title: "Welcome to Pitchly",
-    text: "Find and book football pitches near you.",
-    icon: <Search size={64} className="text-text-primary" />,
+    title: "Find a pitch",
+    text: "Browse verified football pitches in Kampala by area, check amenities and UGX prices, and see open time slots.",
+    icon: <Search size={48} className="text-nav-active-text" />,
   },
   {
     id: 2,
-    title: "Book Your Pitch",
-    text: "Choose a turf, select your date and time, then confirm your booking.",
-    icon: <CheckSquare size={64} className="text-text-primary" />,
+    title: "Book and pay your deposit",
+    text: "Hold a slot while you pay by MTN MoMo or Airtel Money and upload your payment proof, or hold a slot and pay at the pitch (limits apply).",
+    icon: <Wallet size={48} className="text-nav-active-text" />,
   },
   {
     id: 3,
-    title: "Pay Your Way",
-    text: "Pay with MTN Mobile Money, Airtel Money, or Pay on Arrival.",
-    icon: <Wallet size={64} className="text-text-primary" />,
-  },
-  {
-    id: 4,
-    title: "Play With Friends",
-    text: "Create matches, invite teammates, and split costs.",
-    icon: <Users size={64} className="text-text-primary" />,
-  },
-  {
-    id: 5,
-    title: "Manage Everything",
-    text: "Track bookings, upload payment proof, cancel pending bookings, and check in.",
-    icon: <Settings size={64} className="text-text-primary" />,
+    title: "Show your Match Pass",
+    text: "Once the owner confirms your payment, open your Match Pass in Bookings and show it at the gate.",
+    icon: <QrCode size={48} className="text-nav-active-text" />,
   },
 ];
+
 const OWNER_SLIDES: Slide[] = [
   {
     id: 1,
-    title: "Welcome to Pitchly for Owners",
-    text: "Manage your pitch bookings, payments, and customers in one place.",
-    icon: <Settings size={64} className="text-text-primary" />,
+    title: "List your pitch",
+    text: "Add your pitch photos, hourly prices in UGX, deposit percentage, and your Mobile Money number.",
+    icon: <PlusCircle size={48} className="text-nav-active-text" />,
   },
   {
     id: 2,
-    title: "Add Your Pitch",
-    text: "Upload pitch details, photos, pricing, and amenities.",
-    icon: <PlusCircle size={64} className="text-text-primary" />,
+    title: "Get approved",
+    text: "Pitchly reviews each pitch before it goes live. You get a notification once it is approved.",
+    icon: <CheckCircle2 size={48} className="text-nav-active-text" />,
   },
   {
     id: 3,
-    title: "Get Approved",
-    text: "Your listing will be reviewed by Pitchly before going public.",
-    icon: <CheckCircle2 size={64} className="text-text-primary" />,
-  },
-  {
-    id: 4,
-    title: "Set Payment Details",
-    text: "Add your MTN and Airtel numbers so players know where to pay.",
-    icon: <Wallet size={64} className="text-text-primary" />,
-  },
-  {
-    id: 5,
-    title: "Confirm Bookings",
-    text: "Review payment screenshots, approve bookings, and manage your calendar.",
-    icon: <ClipboardList size={64} className="text-text-primary" />,
+    title: "Run your day from Today",
+    text: "Each slot shows booked, free, or waiting for your OK. Review payment proof and confirm payments right there.",
+    icon: <ClipboardList size={48} className="text-nav-active-text" />,
   },
 ];
+
 const ADMIN_SLIDES: Slide[] = [
   {
     id: 1,
     title: "Admin Console",
     text: "Review and manage the Pitchly marketplace.",
-    icon: <Monitor size={64} className="text-text-primary" />,
+    icon: <Monitor size={48} className="text-nav-active-text" />,
   },
   {
     id: 2,
     title: "Approve Pitches",
     text: "Check submitted pitch details before they appear publicly.",
-    icon: <CheckCircle2 size={64} className="text-text-primary" />,
+    icon: <CheckCircle2 size={48} className="text-nav-active-text" />,
   },
   {
     id: 3,
     title: "Monitor Activity",
     text: "View bookings, owners, and system activity for moderation.",
-    icon: <Search size={64} className="text-text-primary" />,
+    icon: <Search size={48} className="text-nav-active-text" />,
   },
   {
     id: 4,
     title: "Keep Marketplace Safe",
     text: "Use admin tools to protect players and owners.",
-    icon: <ShieldAlert size={64} className="text-text-primary" />,
+    icon: <ShieldAlert size={48} className="text-nav-active-text" />,
   },
 ];
+
 interface RoleOnboardingProps {
   onComplete?: () => void;
 }
+
 export const RoleOnboarding: React.FC<RoleOnboardingProps> = ({
   onComplete,
 }) => {
-  const { role, isOwner, isAdmin, updateProfile, userProfile } =
-    useUser();
+  const { isOwner, isAdmin, updateProfile, userProfile } = useUser();
   const navigate = useNavigate();
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isFinishing, setIsFinishing] = useState(false);
+
   let slides = PLAYER_SLIDES;
-  let cta = "Start Booking";
-  let nextRoute = "/home";
+  let cta = "Find a pitch";
+  let finishRoute = "/home";
+  let skipRoute = "/home";
+
   if (isAdmin) {
     slides = ADMIN_SLIDES;
     cta = "Go to Admin Dashboard";
-    nextRoute = "/admin";
+    finishRoute = "/admin";
+    skipRoute = "/admin";
   } else if (isOwner) {
     slides = OWNER_SLIDES;
-    cta = "Set Up My Pitch";
-    nextRoute = "/owner";
+    cta = "Add my pitch";
+    finishRoute = "/owner/add-pitch";
+    skipRoute = "/owner";
   }
+
   const handleNext = () => {
     if (currentSlideIndex < slides.length - 1) {
       setCurrentSlideIndex((prev) => prev + 1);
     }
   };
+
   const handleBack = () => {
     if (currentSlideIndex > 0) {
       setCurrentSlideIndex((prev) => prev - 1);
     }
   };
-  const handleFinish = async () => {
+
+  const handleFinish = async (targetRoute: string) => {
+    if (isFinishing) return;
+    const isFirstRun = !userProfile?.hasCompletedOnboarding;
     setIsFinishing(true);
-    if (!userProfile?.hasCompletedOnboarding) {
-      await updateProfile({
-        hasCompletedOnboarding: true,
-        onboardingCompletedAt: new Date().toISOString(),
-      });
-    }
-    if (onComplete) {
-      onComplete();
-    } else {
-      navigate(nextRoute);
+    try {
+      if (isFirstRun) {
+        try {
+          await updateProfile({
+            hasCompletedOnboarding: true,
+            onboardingCompletedAt: new Date().toISOString(),
+          });
+        } catch (err) {
+          console.warn("Failed to save onboarding completion:", err);
+        }
+      }
+      if (onComplete) {
+        onComplete();
+      }
+      if (isFirstRun) {
+        navigate(targetRoute);
+      }
+    } finally {
+      setIsFinishing(false);
     }
   };
+
   const slide = slides[currentSlideIndex];
+
   return (
-    <div className="fixed inset-0 z-[100] bg-app-base flex flex-col items-center justify-center animate-fadeIn selection:bg-primary-lime/30">
+    <div className="fixed inset-0 z-[100] bg-app-base text-text-primary flex flex-col items-center justify-center animate-fadeIn motion-reduce:animate-none selection:bg-primary-lime/30">
       <div className="flex-1 w-full flex flex-col justify-center items-center p-4 max-w-md mx-auto">
-        {/* Progress Indicators */}
-        <div className="flex justify-center gap-2 mb-12 w-full max-w-[200px]">
-          {slides.map((_, idx) => (
+        {/* Progress Dots */}
+        <div
+          className="flex justify-center gap-2 mb-10 w-full max-w-[200px]"
+          aria-label={`Step ${currentSlideIndex + 1} of ${slides.length}`}
+        >
+          {slides.map((s, idx) => (
             <div
-              key={idx}
-              className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentSlideIndex ? "bg-primary-lime flex-1" : idx < currentSlideIndex ? "bg-primary-lime/50 w-4" : "bg-border-subtle w-4"}`}
+              key={s.id}
+              className={`h-1.5 rounded-full transition-all motion-reduce:transition-none duration-300 ${
+                idx === currentSlideIndex
+                  ? "bg-cta-bg flex-1"
+                  : idx < currentSlideIndex
+                  ? "bg-primary-lime/50 w-4"
+                  : "bg-border-subtle w-4"
+              }`}
             />
           ))}
         </div>
-        {/* Slide content inside a glass card */}
-        <div className="w-full bg-surface-card border border-border-subtle shadow-2xl rounded-2xl p-4 sm:p-10 text-center relative overflow-hidden transition-all duration-300 animate-slide-up">
-          <div className="absolute top-0 right-0 p-4 opacity-5">
-            {slide.icon}
-          </div>
-          <div className="h-24 flex items-center justify-center mb-6 bg-surface-raised w-24 rounded-full border border-border-subtle shadow-lg mx-auto transform hover:scale-105 transition-transform duration-300 text-primary-lime">
+
+        {/* Slide Card */}
+        <div className="w-full bg-surface-card border border-border-subtle shadow-2xl rounded-2xl p-6 sm:p-10 text-center relative overflow-hidden transition-all motion-reduce:transition-none duration-300">
+          <div
+            aria-hidden="true"
+            className="h-24 w-24 flex items-center justify-center mb-6 bg-nav-bg rounded-full border border-nav-border shadow-lg mx-auto text-nav-active-text"
+          >
             {slide.icon}
           </div>
           <div className="min-h-[140px] flex flex-col justify-center">
-            <h2 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-white mb-4 leading-tight">
+            <p className="text-xs font-bold uppercase tracking-wider text-text-tertiary mb-2">
+              {currentSlideIndex + 1} of {slides.length}
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-text-primary mb-4 leading-tight font-display">
               {slide.title}
             </h2>
             <p className="text-text-secondary text-sm sm:text-base font-normal leading-relaxed">
@@ -193,46 +203,56 @@ export const RoleOnboarding: React.FC<RoleOnboardingProps> = ({
           </div>
         </div>
       </div>
+
       {/* Bottom Navigation */}
-      <div className="w-full max-w-md px-4 pb-10 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+      <div className="w-full max-w-md px-4 pb-10 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
           <button
             type="button"
             aria-label="Back"
             onClick={handleBack}
             disabled={currentSlideIndex === 0}
-            className={`w-[52px] h-[52px] flex items-center justify-center rounded-full transition-all bg-surface-card border border-border-subtle ${currentSlideIndex === 0 ? "opacity-0 pointer-events-none" : "text-white hover:bg-surface-raised"}`}
+            className={`min-w-[48px] min-h-[48px] w-[52px] h-[52px] flex items-center justify-center rounded-full transition-all motion-reduce:transition-none bg-surface-card border border-border-subtle cursor-pointer ${
+              currentSlideIndex === 0
+                ? "opacity-0 pointer-events-none"
+                : "text-text-primary hover:bg-surface-raised"
+            }`}
           >
             <ChevronLeft size={24} />
           </button>
+
           {currentSlideIndex < slides.length - 1 ? (
             <button
+              type="button"
               onClick={handleNext}
-              className="bg-primary-lime text-accent-text px-4 py-4 h-[52px] rounded-full font-black uppercase tracking-widest text-xs flex items-center gap-2 hover:bg-[#96E600] active:scale-95 transition-all shadow-[0_0_20px_rgba(168,255,0,0.2)]"
+              className="bg-cta-bg hover:bg-cta-bg-hover text-cta-text px-6 min-h-[52px] rounded-full font-black uppercase tracking-widest text-xs flex items-center gap-2 active:scale-95 motion-reduce:active:scale-100 transition-all motion-reduce:transition-none shadow-md cursor-pointer"
             >
-              Next <ChevronRight size={18} />
+              <span>Next</span>
+              <ChevronRight size={18} />
             </button>
           ) : (
             <button
-              onClick={handleFinish}
+              type="button"
+              onClick={() => handleFinish(finishRoute)}
               disabled={isFinishing}
-              className="bg-primary-lime text-accent-text px-4 py-4 h-[52px] rounded-full font-black uppercase tracking-widest text-xs flex items-center gap-2 hover:bg-[#96E600] active:scale-95 transition-all shadow-[0_0_20px_rgba(168,255,0,0.2)]"
+              className="bg-cta-bg hover:bg-cta-bg-hover text-cta-text px-6 min-h-[52px] rounded-full font-black uppercase tracking-widest text-xs flex items-center gap-2 active:scale-95 motion-reduce:active:scale-100 transition-all motion-reduce:transition-none shadow-md disabled:opacity-60 cursor-pointer"
             >
-              {isFinishing ? "Saving..." : cta} <CheckCircle size={18} />
+              <span>{isFinishing ? "Saving..." : cta}</span>
+              <CheckCircle size={18} />
             </button>
           )}
-        </div>{" "}
-        {/* Skip option */}{" "}
-        {currentSlideIndex < slides.length - 1 && (
-          <button
-            onClick={handleFinish}
-            className="text-[10px] sm:text-xs font-bold text-text-secondary uppercase tracking-widest hover:text-text-primary transition-colors py-2"
-          >
-            {" "}
-            Skip Tutorial{" "}
-          </button>
-        )}{" "}
-      </div>{" "}
+        </div>
+
+        {/* Skip option visible on every slide */}
+        <button
+          type="button"
+          onClick={() => handleFinish(skipRoute)}
+          disabled={isFinishing}
+          className="min-h-[44px] px-4 py-2 text-xs font-bold text-text-secondary uppercase tracking-widest hover:text-text-primary transition-colors motion-reduce:transition-none disabled:opacity-60 cursor-pointer"
+        >
+          Skip
+        </button>
+      </div>
     </div>
   );
 };

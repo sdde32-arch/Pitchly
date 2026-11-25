@@ -38,7 +38,9 @@ export const Auth: React.FC = () => {
 
   /* Safe access to navigation state */ const stateParams =
     location.state || {};
-  const from = stateParams.from?.pathname || "/home";
+  const from = stateParams.from?.pathname
+    ? `${stateParams.from.pathname}${stateParams.from.search || ""}`
+    : "/home";
   const prefilledEmail = stateParams.email || "";
   const searchParams = new URLSearchParams(location.search);
   const [mode, setMode] = useState<AuthMode>(() => {

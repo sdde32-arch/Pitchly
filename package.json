@@ -14,6 +14,9 @@
     "test:launch": "tsx tests/launch-corrections.test.ts",
     "test:rules": "firebase emulators:exec --project demo-footlink-security-test --only firestore \"npx tsx tests/tour-3e-rules.test.ts\"",
     "test:notifications-rules": "firebase emulators:exec --project demo-footlink-security-test --only firestore \"npx tsx tests/notifications-rules.test.ts\"",
+    "test:teams-rules": "firebase emulators:exec --project demo-footlink-security-test --only firestore \"npx tsx tests/teams-rules.test.ts\"",
+    "test:conversations-rules": "firebase emulators:exec --project demo-footlink-security-test --only firestore \"npx tsx tests/conversations-rules.test.ts\"",
+    "test:all-rules": "npm run test:rules && npm run test:notifications-rules && npm run test:teams-rules && npm run test:conversations-rules",
     "start": "node server.ts",
     "preview": "vite preview",
     "lint": "tsc --noEmit"

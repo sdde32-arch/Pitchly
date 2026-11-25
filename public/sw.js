@@ -1,7 +1,7 @@
 // Pitchly Progressive Web App Service Worker
 // Production App Shell Caching & Offline Resilience
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `pitchly-app-shell-${CACHE_VERSION}`;
 
 const PRECACHE_ASSETS = [

@@ -312,28 +312,291 @@ service cloud.firestore {
     // Atomic concurrency locks for real-time checkout & preemption
     // ─────────────────────────────────────────────────────────────
     match /slotLocks/{lockId} {
+      function isPitchOwner(pitchId) {
+        return pitchId is string && pitchId.size() > 0 &&
+          exists(/databases/$(database)/documents/pitches/$(pitchId)) &&
+          get(/databases/$(database)/documents/pitches/$(pitchId)).data.ownerId == request.auth.uid;
+      }
+
+      function validLockShape(d) {
+        return d.keys().hasOnly([
+            'id', 'pitchId', 'date', 'time', 'slots', 'bookingId',
+            'userId', 'playerId', 'status', 'tier', 'reason',
+            'releaseReason', 'createdAt', 'expiresAt', 'expiresAtMs', 'releasedAt', 'updatedAt'
+          ]) &&
+          d.id is string && d.id == lockId &&
+          d.pitchId is string && d.pitchId.size() > 0 && d.pitchId.size() <= 128 &&
+          d.date is string && d.date.size() > 0 && d.date.size() <= 32 &&
+          d.time is string && d.time.size() > 0 && d.time.size() <= 32 &&
+          d.userId is string && d.userId.size() > 0 && d.userId.size() <= 128 &&
+          d.status is string && d.status in ['tentative', 'active', 'released', 'expired', 'preempted'] &&
+          (!('slots' in d) || (d.slots is list && d.slots.size() <= 24)) &&
+          (!('bookingId' in d) || (d.bookingId is string && d.bookingId.size() <= 128)) &&
+          (!('playerId' in d) || (d.playerId is string && d.playerId.size() <= 128)) &&
+          (!('tier' in d) || (d.tier is string && d.tier in ['TENTATIVE', 'DEPOSIT', 'FULL', 'CONFIRMED'])) &&
+          (!('reason' in d) || (d.reason is string && d.reason.size() <= 120)) &&
+          (!('releaseReason' in d) || (d.releaseReason is string && d.releaseReason.size() <= 120)) &&
+          (!('createdAt' in d) || (d.createdAt is string && d.createdAt.size() <= 64)) &&
+          (!('expiresAt' in d) || (d.expiresAt is string && d.expiresAt.size() <= 64)) &&
+          (!('expiresAtMs' in d) || d.expiresAtMs is number) &&
+          (!('releasedAt' in d) || (d.releasedAt is string && d.releasedAt.size() <= 64)) &&
+          (!('updatedAt' in d) || (d.updatedAt is timestamp) || (d.updatedAt is string && d.updatedAt.size() <= 64));
+      }
+
+      function slotIdentityUnchanged() {
+        return request.resource.data.pitchId == resource.data.pitchId &&
+          request.resource.data.date == resource.data.date &&
+          request.resource.data.time == resource.data.time;
+      }
+
+      function hasProtectedBooking(d) {
+        return d.get('bookingId', '') is string && d.get('bookingId', '') != '' &&
+          exists(/databases/$(database)/documents/bookings/$(d.bookingId)) &&
+          get(/databases/$(database)/documents/bookings/$(d.bookingId)).data.status in [
+            'CONFIRMED', 'DEPOSIT_PAID', 'CHECKED_IN', 'COMPLETED'
+          ];
+      }
+
+      function hasReleasableBooking(d) {
+        return d.get('bookingId', '') is string && d.get('bookingId', '') != '' &&
+          exists(/databases/$(database)/documents/bookings/$(d.bookingId)) &&
+          get(/databases/$(database)/documents/bookings/$(d.bookingId)).data.status in [
+            'PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'TENTATIVE', 'PENDING',
+            'PREEMPTED', 'CANCELLED', 'REJECTED'
+          ];
+      }
+
       allow read: if true;
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAuthenticated() && (
-        request.resource.data.userId == request.auth.uid || 
-        isAdmin() || 
-        request.resource.data.status in ['expired', 'released', 'preempted'] ||
-        resource.data.status == 'tentative' ||
-        resource.data.get('tier', '') == 'TENTATIVE'
+
+      allow create: if isAuthenticated() &&
+        validLockShape(request.resource.data) &&
+        (
+          isAdmin() ||
+          (
+            request.resource.data.userId == request.auth.uid &&
+            (!('reason' in request.resource.data) || isPitchOwner(request.resource.data.pitchId))
+          )
+        );
+
+      allow update: if isAuthenticated() &&
+        validLockShape(request.resource.data) &&
+        (
+          isAdmin() ||
+          (
+            slotIdentityUnchanged() &&
+            (
+              isPitchOwner(resource.data.pitchId) ||
+              (
+                // Lock creator updating own lock on an unconfirmed booking (never confirmed/paid/checked-in/completed)
+                resource.data.userId == request.auth.uid &&
+                request.resource.data.get('bookingId', '') == resource.data.get('bookingId', '') &&
+                !hasProtectedBooking(resource.data) &&
+                (!('reason' in request.resource.data) || request.resource.data.get('reason', '') == resource.data.get('reason', ''))
+              ) ||
+              (
+                // Reclaiming an already released/expired/preempted lock for a new booking
+                resource.data.status in ['released', 'expired', 'preempted'] &&
+                request.resource.data.userId == request.auth.uid &&
+                !('reason' in request.resource.data)
+              ) ||
+              (
+                // Preempting an existing tentative lock (either releasing its companion slot or taking over with a paying lock)
+                resource.data.status == 'tentative' &&
+                hasReleasableBooking(resource.data) &&
+                (
+                  (
+                    request.resource.data.status in ['released', 'preempted'] &&
+                    request.resource.data.get('bookingId', '') == resource.data.get('bookingId', '') &&
+                    request.resource.data.userId == resource.data.userId
+                  ) ||
+                  (
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.status == 'active' &&
+                    request.resource.data.get('tier', '') in ['DEPOSIT', 'FULL'] &&
+                    !('reason' in request.resource.data)
+                  )
+                )
+              ) ||
+              (
+                // Sweep releasing/expiring an unconfirmed active booking lock ONLY after expiresAtMs
+                resource.data.status == 'active' &&
+                hasReleasableBooking(resource.data) &&
+                ('expiresAtMs' in resource.data) &&
+                resource.data.expiresAtMs is number &&
+                request.time.toMillis() >= resource.data.expiresAtMs &&
+                request.resource.data.status in ['expired', 'released'] &&
+                request.resource.data.get('bookingId', '') == resource.data.get('bookingId', '') &&
+                request.resource.data.userId == resource.data.userId
+              ) ||
+              (
+                // Taking over an expired unswept active/tentative lock for a new booking
+                resource.data.status in ['active', 'tentative'] &&
+                ('expiresAtMs' in resource.data) &&
+                resource.data.expiresAtMs is number &&
+                request.time.toMillis() >= resource.data.expiresAtMs &&
+                !hasProtectedBooking(resource.data) &&
+                !('reason' in resource.data) &&
+                request.resource.data.userId == request.auth.uid &&
+                request.resource.data.status in ['active', 'tentative'] &&
+                request.resource.data.get('tier', '') in ['TENTATIVE', 'DEPOSIT', 'FULL'] &&
+                !('reason' in request.resource.data) &&
+                request.resource.data.get('expiresAtMs', 0) is number &&
+                request.resource.data.get('expiresAtMs', 0) > request.time.toMillis()
+              )
+            )
+          )
+        );
+
+      allow delete: if isAdmin() || (
+        isAuthenticated() && (
+          isPitchOwner(resource.data.pitchId) ||
+          (resource.data.userId == request.auth.uid && !hasProtectedBooking(resource.data))
+        )
       );
-      allow delete: if isAdmin() || (isAuthenticated() && (
-        resource.data.userId == request.auth.uid || 
-        resource.data.status in ['expired', 'released', 'preempted'] ||
-        resource.data.status == 'tentative'
-      ));
     }
 
     // ─────────────────────────────────────────────────────────────
     // SLOT AVAILABILITY (Public lightweight mirror without PII)
     // ─────────────────────────────────────────────────────────────
     match /slotAvailability/{slotId} {
+      function isPitchOwner(pitchId) {
+        return pitchId is string && pitchId.size() > 0 &&
+          exists(/databases/$(database)/documents/pitches/$(pitchId)) &&
+          get(/databases/$(database)/documents/pitches/$(pitchId)).data.ownerId == request.auth.uid;
+      }
+
+      function validAvailShape(d) {
+        return d.keys().hasOnly([
+            'id', 'pitchId', 'date', 'time', 'status',
+            'bookingTier', 'bookingId', 'expiresAt', 'updatedAt',
+            'reason', 'blockReason'
+          ]) &&
+          d.id is string && d.id == slotId &&
+          d.pitchId is string && d.pitchId.size() > 0 && d.pitchId.size() <= 128 &&
+          d.date is string && d.date.size() > 0 && d.date.size() <= 32 &&
+          d.time is string && d.time.size() > 0 && d.time.size() <= 32 &&
+          d.status is string && d.status in ['open', 'held', 'tentative', 'booked', 'blocked'] &&
+          (!('bookingTier' in d) || (d.bookingTier is string && d.bookingTier in ['FULL', 'DEPOSIT', 'TENTATIVE', 'CONFIRMED', ''])) &&
+          (!('bookingId' in d) || (d.bookingId is string && d.bookingId.size() <= 128)) &&
+          (!('expiresAt' in d) || (d.expiresAt is string && d.expiresAt.size() <= 64)) &&
+          (!('updatedAt' in d) || (d.updatedAt is string && d.updatedAt.size() <= 64)) &&
+          (!('reason' in d) || (d.reason is string && d.reason.size() <= 64)) &&
+          (!('blockReason' in d) || (d.blockReason is string && d.blockReason in ['WALK_IN', 'MAINTENANCE', '']));
+      }
+
+      function slotIdentityUnchanged() {
+        return request.resource.data.pitchId == resource.data.pitchId &&
+          request.resource.data.date == resource.data.date &&
+          request.resource.data.time == resource.data.time;
+      }
+
       allow read: if true;
-      allow write: if isAuthenticated();
+
+      allow create: if isAuthenticated() &&
+        validAvailShape(request.resource.data) &&
+        (
+          isAdmin() ||
+          isPitchOwner(request.resource.data.pitchId) ||
+          (
+            request.resource.data.status in ['open', 'held', 'tentative'] &&
+            !('reason' in request.resource.data) &&
+            !('blockReason' in request.resource.data)
+          )
+        );
+
+      allow update: if isAuthenticated() &&
+        validAvailShape(request.resource.data) &&
+        (
+          isAdmin() ||
+          (
+            slotIdentityUnchanged() &&
+            (
+              isPitchOwner(resource.data.pitchId) ||
+              (
+                resource.data.status in ['open', 'held', 'tentative'] &&
+                existsAfter(/databases/$(database)/documents/slotLocks/$(slotId)) &&
+                (
+                  (
+                    request.resource.data.status == 'open' &&
+                    getAfter(/databases/$(database)/documents/slotLocks/$(slotId)).data.status in ['released', 'expired', 'preempted']
+                  ) ||
+                  (
+                    request.resource.data.status in ['held', 'tentative'] &&
+                    getAfter(/databases/$(database)/documents/slotLocks/$(slotId)).data.userId == request.auth.uid &&
+                    getAfter(/databases/$(database)/documents/slotLocks/$(slotId)).data.status in ['active', 'tentative']
+                  )
+                )
+              )
+            )
+          )
+        );
+
+      allow delete: if isAdmin() || (isAuthenticated() && isPitchOwner(resource.data.pitchId));
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // SLOT NOTES (Owner-private walk-in / maintenance notes & phone)
+    // ─────────────────────────────────────────────────────────────
+    match /slotNotes/{slotKey} {
+      function isPitchOwner(pitchId) {
+        return pitchId is string && pitchId.size() > 0 &&
+          exists(/databases/$(database)/documents/pitches/$(pitchId)) &&
+          get(/databases/$(database)/documents/pitches/$(pitchId)).data.ownerId == request.auth.uid;
+      }
+
+      function validNoteShape(d) {
+        return d.keys().hasOnly([
+            'id', 'pitchId', 'ownerId', 'date', 'time',
+            'blockReason', 'blockNote', 'blockPhone', 'updatedAt'
+          ]) &&
+          d.id is string && d.id == slotKey &&
+          d.pitchId is string && d.pitchId.size() > 0 && d.pitchId.size() <= 128 &&
+          d.ownerId is string && d.ownerId.size() > 0 && d.ownerId.size() <= 128 &&
+          d.date is string && d.date.size() > 0 && d.date.size() <= 32 &&
+          d.time is string && d.time.size() > 0 && d.time.size() <= 32 &&
+          slotKey == (d.pitchId + '_' + d.date + '_' + d.time).replace('[/\\s—:]', '-') &&
+          (!('blockReason' in d) || (d.blockReason is string && d.blockReason in ['WALK_IN', 'MAINTENANCE', ''])) &&
+          (!('blockNote' in d) || (d.blockNote is string && d.blockNote.size() <= 120)) &&
+          (!('blockPhone' in d) || (d.blockPhone is string && d.blockPhone.size() <= 120)) &&
+          (!('updatedAt' in d) || (d.updatedAt is string && d.updatedAt.size() <= 64));
+      }
+
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.ownerId == request.auth.uid
+      );
+
+      allow create: if isAuthenticated() &&
+        validNoteShape(request.resource.data) &&
+        (
+          isAdmin() ||
+          (
+            request.resource.data.ownerId == request.auth.uid &&
+            isPitchOwner(request.resource.data.pitchId)
+          )
+        );
+
+      allow update: if isAuthenticated() &&
+        validNoteShape(request.resource.data) &&
+        request.resource.data.pitchId == resource.data.pitchId &&
+        request.resource.data.date == resource.data.date &&
+        request.resource.data.time == resource.data.time &&
+        request.resource.data.ownerId == resource.data.ownerId &&
+        (
+          isAdmin() ||
+          (
+            resource.data.ownerId == request.auth.uid &&
+            isPitchOwner(resource.data.pitchId)
+          )
+        );
+
+      allow delete: if isAuthenticated() && (
+        isAdmin() ||
+        (
+          resource.data.ownerId == request.auth.uid &&
+          isPitchOwner(resource.data.pitchId)
+        )
+      );
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -529,12 +792,57 @@ service cloud.firestore {
     // TEAMS & SQUADS
     // ─────────────────────────────────────────────────────────────
     match /teams/{teamId} {
+      function isValidJoinMember(entry) {
+        return entry is map &&
+          entry.keys().hasOnly([
+            'id', 'userId', 'name', 'contact', 'isCaptain', 'role',
+            'hasPaid', 'avatar', 'joinedAt', 'status', 'paymentStatus'
+          ]) &&
+          entry.id == 'm_' + request.auth.uid &&
+          entry.userId == request.auth.uid &&
+          entry.isCaptain == false &&
+          entry.role == 'player' &&
+          entry.hasPaid == false &&
+          entry.status == 'active' &&
+          entry.paymentStatus == 'pending' &&
+          entry.name is string &&
+          entry.name.size() <= 100 &&
+          entry.contact is string &&
+          entry.contact.size() <= 40 &&
+          entry.avatar is string &&
+          entry.avatar.size() <= 1000 &&
+          (entry.avatar == '' || entry.avatar.matches('^https://.*')) &&
+          entry.joinedAt is string &&
+          entry.joinedAt.size() <= 50;
+      }
+
       allow read: if true;
-      allow create: if isAuthenticated() && request.resource.data.captainId == request.auth.uid;
+      allow create: if isAuthenticated() &&
+        request.resource.data.captainId == request.auth.uid &&
+        request.resource.data.ownerId == request.auth.uid &&
+        request.resource.data.status == 'ACTIVE' &&
+        request.resource.data.memberIds == [request.auth.uid] &&
+        request.resource.data.members is list &&
+        request.resource.data.members.size() == 1 &&
+        request.resource.data.members[0] is map &&
+        request.resource.data.members[0].userId == request.auth.uid;
       allow update: if isAuthenticated() && (
         resource.data.captainId == request.auth.uid ||
-        request.auth.uid in resource.data.get('memberIds', []) ||
-        isAdmin()
+        isAdmin() ||
+        (
+          !(request.auth.uid in resource.data.get('memberIds', [])) &&
+          resource.data.get('status', 'ACTIVE') == 'ACTIVE' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberIds', 'updatedAt']) &&
+          request.auth.uid in request.resource.data.memberIds &&
+          request.resource.data.memberIds.hasAll(resource.data.get('memberIds', [])) &&
+          request.resource.data.memberIds.size() == resource.data.get('memberIds', []).size() + 1 &&
+          request.resource.data.members is list &&
+          request.resource.data.members.hasAll(resource.data.get('members', [])) &&
+          request.resource.data.members.size() == resource.data.get('members', []).size() + 1 &&
+          isValidJoinMember(request.resource.data.members[resource.data.get('members', []).size()]) &&
+          request.resource.data.updatedAt is string &&
+          request.resource.data.updatedAt.size() <= 50
+        )
       );
       allow delete: if isAuthenticated() && (resource.data.captainId == request.auth.uid || isAdmin());
     }
@@ -543,22 +851,142 @@ service cloud.firestore {
     // CONVERSATIONS & MESSAGES
     // ─────────────────────────────────────────────────────────────
     match /conversations/{conversationId} {
-      allow read: if isAuthenticated() && request.auth.uid in resource.data.participants;
-      allow create: if isAuthenticated() && 
-                    request.auth.uid in request.resource.data.participants &&
-                    (
-                      (request.resource.data.type == 'DIRECT' && request.resource.data.participants.size() == 2) ||
-                      (request.resource.data.type == 'GROUP' || request.resource.data.type == 'TEAM')
-                    );
-      allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
+      function teamMemberIds() {
+        return get(/databases/$(database)/documents/teams/$(conversationId)).data.get('memberIds', []);
+      }
+
+      function isValidDirectCreate() {
+        return request.resource.data.keys().hasOnly([
+          'id', 'participants', 'type', 'turfName', 'pitchId', 'participantDetails', 'createdAt', 'updatedAt'
+        ]) &&
+        request.resource.data.keys().hasAll(['id', 'participants', 'type', 'createdAt', 'updatedAt']) &&
+        request.resource.data.id == conversationId &&
+        request.resource.data.type == 'DIRECT' &&
+        request.resource.data.participants is list &&
+        request.resource.data.participants.size() == 2 &&
+        request.auth.uid in request.resource.data.participants &&
+        request.resource.data.createdAt is string &&
+        request.resource.data.createdAt.size() <= 50 &&
+        request.resource.data.updatedAt is string &&
+        request.resource.data.updatedAt.size() <= 50 &&
+        (!('turfName' in request.resource.data) || (request.resource.data.turfName is string && request.resource.data.turfName.size() <= 200)) &&
+        (!('pitchId' in request.resource.data) || (request.resource.data.pitchId is string && request.resource.data.pitchId.size() <= 128)) &&
+        (!('participantDetails' in request.resource.data) || request.resource.data.participantDetails is map);
+      }
+
+      function isValidTeamCreate() {
+        return exists(/databases/$(database)/documents/teams/$(conversationId)) &&
+        request.auth.uid in teamMemberIds() &&
+        request.resource.data.keys().hasOnly([
+          'id', 'participants', 'type', 'name', 'createdAt', 'updatedAt'
+        ]) &&
+        request.resource.data.keys().hasAll(['id', 'participants', 'type', 'name', 'createdAt', 'updatedAt']) &&
+        request.resource.data.id == conversationId &&
+        request.resource.data.type == 'TEAM' &&
+        request.resource.data.participants is list &&
+        request.resource.data.participants.size() >= 1 &&
+        request.auth.uid in request.resource.data.participants &&
+        request.resource.data.participants.hasOnly(teamMemberIds()) &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() <= 120 &&
+        request.resource.data.createdAt is string &&
+        request.resource.data.createdAt.size() <= 50 &&
+        request.resource.data.updatedAt is string &&
+        request.resource.data.updatedAt.size() <= 50;
+      }
+
+      function isValidLastMessageUpdate() {
+        return request.auth.uid in resource.data.participants &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'lastMessage', 'lastMessageAt', 'lastMessageSenderName', 'lastMessageSenderAvatar', 'updatedAt'
+        ]) &&
+        (!('lastMessage' in request.resource.data) ||
+          (request.resource.data.lastMessage is string && request.resource.data.lastMessage.size() <= 2000)) &&
+        (!('lastMessageAt' in request.resource.data) ||
+          (request.resource.data.lastMessageAt is string && request.resource.data.lastMessageAt.size() <= 50)) &&
+        (!('lastMessageSenderName' in request.resource.data) ||
+          (request.resource.data.lastMessageSenderName is string && request.resource.data.lastMessageSenderName.size() <= 100)) &&
+        (!('lastMessageSenderAvatar' in request.resource.data) ||
+          (request.resource.data.lastMessageSenderAvatar is string && request.resource.data.lastMessageSenderAvatar.size() <= 1000)) &&
+        (!('updatedAt' in request.resource.data) ||
+          (request.resource.data.updatedAt is string && request.resource.data.updatedAt.size() <= 50));
+      }
+
+      function isValidDirectMetaUpdate() {
+        return resource.data.type == 'DIRECT' &&
+        request.auth.uid in resource.data.participants &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'turfName', 'pitchId', 'participantDetails', 'updatedAt'
+        ]) &&
+        (!('turfName' in request.resource.data) ||
+          (request.resource.data.turfName is string && request.resource.data.turfName.size() <= 200)) &&
+        (!('pitchId' in request.resource.data) ||
+          (request.resource.data.pitchId is string && request.resource.data.pitchId.size() <= 128)) &&
+        (!('participantDetails' in request.resource.data) ||
+          request.resource.data.participantDetails is map) &&
+        (!('updatedAt' in request.resource.data) ||
+          (request.resource.data.updatedAt is string && request.resource.data.updatedAt.size() <= 50));
+      }
+
+      function isValidTeamParticipantsUpdate() {
+        return resource.data.type == 'TEAM' &&
+        exists(/databases/$(database)/documents/teams/$(conversationId)) &&
+        request.auth.uid in teamMemberIds() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'updatedAt']) &&
+        request.resource.data.participants is list &&
+        request.resource.data.participants.hasAll(resource.data.participants) &&
+        request.resource.data.participants.hasOnly(teamMemberIds()) &&
+        request.auth.uid in request.resource.data.participants &&
+        request.resource.data.updatedAt is string &&
+        request.resource.data.updatedAt.size() <= 50;
+      }
+
+      allow get: if isAuthenticated() && (
+        resource == null ||
+        request.auth.uid in resource.data.participants ||
+        (
+          resource.data.type == 'TEAM' &&
+          exists(/databases/$(database)/documents/teams/$(conversationId)) &&
+          (
+            get(/databases/$(database)/documents/teams/$(conversationId)).data.captainId == request.auth.uid ||
+            request.auth.uid in get(/databases/$(database)/documents/teams/$(conversationId)).data.get('memberIds', [])
+          )
+        )
+      );
+      allow list: if isAuthenticated() && request.auth.uid in resource.data.participants;
+      allow create: if isAuthenticated() && (
+        isValidDirectCreate() ||
+        isValidTeamCreate()
+      );
+      allow update: if isAuthenticated() && (
+        isValidLastMessageUpdate() ||
+        isValidDirectMetaUpdate() ||
+        isValidTeamParticipantsUpdate()
+      );
       allow delete: if isAdmin();
       
       match /messages/{messageId} {
         allow read: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
-        allow create: if isAuthenticated() && 
+        allow create: if isAuthenticated() &&
                       request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
-                      request.resource.data.senderId == request.auth.uid;
-        allow update, delete: if isAuthenticated() && resource.data.senderId == request.auth.uid;
+                      request.resource.data.keys().hasOnly([
+                        'id', 'conversationId', 'senderId', 'senderName', 'senderAvatar', 'text', 'createdAt'
+                      ]) &&
+                      request.resource.data.keys().hasAll([
+                        'id', 'conversationId', 'senderId', 'text', 'createdAt'
+                      ]) &&
+                      request.resource.data.id == messageId &&
+                      request.resource.data.conversationId == conversationId &&
+                      request.resource.data.senderId == request.auth.uid &&
+                      request.resource.data.text is string &&
+                      request.resource.data.text.size() >= 1 &&
+                      request.resource.data.text.size() <= 2000 &&
+                      request.resource.data.createdAt is string &&
+                      request.resource.data.createdAt.size() <= 50 &&
+                      (!('senderName' in request.resource.data) || (request.resource.data.senderName is string && request.resource.data.senderName.size() <= 100)) &&
+                      (!('senderAvatar' in request.resource.data) || (request.resource.data.senderAvatar is string && request.resource.data.senderAvatar.size() <= 1000));
+        allow update: if false;
+        allow delete: if isAdmin();
       }
     }
 

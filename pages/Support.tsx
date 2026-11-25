@@ -19,6 +19,7 @@ import {
   hasWhatsApp,
   getWhatsAppUrl,
 } from "../utils/contact";
+import { FEATURES } from "../config/features";
 export const Support: React.FC = () => {
   const navigate = useNavigate();
   const { isOwner } = useUser();
@@ -35,10 +36,14 @@ export const Support: React.FC = () => {
       q: "How do I pay for my booking?",
       a: "You can pay via Mobile Money (MTN/Airtel) directly in the app during checkout, or choose 'Pay at Venue' if the turf allows it.",
     },
-    {
-      q: "Can I invite players to my squad?",
-      a: "Yes! Go to 'Squad Finder' or 'Teams', create a squad, and you can invite players using their phone number or Player ID.",
-    },
+    ...(FEATURES.squads
+      ? [
+          {
+            q: "Can I invite players to my squad?",
+            a: "Yes! Go to 'Squad Finder' or 'Teams', create a squad, and you can invite players using their phone number or Player ID.",
+          },
+        ]
+      : []),
     {
       q: "What happens if it rains?",
       a: "Most turfs have their own rain policies. Unpaid bookings can be cancelled in My Bookings and booked again. For confirmed or deposit-paid matches, contact the pitch owner or Pitchly support to arrange a new time.",

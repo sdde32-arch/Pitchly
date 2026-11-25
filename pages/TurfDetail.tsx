@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   ArrowLeft,
   Share2,
@@ -48,6 +48,7 @@ import {
   ImageOff,
 } from "lucide-react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { TipCard } from "../components/onboarding/TipCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBooking } from "../context/BookingContext";
 import { useUser } from "../context/UserContext";
@@ -65,6 +66,7 @@ import { TurfReviews } from "../components/TurfReviews";
 import { reviewService } from "../services/reviewService";
 import { CreateMatchProposalModal } from "../components/invitations/CreateMatchProposalModal";
 import { Layout } from "../components/Layout";
+import { FEATURES } from "../config/features";
 
 interface AmenityMeta {
   name: string;
@@ -317,7 +319,26 @@ export const TurfDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, userProfile, isOwner } = useUser();
+  const { user, userProfile, isOwner, isAdmin, updateProfile } = useUser();
+  const viewedPitchRecordedRef = useRef(false);
+
+  useEffect(() => {
+    if (viewedPitchRecordedRef.current) return;
+    if (!user || !userProfile || isOwner || isAdmin) return;
+    if (userProfile.onboarding?.viewedPitch === true) {
+      viewedPitchRecordedRef.current = true;
+      return;
+    }
+    viewedPitchRecordedRef.current = true;
+    updateProfile({
+      onboarding: {
+        ...userProfile.onboarding,
+        viewedPitch: true,
+      },
+    }).catch((err) => {
+      console.warn("Failed to record viewedPitch onboarding progress:", err);
+    });
+  }, [user, userProfile, isOwner, isAdmin, updateProfile]);
   const { turfs, bookings, loading: contextLoading } = useBooking();
   const [realPitch, setRealPitch] = useState<Pitch | null>(null);
   const [loadingPitch, setLoadingPitch] = useState(true);
@@ -867,7 +888,7 @@ export const TurfDetail: React.FC = () => {
       navigate("/bookings");
       return;
     }
-    if (navState?.from === "teams") {
+    if (FEATURES.squads && navState?.from === "teams") {
       navigate("/teams");
       return;
     }
@@ -1340,6 +1361,9 @@ export const TurfDetail: React.FC = () => {
               </section>
 
               {/* 2. LIVE AVAILABILITY & SLOT SELECTOR (BOOKING APP CORE) */}
+              <TipCard tipId="pitch-slots" title="Choose your time">
+                Pick a matchday and tap an hourly slot below. Lime marks available slots, amber marks unpaid holds (not guaranteed), and grey marks booked slots. Select a slot and tap Continue Booking to proceed to payment.
+              </TipCard>
               <section id="availability-section" className="bg-surface-card rounded-2xl p-4 sm:p-5 border border-border-subtle shadow-xs space-y-4 scroll-mt-24">
                 <div className="flex items-center justify-between pb-2 border-b border-border-subtle/70 gap-2 flex-wrap">
                   <div>
@@ -1355,6 +1379,10 @@ export const TurfDetail: React.FC = () => {
                     <span className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-primary-lime" />
                       Available
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      Held
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-border-subtle" />
@@ -1887,20 +1915,22 @@ export const TurfDetail: React.FC = () => {
                     <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
                   </motion.button>
 
-                  <button
-                    onClick={() => {
-                      if (!user) {
-                        navigate("/auth");
-                        return;
-                      }
-                      setIsProposalModalOpen(true);
-                    }}
-                    className="w-full py-2.5 bg-surface-raised hover:bg-border-subtle text-text-secondary hover:text-text-primary border border-border-subtle font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
-                    title="Propose a friendly match challenge"
-                  >
-                    <Users size={14} className="text-primary-lime" />
-                    <span>Propose Match Challenge</span>
-                  </button>
+                  {FEATURES.matchInvites && (
+                    <button
+                      onClick={() => {
+                        if (!user) {
+                          navigate("/auth");
+                          return;
+                        }
+                        setIsProposalModalOpen(true);
+                      }}
+                      className="w-full py-2.5 bg-surface-raised hover:bg-border-subtle text-text-secondary hover:text-text-primary border border-border-subtle font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
+                      title="Propose a friendly match challenge"
+                    >
+                      <Users size={14} className="text-primary-lime" />
+                      <span>Propose Match Challenge</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Booking Guarantees */}
@@ -1932,7 +1962,11 @@ export const TurfDetail: React.FC = () => {
                     className="text-xs text-text-secondary hover:text-primary-lime font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5"
                   >
                     <MessageSquare size={13} />
-                    <span>Need corporate or tournament pricing? Message manager</span>
+                    <span>
+                      {FEATURES.tournaments
+                        ? "Need corporate or tournament pricing? Message manager"
+                        : "Have a question about this pitch? Message manager"}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -1965,18 +1999,20 @@ export const TurfDetail: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => {
-                  if (!user) {
-                    navigate("/auth");
-                    return;
-                  }
-                  setIsProposalModalOpen(true);
-                }}
-                className="px-3 py-2.5 bg-surface-raised hover:bg-border-subtle text-text-primary border border-border-subtle font-bold text-xs rounded-xl transition-all"
-              >
-                Match
-              </button>
+              {FEATURES.matchInvites && (
+                <button
+                  onClick={() => {
+                    if (!user) {
+                      navigate("/auth");
+                      return;
+                    }
+                    setIsProposalModalOpen(true);
+                  }}
+                  className="px-3 py-2.5 bg-surface-raised hover:bg-border-subtle text-text-primary border border-border-subtle font-bold text-xs rounded-xl transition-all"
+                >
+                  Match
+                </button>
+              )}
 
               <motion.button
                 whileHover={hasValidPrice ? { scale: 1.02, boxShadow: "0 4px 16px rgba(168, 255, 0, 0.3)" } : {}}
@@ -2099,30 +2135,32 @@ export const TurfDetail: React.FC = () => {
         )}
 
         {/* PROPOSE MATCH CHALLENGE MODAL */}
-        <CreateMatchProposalModal
-          isOpen={isProposalModalOpen}
-          onClose={() => setIsProposalModalOpen(false)}
-          currentUser={
-            user
-              ? {
-                  id: user.uid,
-                  email: user.email || "",
-                  name: userProfile?.name || user.displayName || "Player",
-                  phone: userProfile?.phone || "",
-                  role: ((userProfile?.role as any)?.toUpperCase() || "PLAYER") as "PLAYER" | "OWNER" | "ADMIN" | "CARETAKER",
-                  status: "ACTIVE",
-                  photoURL: user.photoURL || undefined,
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                }
-              : null
-          }
-          preselectedPitchId={turf.id}
-          preselectedPitchName={turf.name}
-          onProposalCreated={() => {
-            navigate("/invitations");
-          }}
-        />
+        {FEATURES.matchInvites && (
+          <CreateMatchProposalModal
+            isOpen={isProposalModalOpen}
+            onClose={() => setIsProposalModalOpen(false)}
+            currentUser={
+              user
+                ? {
+                    id: user.uid,
+                    email: user.email || "",
+                    name: userProfile?.name || user.displayName || "Player",
+                    phone: userProfile?.phone || "",
+                    role: ((userProfile?.role as any)?.toUpperCase() || "PLAYER") as "PLAYER" | "OWNER" | "ADMIN" | "CARETAKER",
+                    status: "ACTIVE",
+                    photoURL: user.photoURL || undefined,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  }
+                : null
+            }
+            preselectedPitchId={turf.id}
+            preselectedPitchName={turf.name}
+            onProposalCreated={() => {
+              navigate("/invitations");
+            }}
+          />
+        )}
 
         {/* MESSAGE PITCH OWNER / MANAGER MODAL */}
         {showMessageModal && (
@@ -2212,12 +2250,20 @@ export const TurfDetail: React.FC = () => {
                       Quick Matchday Inquiries
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
-                      {[
-                        "Is the pitch available for corporate tournament booking?",
-                        "Can we get extra training bibs and 2 match balls?",
-                        "Are floodlights and locker facilities in full operation?",
-                        "Inquiry on recurring weekly league reservation rates."
-                      ].map((promptText) => (
+                      {(FEATURES.tournaments
+                        ? [
+                            "Is the pitch available for corporate tournament booking?",
+                            "Can we get extra training bibs and 2 match balls?",
+                            "Are floodlights and locker facilities in full operation?",
+                            "Inquiry on recurring weekly league reservation rates.",
+                          ]
+                        : [
+                            "Is this pitch free this weekend?",
+                            "Do you have floodlights?",
+                            "Can I pay the deposit by Airtel?",
+                            "Can we get extra training bibs and 2 match balls?",
+                          ]
+                      ).map((promptText) => (
                         <button
                           key={promptText}
                           type="button"

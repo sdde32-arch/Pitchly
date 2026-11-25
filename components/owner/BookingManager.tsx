@@ -18,6 +18,27 @@ export const isBookingStale = (booking: Booking): boolean => {
   if (!booking.holdExpiresAt) return false;
   return new Date(booking.holdExpiresAt).getTime() < Date.now();
 };
+
+export const buildOwnerConfirmUpdates = (
+  booking: Booking,
+  nowIso: string = new Date().toISOString()
+): Partial<Booking> => {
+  const updates: Partial<Booking> = {
+    status: BookingStatus.CONFIRMED,
+    updatedAt: nowIso,
+    approvedAt: nowIso,
+  };
+  if ((booking as any).bookingTier === 'DEPOSIT') {
+    updates.status = BookingStatus.DEPOSIT_PAID;
+    updates.paymentStatus = "PARTIAL";
+  } else {
+    updates.status = BookingStatus.CONFIRMED;
+    if (booking.status === BookingStatus.PAYMENT_SUBMITTED || booking.paymentStatus === "SUBMITTED") {
+      updates.paymentStatus = "PAID";
+    }
+  }
+  return updates;
+};
 import { ReportModal } from "../ReportModal";
 import { OwnerService } from "../../services/owner";
 import { chatService } from "../../services/chatService";
@@ -231,16 +252,7 @@ export const BookingManager: React.FC = () => {
     };
 
     if (action === "CONFIRMED") {
-      if ((booking as any).bookingTier === 'DEPOSIT') {
-        updates.status = BookingStatus.DEPOSIT_PAID;
-        updates.paymentStatus = "PARTIAL";
-      } else {
-        updates.status = BookingStatus.CONFIRMED;
-        if (booking.status === BookingStatus.PAYMENT_SUBMITTED || booking.paymentStatus === "SUBMITTED") {
-          updates.paymentStatus = "PAID";
-        }
-      }
-      updates.approvedAt = new Date().toISOString();
+      Object.assign(updates, buildOwnerConfirmUpdates(booking));
     } else if (action === "CHECKED_IN") {
       updates.status = BookingStatus.CHECKED_IN;
     } else if (action === "REJECTED" || action === "CANCELLED") {

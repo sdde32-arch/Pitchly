@@ -1,6 +1,6 @@
 import { Pitch } from '../types/firebase';
 import { db } from '../lib/firebase';
-import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, query, where, onSnapshot } from 'firebase/firestore';
 import { offlineCacheService } from './offlineCacheService';
 import { Turf, PitchStatus } from '../types';
 import { SUPPORT_EMAIL } from '../utils/contact';
@@ -232,6 +232,52 @@ export const pitchService = {
     } catch (error) {
       console.warn("Failed to fetch owner pitches from Firestore", error);
       return [];
+    }
+  },
+
+  async listByOwnerStrict(ownerId: string): Promise<Pitch[]> {
+    const deletedIds = getDeletedPitchIds();
+    const q = query(collection(db, this.collectionPath), where("ownerId", "==", ownerId));
+    const querySnapshot = await getDocs(q);
+    const pitches: Pitch[] = [];
+    querySnapshot.forEach((docSnap) => {
+      const data = { id: docSnap.id, ...docSnap.data() } as Pitch;
+      if (!isLegacyTestPitch(data) && !deletedIds.includes(data.id)) {
+        pitches.push(data);
+      }
+    });
+    return pitches;
+  },
+
+  subscribeByOwner(
+    ownerId: string,
+    onUpdate: (pitches: Pitch[]) => void,
+    onError?: (err: any) => void
+  ): () => void {
+    try {
+      const q = query(collection(db, this.collectionPath), where("ownerId", "==", ownerId));
+      return onSnapshot(
+        q,
+        (snapshot) => {
+          const deletedIds = getDeletedPitchIds();
+          const pitches: Pitch[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = { id: docSnap.id, ...docSnap.data() } as Pitch;
+            if (!isLegacyTestPitch(data) && !deletedIds.includes(data.id)) {
+              pitches.push(data);
+            }
+          });
+          onUpdate(pitches);
+        },
+        (error) => {
+          console.warn("Owner pitches subscription error:", error);
+          if (onError) onError(error);
+        }
+      );
+    } catch (err) {
+      console.warn("Failed to establish owner pitches subscription:", err);
+      if (onError) onError(err);
+      return () => {};
     }
   },
 

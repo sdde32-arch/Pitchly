@@ -1,12 +1,12 @@
 import React from "react";
-import { AppWalkthroughModal } from "./AppWalkthroughModal";
+import { HowItWorksSheet } from "./HowItWorksSheet";
 
 /**
- * InteractiveWalkthroughOverlay renders the comprehensive master App Walkthrough
- * modal for Pitchly, explaining all key features and details.
+ * InteractiveWalkthroughOverlay renders the role-aware HowItWorksSheet
+ * when opened explicitly by a Help / How it works button.
  */
 export const InteractiveWalkthroughOverlay: React.FC = () => {
-  return <AppWalkthroughModal />;
+  return <HowItWorksSheet />;
 };
 
 export default InteractiveWalkthroughOverlay;

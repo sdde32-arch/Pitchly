@@ -12,7 +12,7 @@ import {
   MapPin,
   Calendar,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "../../context/UserContext";
 import { Team } from "../../types/firebase";
 import { teamService } from "../../services/teamService";
@@ -32,6 +32,7 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
   onJoinedSuccess,
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, userProfile } = useUser();
 
   const [inputCode, setInputCode] = useState(inviteCode);
@@ -40,8 +41,6 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [joinedSuccess, setJoinedSuccess] = useState(false);
-  const [guestName, setGuestName] = useState("");
-  const [guestPhone, setGuestPhone] = useState("");
   const [failedAvatarIds, setFailedAvatarIds] = useState<Set<string>>(new Set());
 
   // Sync inviteCode prop
@@ -82,22 +81,24 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
   const isAlreadyMember = Boolean(
     team &&
       currentUserId &&
-      currentMembers.some(
-        (m) =>
-          m.userId === currentUserId ||
-          (userProfile?.name && m.name.toLowerCase() === userProfile.name.toLowerCase())
-      )
+      (team.captainId === currentUserId ||
+        (team.memberIds || []).includes(currentUserId) ||
+        currentMembers.some((m) => m.userId === currentUserId))
   );
 
   const handleJoin = async () => {
     if (!team) return;
-
-    // Check member details
-    const playerName = userProfile?.name || user?.displayName || guestName.trim();
-    if (!playerName) {
-      setError("Please enter your player name to join the squad roster.");
+    if (!user) {
+      onClose();
+      navigate("/auth", { state: { from: location } });
       return;
     }
+
+    const playerName =
+      userProfile?.name ||
+      user.displayName ||
+      user.email?.split("@")[0] ||
+      "Pitchly Player";
 
     setJoining(true);
     setError(null);
@@ -106,10 +107,10 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
       const { team: updatedTeam } = await teamService.joinByInviteCode(
         team.inviteCode || inputCode,
         {
-          userId: user?.uid || `guest_${Date.now()}`,
+          userId: user.uid,
           name: playerName,
-          contact: userProfile?.phone || guestPhone.trim(),
-          avatar: (userProfile as any)?.photoURL || user?.photoURL,
+          contact: userProfile?.phone || "",
+          avatar: (userProfile as any)?.photoURL || userProfile?.avatar || user.photoURL || "",
         }
       );
 
@@ -125,9 +126,14 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
 
   const handleOpenTeamChat = async () => {
     if (!team) return;
+    if (!user) {
+      onClose();
+      navigate("/auth", { state: { from: location } });
+      return;
+    }
     try {
       const participantIds = (team.members || []).map((m: any) => m.userId).filter(Boolean);
-      if (user?.uid && !participantIds.includes(user.uid)) {
+      if (!participantIds.includes(user.uid)) {
         participantIds.push(user.uid);
       }
       const convId = await chatService.createTeamConversation(team.id, team.name, participantIds);
@@ -358,26 +364,11 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
               </div>
             ) : (
               <div className="space-y-3">
-                {/* Guest name inputs if user is not authenticated */}
                 {!user && (
-                  <div className="space-y-2 p-3 bg-surface-raised rounded-2xl border border-border-subtle">
+                  <div className="p-3 bg-surface-raised rounded-2xl border border-border-subtle">
                     <span className="text-[11px] font-bold text-text-secondary block">
-                      Player Profile Details
+                      Sign in with your Pitchly account to join this squad and access team chat.
                     </span>
-                    <input
-                      type="text"
-                      placeholder="Your Full Name (e.g. Dennis Mukasa)"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      className="w-full h-10 px-3 rounded-xl bg-surface-card border border-border-subtle text-xs text-text-primary focus:outline-none focus:border-primary-lime"
-                    />
-                    <input
-                      type="tel"
-                      placeholder="Phone / WhatsApp (optional)"
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      className="w-full h-10 px-3 rounded-xl bg-surface-card border border-border-subtle text-xs text-text-primary focus:outline-none focus:border-primary-lime"
-                    />
                   </div>
                 )}
 
@@ -394,7 +385,9 @@ export const JoinTeamModal: React.FC<JoinTeamModalProps> = ({
                   ) : (
                     <>
                       <Sparkles size={16} />
-                      <span>Join {team.name} Now</span>
+                      <span>
+                        {user ? `Join ${team.name} Now` : `Sign in to Join ${team.name}`}
+                      </span>
                       <ArrowRight size={16} />
                     </>
                   )}

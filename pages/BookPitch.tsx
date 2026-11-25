@@ -14,6 +14,7 @@ import { Turf, BookingStatus, PaymentMethod, BookingTier } from "../types";
 import { bookingService, countOpenUnpaidHolds } from "../services/bookingService";
 import { storageService } from "../services/storageService";
 import { matchInvitationService } from "../services/matchInvitationService";
+import { FEATURES } from "../config/features";
 import { computeDeposit } from "../utils/pricing";
 import { isValidTransactionRef, normalizeUgPhone } from "../utils/validation";
 import { PLATFORM_FEE_UGX } from "../utils/fees";
@@ -543,7 +544,7 @@ export const BookPitch: React.FC = () => {
         });
       }
       
-      if (proposalId) {
+      if (FEATURES.matchInvites && proposalId) {
         try {
           await matchInvitationService.markAsBooked(proposalId, bookingId);
         } catch (proposalErr) {

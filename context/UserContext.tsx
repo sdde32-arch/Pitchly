@@ -47,6 +47,11 @@ export interface UserProfileData {
   roles?: ("PLAYER" | "OWNER")[];
   hasCompletedOnboarding?: boolean;
   onboardingCompletedAt?: string;
+  onboarding?: {
+    checklistDismissedAt?: string;
+    viewedPitch?: boolean;
+    tipsSeen?: Record<string, boolean>;
+  };
   avatarId?: string;
   createdAt?: string;
 }
@@ -134,6 +139,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
               roles: data.roles || ["PLAYER", "OWNER"],
               hasCompletedOnboarding: typeof data.hasCompletedOnboarding === "boolean" ? data.hasCompletedOnboarding : undefined,
               onboardingCompletedAt: data.onboardingCompletedAt,
+              onboarding: data.onboarding,
               avatarId: data.avatarId || fallbackAvatarId,
             };
             setUserProfile(profile);

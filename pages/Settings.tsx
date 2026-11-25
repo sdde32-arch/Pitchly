@@ -26,6 +26,7 @@ import { Moon, Sun } from "lucide-react";
 import { PWAInstallButton } from "../components/PWAInstallButton";
 import { offlineCacheService } from "../services/offlineCacheService";
 import { Database, RefreshCw, Wifi, Building2 } from "lucide-react";
+import { FEATURES } from "../config/features";
 
 
 const SectionHeader = ({ title }: { title: string }) => (
@@ -251,7 +252,7 @@ export const Settings: React.FC = () => {
             <SettingItem
               icon={Bell}
               title="Push Notifications"
-              description="Match invites, updates"
+              description={FEATURES.matchInvites ? "Match invites, updates" : "Booking confirmations and updates"}
               action={
                 <Toggle
                   checked={notifications.push}

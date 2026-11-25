@@ -24,7 +24,9 @@ import {
   X,
   Repeat,
   Building,
+  MessageSquare,
 } from "lucide-react";
+import { FEATURES } from "../config/features";
 import { MobileBottomNav } from "./layout/MobileBottomNav";
 import { useUser } from "../context/UserContext";
 import { useInteractiveWalkthrough } from "../context/InteractiveWalkthroughContext";
@@ -40,8 +42,9 @@ import { slotAlertService } from "../services/slotAlertService";
 
 interface LayoutProps {
   children: React.ReactNode;
+  ownerWaitingCount?: number;
 }
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, ownerWaitingCount = 0 }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -211,16 +214,28 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     return () => unsubscribe();
   }, [user]);
 
+  const isOnboardingSuppressedPath =
+    location.pathname.startsWith("/checkout") ||
+    (location.pathname.startsWith("/turf/") && location.pathname.endsWith("/book")) ||
+    location.pathname.startsWith("/booking-confirmation") ||
+    location.pathname.startsWith("/auth") ||
+    location.pathname.startsWith("/owner/add-pitch") ||
+    location.pathname.startsWith("/owner/edit-pitch");
+
   React.useEffect(() => {
     if (
+      !isOnboardingSuppressedPath &&
       userProfile &&
+      isOwner &&
       !isAdmin &&
       userProfile.hasCompletedOnboarding === false
     ) {
       setShowOnboarding(true);
+    } else {
+      setShowOnboarding(false);
     }
-  }, [userProfile, isAdmin]);
-  if (showOnboarding) {
+  }, [userProfile, isOwner, isAdmin, isOnboardingSuppressedPath]);
+  if (showOnboarding && !isOnboardingSuppressedPath) {
     return <RoleOnboarding onComplete={() => setShowOnboarding(false)} />;
   }
   const handleLogout = async () => {
@@ -234,7 +249,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
   const isActive = (path: string, search?: string) => {
     if (search) {
+      if (search === "tab=Today" && location.pathname === "/owner" && !location.search.includes("tab=")) {
+        return true;
+      }
       return location.pathname === path && location.search.includes(search);
+    }
+    if (path === "/chat") {
+      return location.pathname === "/chat" || location.pathname.startsWith("/chat/");
     }
     return location.pathname === path;
   };
@@ -333,17 +354,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
   const playerLinks = [
     { path: "/home", search: "", label: "Home", icon: Home },
-    { path: "/tournament", search: "", label: "Tournament", icon: Trophy },
+    ...(FEATURES.tournaments
+      ? [{ path: "/tournament", search: "", label: "Tournament", icon: Trophy }]
+      : []),
     { path: "/explore-map", search: "", label: "Explore", icon: Compass },
     { path: "/bookings", search: "", label: "Bookings", icon: Calendar },
-    { path: "/teams", search: "", label: "Squads", icon: Users },
+    { path: "/chat", search: "", label: "Messages", icon: MessageSquare },
+    ...(FEATURES.squads
+      ? [{ path: "/teams", search: "", label: "Squads", icon: Users }]
+      : []),
     { path: "/profile", search: "", label: "Profile", icon: User },
   ];
   const ownerLinks = [
     {
       path: "/owner",
-      search: "tab=Dashboard",
-      label: "Overview",
+      search: "tab=Today",
+      label: "Today",
       icon: LayoutDashboard,
     },
     {
@@ -370,23 +396,37 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       label: "Staff",
       icon: Users,
     },
-    {
-      path: "/tournament",
-      search: "",
-      label: "Tournament",
-      icon: Trophy,
-    },
-    {
-      path: "/invitations",
-      search: "",
-      label: "Proposals",
-      icon: Mail,
-    },
+    ...(FEATURES.tournaments
+      ? [
+          {
+            path: "/tournament",
+            search: "",
+            label: "Tournament",
+            icon: Trophy,
+          },
+        ]
+      : []),
+    ...(FEATURES.matchInvites
+      ? [
+          {
+            path: "/invitations",
+            search: "",
+            label: "Proposals",
+            icon: Mail,
+          },
+        ]
+      : []),
     {
       path: "/owner",
       search: "tab=Settings",
       label: "Settings",
       icon: Settings,
+    },
+    {
+      path: "/owner",
+      search: "tab=Guide",
+      label: "Guide",
+      icon: Compass,
     },
   ];
   const adminLinks = [
@@ -396,12 +436,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       label: "Admin Hub",
       icon: Shield,
     },
-    {
-      path: "/admin/tournaments",
-      search: "",
-      label: "Tournament Ops",
-      icon: Trophy,
-    },
+    ...(FEATURES.tournaments
+      ? [
+          {
+            path: "/admin/tournaments",
+            search: "",
+            label: "Tournament Ops",
+            icon: Trophy,
+          },
+        ]
+      : []),
   ];
   let links = playerLinks;
   if (isOwner) links = ownerLinks;
@@ -497,9 +541,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                         }`}
                       />
                       <span className="truncate">{link.label}</span>
-                      {active && (
+                      {isOwner && link.search === "tab=Today" && ownerWaitingCount > 0 ? (
+                        <span
+                          aria-label={`${ownerWaitingCount} waiting for approval`}
+                          className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#EF4444] text-white text-xs font-extrabold tabular-nums leading-none"
+                        >
+                          {ownerWaitingCount > 99 ? "99+" : ownerWaitingCount}
+                        </span>
+                      ) : active ? (
                         <div className="ml-auto w-1.5 h-1.5 bg-nav-active-text rounded-full shadow-[0_0_8px_#A8FF00]" />
-                      )}
+                      ) : null}
                     </button>
                   );
                 })}
@@ -513,11 +564,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               type="button"
               onClick={() => openWalkthrough()}
               className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-bold text-nav-active-text bg-nav-active-bg hover:bg-primary-lime/20 border border-primary-lime/30 transition-all cursor-pointer shadow-xs active:scale-98"
-              title="Open Pitchly Master Walkthrough & Guide"
+              title="How it works"
             >
               <div className="flex items-center gap-2">
-                <Compass size={15} className="text-nav-active-text animate-spin-slow" />
-                <span>App Walkthrough</span>
+                <Compass size={15} className="text-nav-active-text" />
+                <span>How it works</span>
               </div>
               <Sparkles size={12} className="text-nav-active-text" />
             </button>
@@ -596,10 +647,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 type="button"
                 onClick={() => openWalkthrough()}
                 className="w-9 h-9 rounded-full flex items-center justify-center bg-nav-active-bg hover:bg-primary-lime/20 border border-primary-lime/30 text-nav-active-text cursor-pointer active:scale-95 transition-all shrink-0"
-                title="Pitchly App Walkthrough & Guide"
-                aria-label="App Walkthrough & Guide"
+                title="How it works"
+                aria-label="How it works"
               >
-                <Compass size={16} className="text-nav-active-text animate-spin-slow" />
+                <Compass size={16} className="text-nav-active-text" />
               </button>
               <PWAInstallButton variant="compact" />
               <UpcomingMatchesBell />
@@ -674,6 +725,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             pathname={location.pathname}
             search={location.search}
             showOwnerMoreMenu={showOwnerMoreMenu}
+            ownerWaitingCount={ownerWaitingCount}
             onNavigate={(target) => navigate(target)}
             onToggleOwnerMore={() => setShowOwnerMoreMenu((prev) => !prev)}
             onCloseOwnerMore={() => setShowOwnerMoreMenu(false)}
@@ -744,35 +796,71 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     </div>
                   </button>
 
+                  {FEATURES.tournaments && (
+                    <button
+                      onClick={() => {
+                        setShowOwnerMoreMenu(false);
+                        navigate("/tournament");
+                      }}
+                      className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-nav-border hover:border-nav-active-text/40 text-left transition-colors cursor-pointer active:scale-98"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-[#FACC15]/10 text-[#FACC15] flex items-center justify-center shrink-0">
+                        <Trophy size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-nav-text truncate">Tournaments</p>
+                        <p className="text-[10px] text-nav-text-muted truncate">Public events</p>
+                      </div>
+                    </button>
+                  )}
+
+                  {FEATURES.matchInvites && (
+                    <button
+                      onClick={() => {
+                        setShowOwnerMoreMenu(false);
+                        navigate("/invitations");
+                      }}
+                      className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-nav-border hover:border-nav-active-text/40 text-left transition-colors cursor-pointer active:scale-98"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-nav-admin-tint text-nav-admin flex items-center justify-center shrink-0">
+                        <Mail size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-nav-text truncate">Proposals</p>
+                        <p className="text-[10px] text-nav-text-muted truncate">Match invites</p>
+                      </div>
+                    </button>
+                  )}
+
                   <button
                     onClick={() => {
                       setShowOwnerMoreMenu(false);
-                      navigate("/tournament");
+                      navigate("/owner?tab=Messages");
                     }}
                     className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-nav-border hover:border-nav-active-text/40 text-left transition-colors cursor-pointer active:scale-98"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-[#FACC15]/10 text-[#FACC15] flex items-center justify-center shrink-0">
-                      <Trophy size={16} />
+                    <div className="w-8 h-8 rounded-lg bg-nav-owner-tint text-nav-owner flex items-center justify-center shrink-0">
+                      <MessageSquare size={16} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-nav-text truncate">Tournaments</p>
-                      <p className="text-[10px] text-nav-text-muted truncate">Public events</p>
+                      <p className="text-xs font-bold text-nav-text truncate">Messages</p>
+                      <p className="text-[10px] text-nav-text-muted truncate">Player chats</p>
                     </div>
                   </button>
 
                   <button
                     onClick={() => {
                       setShowOwnerMoreMenu(false);
-                      navigate("/invitations");
+                      navigate("/owner?tab=Guide");
                     }}
                     className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-nav-border hover:border-nav-active-text/40 text-left transition-colors cursor-pointer active:scale-98"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-nav-admin-tint text-nav-admin flex items-center justify-center shrink-0">
-                      <Mail size={16} />
+                    <div className="w-8 h-8 rounded-lg bg-nav-active-bg text-nav-active-text flex items-center justify-center shrink-0">
+                      <Compass size={16} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-nav-text truncate">Proposals</p>
-                      <p className="text-[10px] text-nav-text-muted truncate">Match invites</p>
+                      <p className="text-xs font-bold text-nav-text truncate">Owner Guide</p>
+                      <p className="text-[10px] text-nav-text-muted truncate">Short lessons</p>
                     </div>
                   </button>
 

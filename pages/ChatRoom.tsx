@@ -6,6 +6,7 @@ import { Message, Conversation } from '../types/firebase';
 import { ArrowLeft, ChevronLeft, Send, Users, User as UserIcon } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { FEATURES } from '../config/features';
 
 export const ChatRoom: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,25 +22,36 @@ export const ChatRoom: React.FC = () => {
 
   useEffect(() => {
     if (!id) return;
-    
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
+
     // Fetch conversation details
-    const fetchConv = async () => {
+    const initChat = async () => {
       const docRef = doc(db, 'conversations', id);
       const docSnap = await getDoc(docRef);
+      if (cancelled) return;
       if (docSnap.exists()) {
-        setConversation({ id: docSnap.id, ...docSnap.data() } as Conversation);
+        const conv = { id: docSnap.id, ...docSnap.data() } as Conversation;
+        if (!FEATURES.squads && conv.type === 'TEAM') {
+          navigate('/chat', { replace: true });
+          return;
+        }
+        setConversation(conv);
       }
+
+      unsubscribe = chatService.subscribeToMessages(id, (msgs) => {
+        setMessages(msgs);
+        setLoading(false);
+        setTimeout(() => scrollToBottom(), 100);
+      });
     };
-    fetchConv();
+    initChat();
 
-    const unsubscribe = chatService.subscribeToMessages(id, (msgs) => {
-      setMessages(msgs);
-      setLoading(false);
-      setTimeout(() => scrollToBottom(), 100);
-    });
-
-    return () => unsubscribe();
-  }, [id]);
+    return () => {
+      cancelled = true;
+      if (unsubscribe) unsubscribe();
+    };
+  }, [id, navigate]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

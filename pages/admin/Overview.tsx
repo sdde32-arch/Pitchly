@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useUser } from "../../context/UserContext";
 import { adminService } from "../../services/adminService";
 import { useNavigate } from "react-router-dom";
+import { FEATURES } from "../../config/features";
 import {
   Wallet,
   CalendarDays,
@@ -91,12 +92,14 @@ export const Overview: React.FC = () => {
           Please sign in with an authorized platform administrator account.
         </p>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/tournament")}
-            className="px-4 py-2 bg-primary-lime text-black font-bold text-xs rounded-xl hover:bg-[#96E600] transition-colors cursor-pointer"
-          >
-            Go to Tournament Hub
-          </button>
+          {FEATURES.tournaments && (
+            <button
+              onClick={() => navigate("/tournament")}
+              className="px-4 py-2 bg-primary-lime text-black font-bold text-xs rounded-xl hover:bg-[#96E600] transition-colors cursor-pointer"
+            >
+              Go to Tournament Hub
+            </button>
+          )}
           <button
             onClick={() => navigate("/home")}
             className="px-4 py-2 bg-surface-raised border border-border-subtle text-text-primary font-bold text-xs rounded-xl hover:bg-border-subtle transition-colors cursor-pointer"

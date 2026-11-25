@@ -6,6 +6,7 @@ import { useInteractiveWalkthrough } from "../context/InteractiveWalkthroughCont
 import { PlayerAvatar, AVATARS_LIST } from "../components/PlayerAvatars";
 import { Toggle } from "../components/ui/Toggle";
 import { slotAlertService } from "../services/slotAlertService";
+import { FEATURES } from "../config/features";
 import {
   ArrowLeft, ChevronLeft,
   Settings,
@@ -216,7 +217,7 @@ export const Profile: React.FC = () => {
           {/* Quick Menu Options */}
           <div id="walkthrough-profile-hub" className="bg-surface-card border border-border-subtle rounded-2xl divide-y divide-border-subtle shadow-xs overflow-hidden scroll-mt-24">
             <button
-              onClick={() => startWalkthrough(0)}
+              onClick={() => startWalkthrough()}
               className="w-full p-4 flex items-center justify-between bg-primary-lime/5 hover:bg-primary-lime/10 transition-colors text-left cursor-pointer group"
             >
               <div className="flex items-center gap-3">
@@ -225,10 +226,10 @@ export const Profile: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[13px] font-bold text-text-primary block">
-                    Interactive App Tour
+                    How it works
                   </span>
                   <span className="text-[11px] text-primary-lime font-medium">
-                    Guided walkthrough of all app features & advantages
+                    A short guide to booking on Pitchly
                   </span>
                 </div>
               </div>
@@ -616,22 +617,24 @@ export const Profile: React.FC = () => {
                   />
                 </div>
 
-                <div className="py-2.5 flex justify-between items-center">
-                  <div>
-                    <h4 className="text-xs font-medium text-text-primary">
-                      Match invites
-                    </h4>
-                    <p className="text-[11px] text-slate-500">
-                      When other squads invite you to a game.
-                    </p>
+                {FEATURES.matchInvites && (
+                  <div className="py-2.5 flex justify-between items-center">
+                    <div>
+                      <h4 className="text-xs font-medium text-text-primary">
+                        Match invites
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        When other squads invite you to a game.
+                      </p>
+                    </div>
+                    <Toggle
+                      checked={notifPreferences.invites}
+                      onChange={() =>
+                        setNotifPreferences({ ...notifPreferences, invites: !notifPreferences.invites })
+                      }
+                    />
                   </div>
-                  <Toggle
-                    checked={notifPreferences.invites}
-                    onChange={() =>
-                      setNotifPreferences({ ...notifPreferences, invites: !notifPreferences.invites })
-                    }
-                  />
-                </div>
+                )}
               </div>
 
               <div className="pt-2">
@@ -678,7 +681,9 @@ export const Profile: React.FC = () => {
                     className="w-full h-11 min-h-11 px-3 rounded-[10px] bg-surface-raised border border-border-subtle text-base"
                   >
                     <option value="public">Public (Searchable by all players)</option>
-                    <option value="teams">Squads only (Teammates only)</option>
+                    {FEATURES.squads && (
+                      <option value="teams">Squads only (Teammates only)</option>
+                    )}
                     <option value="private">Hidden (Private profile)</option>
                   </select>
                 </div>
@@ -735,7 +740,7 @@ export const Profile: React.FC = () => {
                 <div className="space-y-0.5 min-w-0">
                   <span className="text-[10px] font-black uppercase tracking-wider text-primary-lime flex items-center gap-1">
                     <Sparkles size={12} />
-                    Guided Tour
+                    How it works
                   </span>
                   <p className="text-xs font-bold text-text-primary">
                     Need a quick refresher on using Pitchly?
@@ -745,12 +750,12 @@ export const Profile: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setActiveModal(null);
-                    startWalkthrough(0);
+                    startWalkthrough();
                   }}
                   className="px-3 py-1.5 rounded-xl bg-primary-lime hover:bg-[#96E600] text-accent-text text-xs font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-xs"
                 >
                   <Compass size={13} />
-                  <span>Start Tour</span>
+                  <span>Open</span>
                 </button>
               </div>
 

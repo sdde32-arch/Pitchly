@@ -8,6 +8,7 @@ import { Search, Users, User as UserIcon, MessageSquare } from 'lucide-react';
 import { userService } from '../services/userService';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ChatListSkeleton } from '../components/ui/Skeleton';
+import { FEATURES } from '../config/features';
 
 export const ChatList: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export const ChatList: React.FC = () => {
   }, [userProfile?.id]);
 
   const filteredConvs = conversations.filter(c => {
+    if (!FEATURES.squads && c.type === 'TEAM') return false;
     const name = c.name || (c.type === 'DIRECT' ? 'Direct Message' : 'Chat');
     return name.toLowerCase().includes(searchQuery.toLowerCase());
   });
@@ -60,9 +62,13 @@ export const ChatList: React.FC = () => {
             <EmptyState
               icon={MessageSquare}
               title="No Messages Yet"
-              description="Your inbox is empty. Search for teams or view other player profiles to initiate a chat!"
-              actionText="Explore Teams"
-              onAction={() => navigate("/teams")}
+              description={
+                FEATURES.squads
+                  ? "Your inbox is empty. Search for teams or view other player profiles to initiate a chat!"
+                  : "Your inbox is empty. Message a pitch owner from any pitch or booking to ask about availability and payments."
+              }
+              actionText={FEATURES.squads ? "Explore Teams" : "Browse pitches"}
+              onAction={() => navigate(FEATURES.squads ? "/teams" : "/home")}
               actionVariant="primary"
               className="my-4"
             />

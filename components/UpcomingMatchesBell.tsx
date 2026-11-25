@@ -6,6 +6,7 @@ import { notificationService, UpcomingMatchItem } from '../services/notification
 import type { Notification } from '../types/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { FEATURES } from '../config/features';
 
 export const UpcomingMatchesBell: React.FC = () => {
   const { user } = useUser();
@@ -130,7 +131,10 @@ export const UpcomingMatchesBell: React.FC = () => {
 
   if (!user) return null;
 
-  const unreadNotifs = notifications.filter((n) => !n.isRead && !n.read);
+  const visibleNotifications = FEATURES.matchInvites
+    ? notifications
+    : notifications.filter((n) => n.type !== 'MATCH_INVITE');
+  const unreadNotifs = visibleNotifications.filter((n) => !n.isRead && !n.read);
   const unreadCount = unreadNotifs.length;
   const hasIndicator = unreadCount > 0 || matches.length > 0;
 
@@ -141,7 +145,7 @@ export const UpcomingMatchesBell: React.FC = () => {
       case 'BOOKING_REMINDER':
         return <Clock size={15} className="text-[#FACC15] shrink-0" />;
       case 'MATCH_INVITE':
-        return <Users size={15} className="text-[#2B8CEE] shrink-0" />;
+        return FEATURES.matchInvites ? <Users size={15} className="text-[#2B8CEE] shrink-0" /> : <Bell size={15} className="text-text-primary shrink-0" />;
       case 'PAYMENT_RECEIVED':
         return <CheckCircle2 size={15} className="text-primary-lime shrink-0" />;
       case 'SYSTEM':
@@ -197,9 +201,9 @@ export const UpcomingMatchesBell: React.FC = () => {
 
           <div className="max-h-[380px] overflow-y-auto divide-y divide-border-subtle">
             {/* Real-time Notifications */}
-            {notifications.length > 0 && (
+            {visibleNotifications.length > 0 && (
               <div>
-                {notifications.map((n) => {
+                {visibleNotifications.map((n) => {
                   const isUnread = !n.isRead && !n.read;
                   return (
                     <div
@@ -287,7 +291,7 @@ export const UpcomingMatchesBell: React.FC = () => {
               </div>
             )}
 
-            {notifications.length === 0 && matches.length === 0 && (
+            {visibleNotifications.length === 0 && matches.length === 0 && (
               <div className="p-6 text-center text-text-tertiary text-xs font-medium">
                 No notifications right now.
               </div>

@@ -277,7 +277,9 @@ export const bookingService = {
 
           if (slotLockDoc.exists()) {
             const data = slotLockDoc.data();
-            const expiresAt = data.expiresAt ? new Date(data.expiresAt).getTime() : 0;
+            const expiresAt = typeof data.expiresAtMs === 'number'
+              ? data.expiresAtMs
+              : (data.expiresAt ? new Date(data.expiresAt).getTime() : 0);
             const isExpired = expiresAt > 0 && expiresAt < Date.now();
             const isTentativeLock = data.status === 'tentative';
 
@@ -427,6 +429,7 @@ export const bookingService = {
             : isTentative
               ? slotKickoffISO
               : fifteenMinuteExpiryISO;
+          const slotExpiresAtMs = new Date(slotExpiresAt).getTime();
 
           transaction.set(slotLockRef, {
             id: slotLockId,
@@ -439,7 +442,8 @@ export const bookingService = {
             status: slotLockStatus,
             tier: incomingTier,
             createdAt: nowIso,
-            expiresAt: slotExpiresAt
+            expiresAt: slotExpiresAt,
+            expiresAtMs: slotExpiresAtMs
           });
 
           // Write lightweight public slot availability mirror (no PII or payment details)
@@ -599,11 +603,13 @@ export const bookingService = {
 
       // 4. WRITES: Update slotLocks and slotAvailability for ALL slots
       for (const item of slotLockDataList) {
+        const slotKickoffMs = new Date(item.slotKickoffISO).getTime();
         if (item.slotLockSnap.exists()) {
           transaction.update(item.slotLockRef, {
             status: 'active',
             tier: tier,
             expiresAt: item.slotKickoffISO,
+            expiresAtMs: slotKickoffMs,
             updatedAt: nowIso
           });
         } else {
@@ -618,7 +624,8 @@ export const bookingService = {
             status: 'active',
             tier: tier,
             createdAt: nowIso,
-            expiresAt: item.slotKickoffISO
+            expiresAt: item.slotKickoffISO,
+            expiresAtMs: slotKickoffMs
           });
         }
 
@@ -899,7 +906,7 @@ export const bookingService = {
             console.warn("Failed to trigger slot alerts after cancel/reject:", alertErr);
           }
         }
-      } else if (data.status === BookingStatus.CONFIRMED || data.status === BookingStatus.CHECKED_IN || data.status === BookingStatus.COMPLETED) {
+      } else if (data.status === BookingStatus.CONFIRMED || data.status === BookingStatus.DEPOSIT_PAID || data.status === BookingStatus.CHECKED_IN || data.status === BookingStatus.COMPLETED) {
         await runTransaction(db, async (transaction) => {
           const bookingDoc = await transaction.get(bookingRef);
           if (!bookingDoc.exists()) return;
@@ -1022,11 +1029,13 @@ export const bookingService = {
 
       for (const item of lockDocsWithRefs) {
         const slotKickoffISO = getKickoffISO(b.date, item.slot);
+        const slotKickoffMs = new Date(slotKickoffISO).getTime();
         if (item.slotLockDoc.exists()) {
           transaction.update(item.slotLockRef, {
             status: 'active',
             tier: 'CONFIRMED',
             expiresAt: slotKickoffISO,
+            expiresAtMs: slotKickoffMs,
             updatedAt: nowIso
           });
         } else {
@@ -1042,7 +1051,8 @@ export const bookingService = {
             status: 'active',
             tier: 'CONFIRMED',
             createdAt: nowIso,
-            expiresAt: slotKickoffISO
+            expiresAt: slotKickoffISO,
+            expiresAtMs: slotKickoffMs
           });
         }
 
@@ -1874,71 +1884,94 @@ export const bookingService = {
       const constraints: any[] = [];
       if (pitchId) constraints.push(where('pitchId', '==', pitchId));
       if (date) constraints.push(where('date', '==', date));
-      
+
       const q = constraints.length > 0
         ? query(collection(db, 'slotLocks'), ...constraints)
         : query(collection(db, 'slotLocks'));
       const snapshot = await getDocs(q);
-      
+
       if (snapshot.empty) return;
 
-      const batch = writeBatch(db);
       let count = 0;
-      const now = new Date().toISOString();
+      const nowMs = Date.now();
+      const now = new Date(nowMs).toISOString();
       const associatedBookingIds = new Set<string>();
 
-      snapshot.forEach(docSnap => {
+      for (const docSnap of snapshot.docs) {
         const data = docSnap.data();
-        const isExpired = Boolean(data.expiresAt && data.expiresAt < now);
-        if (!isExpired) return;
-
         const isTentativeLock = data.status === 'tentative';
+        const isActiveLock = data.status === 'active';
+        if (!isTentativeLock && !isActiveLock) continue;
 
-        if (isTentativeLock) {
-          // Release expired tentative hold without attempting to modify the other player's booking document (security rules forbid it)
-          batch.update(docSnap.ref, {
-            status: 'released',
-            releasedAt: now,
-            releaseReason: 'hold_expired'
-          });
-          const slotKey = `${data.pitchId}_${data.date}_${data.time}`.replace(/[\/\s—:]/g, '-');
-          const slotAvailRef = doc(db, 'slotAvailability', slotKey);
-          batch.set(slotAvailRef, {
-            id: slotKey,
-            pitchId: data.pitchId,
-            date: data.date,
-            time: data.time,
-            status: 'open',
-            updatedAt: now
-          }, { merge: true });
-          count++;
-          // Do NOT add to associatedBookingIds
-        } else if (data.status === 'active') {
-          batch.update(docSnap.ref, {
-            status: 'expired',
-            releasedAt: now,
-            releaseReason: 'payment_window_expired_15min'
-          });
-          const slotKey = `${data.pitchId}_${data.date}_${data.time}`.replace(/[\/\s—:]/g, '-');
-          const slotAvailRef = doc(db, 'slotAvailability', slotKey);
-          batch.set(slotAvailRef, {
-            id: slotKey,
-            pitchId: data.pitchId,
-            date: data.date,
-            time: data.time,
-            status: 'open',
-            updatedAt: now
-          }, { merge: true });
-          count++;
+        const hasNumericExpiry = typeof data.expiresAtMs === 'number' && Number.isFinite(data.expiresAtMs);
+        // Active locks without numeric expiresAtMs cannot be released by third parties
+        if (isActiveLock && data.userId !== currentUid && !hasNumericExpiry) continue;
 
-          if (!skipBookingRelease && data.bookingId && data.userId === currentUid) {
-            associatedBookingIds.add(data.bookingId);
+        const isExpired = hasNumericExpiry
+          ? data.expiresAtMs <= nowMs
+          : Boolean(data.expiresAt && new Date(data.expiresAt).getTime() <= nowMs);
+        if (!isExpired) continue;
+
+        const slotKey = `${data.pitchId}_${data.date}_${data.time}`.replace(/[\/\s—:]/g, '-');
+        const slotAvailRef = doc(db, 'slotAvailability', slotKey);
+
+        try {
+          // Never release or reopen a slot whose availability is already confirmed ('booked') or owner-blocked ('blocked')
+          const availSnap = await getDoc(slotAvailRef);
+          if (availSnap.exists()) {
+            const availStatus = String(availSnap.data()?.status || '').toLowerCase();
+            if (availStatus === 'booked' || availStatus === 'blocked') {
+              continue;
+            }
           }
+
+          if (isTentativeLock) {
+            // Release expired tentative hold + reopen availability atomically per lock
+            const lockBatch = writeBatch(db);
+            lockBatch.update(docSnap.ref, {
+              status: 'released',
+              releasedAt: now,
+              releaseReason: 'hold_expired'
+            });
+            lockBatch.set(slotAvailRef, {
+              id: slotKey,
+              pitchId: data.pitchId,
+              date: data.date,
+              time: data.time,
+              status: 'open',
+              updatedAt: now
+            }, { merge: true });
+            await lockBatch.commit();
+            count++;
+          } else if (isActiveLock) {
+            const lockBatch = writeBatch(db);
+            lockBatch.update(docSnap.ref, {
+              status: 'expired',
+              releasedAt: now,
+              releaseReason: 'payment_window_expired_15min'
+            });
+            lockBatch.set(slotAvailRef, {
+              id: slotKey,
+              pitchId: data.pitchId,
+              date: data.date,
+              time: data.time,
+              status: 'open',
+              updatedAt: now
+            }, { merge: true });
+            await lockBatch.commit();
+            count++;
+
+            if (!skipBookingRelease && data.bookingId && data.userId === currentUid) {
+              associatedBookingIds.add(data.bookingId);
+            }
+          }
+        } catch (lockErr) {
+          // Per-lock isolation: a permission denial on one protected lock must not stop releasing other expired locks
+          console.warn(`Skipped expired slot lock ${docSnap.id}:`, lockErr);
         }
-      });
+      }
 
       if (count > 0) {
-        await batch.commit();
         console.log(`Released ${count} expired slot locks`);
       }
 
@@ -1970,7 +2003,18 @@ export const bookingService = {
   },
 
   // Owner live slot toggle: Lock/Block for maintenance or walk-in, or unlock/open
-  async toggleSlotBlock(pitchId: string, date: string, time: string, isBlocked: boolean, reason: string = 'maintenance'): Promise<void> {
+  async toggleSlotBlock(
+    pitchId: string,
+    date: string,
+    time: string,
+    isBlocked: boolean,
+    reason: string = 'maintenance',
+    blockDetails?: {
+      blockReason?: 'WALK_IN' | 'MAINTENANCE';
+      blockNote?: string;
+      blockPhone?: string;
+    }
+  ): Promise<void> {
     const currentUserId = auth.currentUser?.uid;
     if (!currentUserId) {
       throw new Error('You must be signed in as a pitch owner or manager to block or unblock slots.');
@@ -1979,22 +2023,30 @@ export const bookingService = {
     const slotKey = `${pitchId}_${date}_${time}`.replace(/[\/\s—:]/g, '-');
     const slotAvailRef = doc(db, 'slotAvailability', slotKey);
     const slotLockRef = doc(db, 'slotLocks', slotKey);
+    const slotNoteRef = doc(db, 'slotNotes', slotKey);
     const now = new Date().toISOString();
 
     try {
       if (isBlocked) {
-        // Mark as blocked in availability
-        await setDoc(slotAvailRef, {
+        const resolvedBlockReason: 'WALK_IN' | 'MAINTENANCE' =
+          blockDetails?.blockReason || (reason === 'walk_in' ? 'WALK_IN' : 'MAINTENANCE');
+
+        const slotPayload: Record<string, any> = {
           id: slotKey,
           pitchId,
           date,
           time,
           status: 'blocked',
           reason,
+          blockReason: resolvedBlockReason,
           updatedAt: now
-        }, { merge: true });
+        };
+
+        // Mark as blocked in public availability (NO PII: no blockNote or blockPhone)
+        await setDoc(slotAvailRef, slotPayload, { merge: true });
 
         // Also record in slotLocks so conflict checking prevents bookings
+        const blockExpiresAtMs = Date.now() + 86400000 * 365;
         await setDoc(slotLockRef, {
           id: slotKey,
           pitchId,
@@ -2004,16 +2056,34 @@ export const bookingService = {
           status: 'active',
           reason: `owner_block_${reason}`,
           createdAt: now,
-          expiresAt: new Date(Date.now() + 86400000 * 365).toISOString() // Block indefinitely until unlocked
+          expiresAt: new Date(blockExpiresAtMs).toISOString(), // Block indefinitely until unlocked
+          expiresAtMs: blockExpiresAtMs
         }, { merge: true });
+
+        // Store walk-in / maintenance note & phone in owner-private /slotNotes/{slotKey}
+        if (blockDetails) {
+          await setDoc(slotNoteRef, {
+            id: slotKey,
+            pitchId,
+            ownerId: currentUserId,
+            date,
+            time,
+            blockReason: resolvedBlockReason,
+            blockNote: (blockDetails.blockNote ?? '').trim().slice(0, 120),
+            blockPhone: (blockDetails.blockPhone ?? '').trim().slice(0, 120),
+            updatedAt: now
+          });
+        }
       } else {
-        // Unlock / Open slot
+        // Unlock / Open slot (no PII fields on public slotAvailability)
         await setDoc(slotAvailRef, {
           id: slotKey,
           pitchId,
           date,
           time,
           status: 'open',
+          reason: '',
+          blockReason: '',
           updatedAt: now
         }, { merge: true });
 
@@ -2027,6 +2097,12 @@ export const bookingService = {
           releaseReason: 'owner_unlocked',
           releasedAt: now
         }, { merge: true });
+
+        try {
+          await deleteDoc(slotNoteRef);
+        } catch {
+          // Ignore if no private slotNote document existed for this slot
+        }
       }
     } catch (error) {
       console.error("Failed to toggle slot block status in Firestore:", error);

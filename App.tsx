@@ -17,6 +17,7 @@ import { RequireAuth, RequireAdmin, RequireOwner, RequireOrganizer } from './com
 import { Loader2 } from 'lucide-react';
 import { Logo } from './components/Logo';
 import { ADMIN_UID } from './utils/admin';
+import { FEATURES } from './config/features';
 
 // Pages
 import { Onboarding } from './pages/Onboarding';
@@ -95,9 +96,17 @@ const RootRedirect = () => {
   if (loading) {
     return (
       <div className="flex flex-col h-screen w-full items-center justify-center bg-app-base gap-5">
-        <div className="flex items-center gap-2.5">
-          <span className="text-3xl font-black text-white tracking-tight font-display">Pitchly</span>
-          <span className="w-2 h-2 rounded-full bg-primary-lime animate-pulse" />
+        <div className="flex items-center justify-center">
+          <img
+            src="/icon-light-192.png"
+            alt="Pitchly"
+            className="block dark:hidden w-24 h-24 object-contain"
+          />
+          <img
+            src="/icon-192.png"
+            alt="Pitchly"
+            className="hidden dark:block w-24 h-24 object-contain"
+          />
         </div>
         <Loader2 className="h-7 w-7 animate-spin text-primary-lime" />
       </div>
@@ -140,8 +149,28 @@ const RootRedirect = () => {
   return <Navigate to="/onboarding" replace />;
 };
 
+const UserHomeRedirect: React.FC = () => {
+  const { isAdmin, isOwner, loading } = useUser();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-app-base">
+        <Loader2 className="h-7 w-7 animate-spin text-primary-lime" />
+      </div>
+    );
+  }
+
+  if (isAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
+  if (isOwner) {
+    return <Navigate to="/owner" replace />;
+  }
+  return <Navigate to="/home" replace />;
+};
+
 const AdminIndexRedirect: React.FC = () => {
-  const { isAdmin, userProfile } = useUser();
+  const { isAdmin, isOwner, userProfile } = useUser();
   const isOrganizer = Boolean(
     userProfile &&
       ((userProfile.roles as string[] | undefined)?.includes("ORGANIZER") ||
@@ -153,7 +182,10 @@ const AdminIndexRedirect: React.FC = () => {
   }
 
   if (isOrganizer) {
-    return <Navigate to="tournaments" replace />;
+    if (FEATURES.tournaments) {
+      return <Navigate to="tournaments" replace />;
+    }
+    return <Navigate to={isOwner ? "/owner" : "/home"} replace />;
   }
 
   return <Navigate to="overview" replace />;
@@ -240,14 +272,14 @@ const AnimatedRoutes: React.FC = () => {
         
         {/* Public Routes (No Auth Required) */}
         <Route path="/install" element={<PageTransition><Install /></PageTransition>} />
-        <Route path="/teams/join/:inviteCode" element={<PageTransition><JoinTeam /></PageTransition>} />
-        <Route path="/teams/join" element={<PageTransition><JoinTeam /></PageTransition>} />
-        <Route path="/join-team/:inviteCode" element={<PageTransition><JoinTeam /></PageTransition>} />
-        <Route path="/join-team" element={<PageTransition><JoinTeam /></PageTransition>} />
-        <Route path="/tournament" element={<Navigate to="/tournament/wehat-s2-w2" replace />} />
-        <Route path="/live" element={<Navigate to="/tournament/wehat-s2-w2" replace />} />
-        <Route path="/scores" element={<Navigate to="/tournament/wehat-s2-w2" replace />} />
-        <Route path="/tournament/:tournamentId" element={<PageTransition><TournamentHub /></PageTransition>} />
+        <Route path="/teams/join/:inviteCode" element={FEATURES.squads ? <PageTransition><JoinTeam /></PageTransition> : <UserHomeRedirect />} />
+        <Route path="/teams/join" element={FEATURES.squads ? <PageTransition><JoinTeam /></PageTransition> : <UserHomeRedirect />} />
+        <Route path="/join-team/:inviteCode" element={FEATURES.squads ? <PageTransition><JoinTeam /></PageTransition> : <UserHomeRedirect />} />
+        <Route path="/join-team" element={FEATURES.squads ? <PageTransition><JoinTeam /></PageTransition> : <UserHomeRedirect />} />
+        <Route path="/tournament" element={FEATURES.tournaments ? <Navigate to="/tournament/wehat-s2-w2" replace /> : <UserHomeRedirect />} />
+        <Route path="/live" element={FEATURES.tournaments ? <Navigate to="/tournament/wehat-s2-w2" replace /> : <UserHomeRedirect />} />
+        <Route path="/scores" element={FEATURES.tournaments ? <Navigate to="/tournament/wehat-s2-w2" replace /> : <UserHomeRedirect />} />
+        <Route path="/tournament/:tournamentId" element={FEATURES.tournaments ? <PageTransition><TournamentHub /></PageTransition> : <UserHomeRedirect />} />
         
         {/* Protected User Routes */}
         <Route path="/home" element={<RequireAuth><PageTransition><Home /></PageTransition></RequireAuth>} />
@@ -255,11 +287,11 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/turf/:id/book" element={<RequireAuth blockAdmin><PageTransition flowType="booking-checkout"><BookPitch /></PageTransition></RequireAuth>} />
         <Route path="/checkout/:id" element={<RequireAuth blockAdmin><PageTransition flowType="booking-checkout"><BookPitch /></PageTransition></RequireAuth>} />
         <Route path="/explore-map" element={<RequireAuth><PageTransition><ExploreMap /></PageTransition></RequireAuth>} />
-        <Route path="/teams" element={<RequireAuth><PageTransition><Teams /></PageTransition></RequireAuth>} />
-        <Route path="/invitations" element={<RequireAuth><PageTransition><Invitations /></PageTransition></RequireAuth>} />
+        <Route path="/teams" element={FEATURES.squads ? <RequireAuth><PageTransition><Teams /></PageTransition></RequireAuth> : <UserHomeRedirect />} />
+        <Route path="/invitations" element={FEATURES.matchInvites ? <RequireAuth><PageTransition><Invitations /></PageTransition></RequireAuth> : <UserHomeRedirect />} />
         <Route path="/bookings" element={<RequireAuth><PageTransition><Bookings /></PageTransition></RequireAuth>} />
         <Route path="/booking-confirmation/:id" element={<RequireAuth><PageTransition><BookingConfirmation /></PageTransition></RequireAuth>} />
-        <Route path="/match-summary/:bookingId" element={<RequireAuth><PageTransition><MatchSummary /></PageTransition></RequireAuth>} />
+        <Route path="/match-summary/:bookingId" element={FEATURES.matchInvites && FEATURES.squads ? <RequireAuth><PageTransition><MatchSummary /></PageTransition></RequireAuth> : <UserHomeRedirect />} />
         <Route path="/profile" element={<RequireAuth><PageTransition><Profile /></PageTransition></RequireAuth>} />
         <Route path="/settings" element={<RequireAuth><PageTransition><Settings /></PageTransition></RequireAuth>} />
         <Route path="/support" element={<RequireAuth><PageTransition><Support /></PageTransition></RequireAuth>} />
@@ -276,7 +308,7 @@ const AnimatedRoutes: React.FC = () => {
         {/* Protected Admin & Organizer Routes */}
         <Route path="/admin" element={<RequireOrganizer><PageTransition><AdminLayout /></PageTransition></RequireOrganizer>}>
           <Route index element={<AdminIndexRedirect />} />
-          <Route path="tournaments" element={<RequireOrganizer><TournamentManager /></RequireOrganizer>} />
+          <Route path="tournaments" element={FEATURES.tournaments ? <RequireOrganizer><TournamentManager /></RequireOrganizer> : <UserHomeRedirect />} />
           <Route path="overview" element={<RequireAdmin><Overview /></RequireAdmin>} />
           <Route path="pitches" element={<RequireAdmin><PitchReviews /></RequireAdmin>} />
           <Route path="users" element={<RequireAdmin><UserManagement /></RequireAdmin>} />

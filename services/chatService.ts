@@ -1,4 +1,4 @@
-import { db } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { 
   collection, 
   doc, 
@@ -11,10 +11,30 @@ import {
   onSnapshot, 
   addDoc, 
   updateDoc, 
+  arrayUnion,
   serverTimestamp,
   Timestamp 
 } from 'firebase/firestore';
 import { Conversation, Message } from '../types/firebase';
+
+function sanitizeAvatar(v: unknown): string {
+  return typeof v === 'string' && v.startsWith('https://') && v.length <= 1000 ? v : '';
+}
+
+function sanitizeParticipantDetails(
+  details?: { [uid: string]: { name?: string; avatar?: string; role?: string } }
+): { [uid: string]: { name?: string; avatar?: string; role?: string } } | undefined {
+  if (!details) return undefined;
+  const sanitized: { [uid: string]: { name?: string; avatar?: string; role?: string } } = {};
+  for (const [uid, info] of Object.entries(details)) {
+    if (!info) continue;
+    sanitized[uid] = {
+      ...info,
+      ...(info.avatar !== undefined ? { avatar: sanitizeAvatar(info.avatar) } : {}),
+    };
+  }
+  return sanitized;
+}
 
 export const chatService = {
   // Create or get a direct conversation between two users
@@ -43,10 +63,11 @@ export const chatService = {
     if (existing) {
       if (extraMeta) {
         try {
+          const cleanParticipantDetails = sanitizeParticipantDetails(extraMeta.participantDetails);
           await updateDoc(doc(db, 'conversations', existing.id), {
             ...(extraMeta.turfName ? { turfName: extraMeta.turfName } : {}),
             ...(extraMeta.pitchId ? { pitchId: extraMeta.pitchId } : {}),
-            ...(extraMeta.participantDetails ? { participantDetails: extraMeta.participantDetails } : {}),
+            ...(cleanParticipantDetails ? { participantDetails: cleanParticipantDetails } : {}),
             updatedAt: new Date().toISOString()
           });
         } catch (e) {
@@ -59,6 +80,7 @@ export const chatService = {
     // Create new
     const newConvRef = doc(collection(db, 'conversations'));
     const now = new Date().toISOString();
+    const cleanParticipantDetails = sanitizeParticipantDetails(extraMeta?.participantDetails);
     
     const newConv: Conversation = {
       id: newConvRef.id,
@@ -66,7 +88,7 @@ export const chatService = {
       type: 'DIRECT',
       ...(extraMeta?.turfName ? { turfName: extraMeta.turfName } : {}),
       ...(extraMeta?.pitchId ? { pitchId: extraMeta.pitchId } : {}),
-      ...(extraMeta?.participantDetails ? { participantDetails: extraMeta.participantDetails } : {}),
+      ...(cleanParticipantDetails ? { participantDetails: cleanParticipantDetails } : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -78,17 +100,37 @@ export const chatService = {
   // Create a team chat
   async createTeamConversation(teamId: string, teamName: string, participantIds: string[]): Promise<string> {
     const convRef = doc(db, 'conversations', teamId);
+    const currentUid = auth.currentUser?.uid;
+    const uniqueParticipants = Array.from(
+      new Set([...participantIds, ...(currentUid ? [currentUid] : [])].filter(Boolean))
+    );
     
     const docSnap = await getDoc(convRef);
     if (docSnap.exists()) {
-      // Just update participants if needed, but for now just return it
+      const existingParticipants: string[] = Array.isArray(docSnap.data()?.participants)
+        ? docSnap.data()!.participants
+        : [];
+      if (currentUid && !existingParticipants.includes(currentUid)) {
+        await updateDoc(convRef, {
+          participants: arrayUnion(currentUid),
+          updatedAt: new Date().toISOString(),
+        });
+      } else if (currentUid && existingParticipants.includes(currentUid)) {
+        const missingIds = uniqueParticipants.filter((id) => !existingParticipants.includes(id));
+        if (missingIds.length > 0) {
+          await updateDoc(convRef, {
+            participants: arrayUnion(...missingIds),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
       return convRef.id;
     }
 
     const now = new Date().toISOString();
     const newConv: Conversation = {
       id: convRef.id,
-      participants: participantIds,
+      participants: uniqueParticipants,
       type: 'TEAM',
       name: teamName + ' Chat',
       createdAt: now,
@@ -102,8 +144,9 @@ export const chatService = {
   // Update team chat participants
   async updateTeamChatParticipants(teamId: string, participantIds: string[]): Promise<void> {
     const convRef = doc(db, 'conversations', teamId);
+    const uniqueParticipants = Array.from(new Set(participantIds.filter(Boolean)));
     await updateDoc(convRef, {
-      participants: participantIds,
+      participants: uniqueParticipants,
       updatedAt: new Date().toISOString()
     });
   },
@@ -139,6 +182,8 @@ export const chatService = {
   async sendMessage(conversationId: string, senderId: string, text: string, senderName?: string, senderAvatar?: string) {
     const msgsRef = collection(db, `conversations/${conversationId}/messages`);
     const now = new Date().toISOString();
+    const cleanText = text.trim().slice(0, 2000);
+    const cleanAvatar = sanitizeAvatar(senderAvatar);
     
     const msgRef = doc(msgsRef);
     const newMessage: Message = {
@@ -146,8 +191,8 @@ export const chatService = {
       conversationId,
       senderId,
       senderName,
-      senderAvatar,
-      text,
+      senderAvatar: cleanAvatar,
+      text: cleanText,
       createdAt: now,
     };
     
@@ -156,10 +201,10 @@ export const chatService = {
     // Update conversation lastMessage
     const convRef = doc(db, 'conversations', conversationId);
     await updateDoc(convRef, {
-      lastMessage: text,
+      lastMessage: cleanText,
       lastMessageAt: now,
       lastMessageSenderName: senderName || '',
-      lastMessageSenderAvatar: senderAvatar || '',
+      lastMessageSenderAvatar: cleanAvatar,
       updatedAt: now,
     });
     

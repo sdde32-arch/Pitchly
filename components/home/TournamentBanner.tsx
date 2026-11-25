@@ -1,9 +1,12 @@
 import React from "react";
 import { Trophy, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { FEATURES } from "../../config/features";
 
 export const TournamentBanner: React.FC = () => {
   const navigate = useNavigate();
+
+  if (!FEATURES.tournaments) return null;
 
   return (
     <section

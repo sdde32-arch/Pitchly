@@ -2020,7 +2020,7 @@ export const AddPitch: React.FC = () => {
               </div>
               <div>
                 <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider bg-[#FACC15]/15 text-[#FACC15] px-2 py-0.5 rounded-md border border-[#FACC15]/30 mb-1">
-                  <Clock size={10} /> Status: PENDING_APPROVAL
+                  <Clock size={10} /> Status: In review
                 </span>
                 <h2 className="text-lg sm:text-xl font-extrabold text-text-primary tracking-tight">
                   Pitch Submitted for Verification!
@@ -2031,14 +2031,14 @@ export const AddPitch: React.FC = () => {
             <div className="bg-surface-raised rounded-2xl p-4 border border-border-subtle space-y-2">
               <p className="text-xs text-text-secondary leading-relaxed">
                 <strong className="text-text-primary">{submittedPitchName}</strong> has been registered on Pitchly.
-                To ensure player trust and match safety, our team conducts a quick verification before making the pitch bookable.
+                Pitchly reviews each pitch before it becomes bookable.
               </p>
             </div>
 
-            {/* 3-Step Lifecycle */}
+            {/* Post-submit next steps */}
             <div className="space-y-3">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-text-primary">
-                Verification Stages (Typically 12–24 Hours):
+                What happens next:
               </h3>
               <div className="space-y-2 text-xs">
                 <div className="flex items-start gap-2.5">
@@ -2046,8 +2046,8 @@ export const AddPitch: React.FC = () => {
                     1
                   </div>
                   <div>
-                    <p className="font-bold text-text-primary">Facility Specs & Location Validation</p>
-                    <p className="text-text-tertiary text-[11px]">We confirm surface type, formats, hourly rates, and map coordinates.</p>
+                    <p className="font-bold text-text-primary">Pitch details review</p>
+                    <p className="text-text-tertiary text-[11px]">An administrator reviews your pitch details.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
@@ -2055,8 +2055,8 @@ export const AddPitch: React.FC = () => {
                     2
                   </div>
                   <div>
-                    <p className="font-bold text-text-primary">Direct Payment & Contact Check</p>
-                    <p className="text-text-tertiary text-[11px]">We verify your receiving MTN / Airtel MoMo number for player deposits.</p>
+                    <p className="font-bold text-text-primary">Payment details</p>
+                    <p className="text-text-tertiary text-[11px]">An administrator sees the Mobile Money number and account name you entered. Players pay that number directly.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
@@ -2064,8 +2064,8 @@ export const AddPitch: React.FC = () => {
                     3
                   </div>
                   <div>
-                    <p className="font-bold text-text-secondary">Public Marketplace Activation</p>
-                    <p className="text-text-tertiary text-[11px]">Your pitch goes live and bookable on the Explore Map and Search.</p>
+                    <p className="font-bold text-text-secondary">Live for players</p>
+                    <p className="text-text-tertiary text-[11px]">Once approved, players can find and book your pitch on Pitchly.</p>
                   </div>
                 </div>
               </div>
@@ -2077,7 +2077,7 @@ export const AddPitch: React.FC = () => {
                 <Info size={13} /> While you wait for review:
               </p>
               <p className="text-[11px] leading-relaxed text-text-tertiary">
-                Ensure your Mobile Money phone and account name match your Business Profile so player deposits route smoothly.
+                Check that the Mobile Money number and account name you entered are correct. Players pay that number directly.
               </p>
             </div>
 

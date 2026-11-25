@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { Layout } from "../components/Layout";
 import {
   Shield,
@@ -27,6 +27,7 @@ export const JoinTeam: React.FC = () => {
   const code = (paramCode || queryCode || "").trim().toUpperCase();
 
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, userProfile } = useUser();
 
   const [team, setTeam] = useState<Team | null>(null);
@@ -34,8 +35,6 @@ export const JoinTeam: React.FC = () => {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [joinedSuccess, setJoinedSuccess] = useState(false);
-  const [guestName, setGuestName] = useState("");
-  const [guestPhone, setGuestPhone] = useState("");
 
   useEffect(() => {
     if (!code) {
@@ -69,31 +68,33 @@ export const JoinTeam: React.FC = () => {
   const isAlreadyMember = Boolean(
     team &&
       currentUserId &&
-      currentMembers.some(
-        (m) =>
-          m.userId === currentUserId ||
-          (userProfile?.name && m.name.toLowerCase() === userProfile.name.toLowerCase())
-      )
+      (team.captainId === currentUserId ||
+        (team.memberIds || []).includes(currentUserId) ||
+        currentMembers.some((m) => m.userId === currentUserId))
   );
 
   const handleJoin = async () => {
     if (!team) return;
-
-    const playerName = userProfile?.name || user?.displayName || guestName.trim();
-    if (!playerName) {
-      setError("Please provide your name so teammates know who you are.");
+    if (!user) {
+      navigate("/auth", { state: { from: location } });
       return;
     }
+
+    const playerName =
+      userProfile?.name ||
+      user.displayName ||
+      user.email?.split("@")[0] ||
+      "Pitchly Player";
 
     setJoining(true);
     setError(null);
 
     try {
       const { team: updatedTeam } = await teamService.joinByInviteCode(code, {
-        userId: user?.uid || `guest_${Date.now()}`,
+        userId: user.uid,
         name: playerName,
-        contact: userProfile?.phone || guestPhone.trim(),
-        avatar: (userProfile as any)?.photoURL || user?.photoURL,
+        contact: userProfile?.phone || "",
+        avatar: (userProfile as any)?.photoURL || userProfile?.avatar || user.photoURL || "",
       });
 
       setTeam(updatedTeam);
@@ -107,9 +108,13 @@ export const JoinTeam: React.FC = () => {
 
   const handleOpenTeamChat = async () => {
     if (!team) return;
+    if (!user) {
+      navigate("/auth", { state: { from: location } });
+      return;
+    }
     try {
       const participantIds = (team.members || []).map((m: any) => m.userId).filter(Boolean);
-      if (user?.uid && !participantIds.includes(user.uid)) {
+      if (!participantIds.includes(user.uid)) {
         participantIds.push(user.uid);
       }
       const convId = await chatService.createTeamConversation(team.id, team.name, participantIds);
@@ -321,26 +326,11 @@ export const JoinTeam: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-3 pt-2 border-t border-border-subtle">
-                    {/* Guest input if not logged in */}
                     {!user && (
-                      <div className="space-y-2 p-3 bg-surface-raised rounded-2xl border border-border-subtle">
+                      <div className="p-3 bg-surface-raised rounded-2xl border border-border-subtle">
                         <span className="text-[11px] font-bold text-text-secondary block">
-                          Enter your player name to join
+                          Sign in with your Pitchly account to join this squad and access team chat.
                         </span>
-                        <input
-                          type="text"
-                          placeholder="Your Full Name (e.g. Brian Ssebo)"
-                          value={guestName}
-                          onChange={(e) => setGuestName(e.target.value)}
-                          className="w-full h-10 px-3 rounded-xl bg-surface-card border border-border-subtle text-xs text-text-primary focus:outline-none focus:border-primary-lime"
-                        />
-                        <input
-                          type="tel"
-                          placeholder="Phone / WhatsApp (optional)"
-                          value={guestPhone}
-                          onChange={(e) => setGuestPhone(e.target.value)}
-                          className="w-full h-10 px-3 rounded-xl bg-surface-card border border-border-subtle text-xs text-text-primary focus:outline-none focus:border-primary-lime"
-                        />
                       </div>
                     )}
 
@@ -356,7 +346,9 @@ export const JoinTeam: React.FC = () => {
                       ) : (
                         <>
                           <Sparkles size={16} />
-                          <span>Join {team.name} Roster</span>
+                          <span>
+                            {user ? `Join ${team.name} Roster` : `Sign in to Join ${team.name}`}
+                          </span>
                           <ArrowRight size={16} />
                         </>
                       )}

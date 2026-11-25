@@ -157,31 +157,31 @@ export const ManagePitches: React.FC = () => {
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 font-extrabold text-[#FACC15] text-sm">
                 <Clock3 size={18} />
-                <span>Pitch Submitted — Awaiting Administrator Verification</span>
+                <span>Pitch Submitted — Pending Review</span>
               </div>
               <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-[#FACC15]/20 text-[#FACC15] border border-[#FACC15]/40">
-                PENDING_APPROVAL
+                Pending Review
               </span>
             </div>
             <p className="text-text-secondary leading-relaxed">
-              Your new facility is saved to your account. To ensure player trust and match safety, all pitches undergo a standard 3-step verification (facility specs, location coordinates, and direct Mobile Money receiving lines) before appearing on the public search and map.
+              Your new pitch is saved to your account. An administrator reviews your pitch details and payment details before players can find and book it.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-[11px]">
               <div className="bg-surface-card/60 p-2.5 rounded-xl border border-border-subtle flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-primary-lime text-black font-extrabold flex items-center justify-center text-[10px] shrink-0">1</span>
-                <span className="text-text-primary font-bold">Facility Verification</span>
+                <span className="text-text-primary font-bold">Pitch details review</span>
               </div>
               <div className="bg-surface-card/60 p-2.5 rounded-xl border border-border-subtle flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-primary-lime text-black font-extrabold flex items-center justify-center text-[10px] shrink-0">2</span>
-                <span className="text-text-primary font-bold">Direct MoMo Check</span>
+                <span className="text-text-primary font-bold">Payment details</span>
               </div>
               <div className="bg-surface-card/60 p-2.5 rounded-xl border border-border-subtle flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-surface-raised text-text-tertiary font-bold flex items-center justify-center text-[10px] shrink-0">3</span>
-                <span className="text-text-secondary">Live for Players</span>
+                <span className="text-text-secondary">Live for players</span>
               </div>
             </div>
             <p className="text-[10px] text-text-tertiary pt-1">
-              Estimated verification time: 12–24 hours. Need urgent assistance? Contact <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary-lime hover:underline font-bold">{SUPPORT_EMAIL}</a>.
+              Need help? Contact <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary-lime hover:underline font-bold">{SUPPORT_EMAIL}</a>.
             </p>
           </div>
         )}
@@ -288,7 +288,7 @@ export const ManagePitches: React.FC = () => {
                       </span>
                     </div>
 
-                    {pitch.status === 'REJECTED' && pitch.rejectionReason && (
+                    {String(pitch.status).toLowerCase() === 'rejected' && pitch.rejectionReason && (
                       <div className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg p-3 text-xs text-[#EF4444] space-y-1">
                         <p className="font-extrabold">Action needed:</p>
                         <p className="leading-relaxed">{pitch.rejectionReason}</p>
@@ -322,7 +322,7 @@ export const ManagePitches: React.FC = () => {
                     <span>Edit Pitch</span>
                   </button>
                   <button
-                    onClick={() => navigate('/owner?tab=Dashboard')}
+                    onClick={() => navigate('/owner?tab=Today')}
                     className="h-9 px-3.5 bg-primary-lime/10 hover:bg-primary-lime/20 text-primary-lime border border-primary-lime/30 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer"
                     title="Manage Slots"
                   >

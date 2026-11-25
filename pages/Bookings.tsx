@@ -14,6 +14,7 @@ import { bookingService } from "../services/bookingService";
 import { formatCutoffLabel, formatKampalaTime } from "../utils/paymentCutoff";
 import { PhotoPlaceholder } from "../components/ui/PhotoPlaceholder";
 import { getSupportMailto } from "../utils/contact";
+import { FEATURES } from "../config/features";
 
 const PLAYER_CANCELLABLE_STATUSES = new Set<string>([
   BookingStatus.PENDING_PAYMENT,
@@ -502,7 +503,7 @@ export const Bookings: React.FC = () => {
                         )}
                       </>
                     )}
-                    {activeTab === "completed" && (
+                    {activeTab === "completed" && FEATURES.matchInvites && FEATURES.squads && (
                       <button 
                         onClick={() => navigate(`/match-summary/${b.id}`)}
                         className="px-4 py-2 rounded-xl bg-primary-lime hover:bg-[#96E600] text-accent-text text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"

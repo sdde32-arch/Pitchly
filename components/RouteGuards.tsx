@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import { Loader2, KeyRound, ArrowLeft } from "lucide-react";
+import { FEATURES } from "../config/features";
 
 export const RequireAuth: React.FC<{ children: React.ReactNode; blockAdmin?: boolean }> = ({
   children,
@@ -100,7 +101,7 @@ export const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({
 export const RequireOrganizer: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { isAdmin, userProfile, loading, signInWithGoogle } = useUser();
+  const { isAdmin, isOwner, userProfile, loading, signInWithGoogle } = useUser();
   const navigate = useNavigate();
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -118,9 +119,14 @@ export const RequireOrganizer: React.FC<{ children: React.ReactNode }> = ({
         (userProfile.role as string | undefined) === "ORGANIZER")
   );
 
-  // Both Platform Admin and Tournament Organizers can access
-  if (isAdmin || isOrganizer) {
+  // Both Platform Admin and (when tournaments enabled) Tournament Organizers can access
+  if (isAdmin || (FEATURES.tournaments && isOrganizer)) {
     return <>{children}</>;
+  }
+
+  // When tournaments are hidden, redirect non-admin organizers to their normal home
+  if (!FEATURES.tournaments && isOrganizer) {
+    return <Navigate to={isOwner ? "/owner" : "/home"} replace />;
   }
 
   const handleGoogleSignIn = async () => {
@@ -140,10 +146,12 @@ export const RequireOrganizer: React.FC<{ children: React.ReactNode }> = ({
 
         <div className="space-y-1.5">
           <h2 className="text-lg font-black text-text-primary uppercase tracking-tight">
-            Organizer &amp; Admin Access
+            {FEATURES.tournaments ? "Organizer & Admin Access" : "Administrator Access"}
           </h2>
           <p className="text-xs text-text-secondary leading-relaxed">
-            Access to this management portal requires an authorized Administrator or Tournament Organizer account. Please sign in below.
+            {FEATURES.tournaments
+              ? "Access to this management portal requires an authorized Administrator or Tournament Organizer account. Please sign in below."
+              : "Access to this management portal requires an authorized Administrator account. Please sign in below."}
           </p>
         </div>
 
@@ -163,11 +171,11 @@ export const RequireOrganizer: React.FC<{ children: React.ReactNode }> = ({
 
         <div className="pt-2">
           <button
-            onClick={() => navigate("/tournament")}
+            onClick={() => navigate(FEATURES.tournaments ? "/tournament" : "/home")}
             className="inline-flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
           >
             <ArrowLeft size={13} />
-            <span>Return to Tournament Match Center</span>
+            <span>{FEATURES.tournaments ? "Return to Tournament Match Center" : "Return to Home"}</span>
           </button>
         </div>
       </div>

@@ -17,6 +17,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { NoPitchesCard } from "../components/home/NoPitchesCard";
 import { PhotoPlaceholder } from "../components/ui/PhotoPlaceholder";
+import { FEATURES } from "../config/features";
 
 export const ExploreMap: React.FC = () => {
   const navigate = useNavigate();
@@ -81,13 +82,15 @@ export const ExploreMap: React.FC = () => {
             </div>
           </div>
 
-          <button
-            onClick={() => navigate("/tournament")}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-card border border-border-subtle text-xs font-semibold text-text-secondary hover:text-primary-lime hover:border-primary-lime/30 transition-all cursor-pointer shadow-2xs"
-          >
-            <Trophy size={13} className="text-primary-lime" />
-            <span>Tournament Hub</span>
-          </button>
+          {FEATURES.tournaments && (
+            <button
+              onClick={() => navigate("/tournament")}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-card border border-border-subtle text-xs font-semibold text-text-secondary hover:text-primary-lime hover:border-primary-lime/30 transition-all cursor-pointer shadow-2xs"
+            >
+              <Trophy size={13} className="text-primary-lime" />
+              <span>Tournament Hub</span>
+            </button>
+          )}
         </div>
 
         {/* Kampala Turf Directory Hero Card */}

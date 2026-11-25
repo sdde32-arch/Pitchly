@@ -141,6 +141,24 @@ export interface SlotAvailability {
   bookingTier?: 'FULL' | 'DEPOSIT' | 'TENTATIVE';
   expiresAt?: string;
   updatedAt?: string;
+  reason?: string;
+  blockReason?: 'WALK_IN' | 'MAINTENANCE' | string;
+}
+
+/**
+ * Owner-private walk-in / maintenance note for a blocked slot.
+ * Stored in /slotNotes/{slotKey} and readable only by the pitch owner (or admin).
+ */
+export interface SlotNote {
+  id: string; // `${pitchId}_${date}_${time}` normalized
+  pitchId: string;
+  ownerId: string;
+  date: string;
+  time: string;
+  blockReason?: 'WALK_IN' | 'MAINTENANCE' | '';
+  blockNote?: string;
+  blockPhone?: string;
+  updatedAt?: string;
 }
 
 /**
@@ -182,6 +200,7 @@ export interface Team {
   inviteCode?: string; // Unique invite code for direct joining
   inviteUrl?: string; // Precomputed full invite link
   members?: TeamMember[];
+  memberIds?: string[];
   maxMembers?: number;
 }
 

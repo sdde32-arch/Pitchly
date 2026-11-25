@@ -5,13 +5,15 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  arrayUnion,
   query,
   where,
   limit,
 } from "firebase/firestore";
-import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { auth, db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { Team, TeamMember } from "../types/firebase";
 import { communityActivityService } from "./communityActivityService";
+import { chatService } from "./chatService";
 import { SITE_URL } from "../utils/contact";
 
 const COLLECTION_NAME = "teams";
@@ -38,6 +40,10 @@ export function generateSquadInviteUrl(inviteCode: string): string {
   return `${origin}/teams/join/${encodeURIComponent(inviteCode)}`;
 }
 
+function sanitizeAvatar(v: unknown): string {
+  return typeof v === "string" && v.startsWith("https://") && v.length <= 1000 ? v : "";
+}
+
 // Built-in starter teams (empty for self-serve mode)
 export const DEFAULT_TEAMS: Team[] = [];
 
@@ -53,6 +59,14 @@ export const teamService = {
     const inviteUrl = generateSquadInviteUrl(inviteCode);
 
     const now = new Date().toISOString();
+    const initialMembers = team.members || [];
+    const memberIds = Array.from(
+      new Set(
+        [team.captainId, ...initialMembers.map((m) => m.userId)].filter(
+          (uid): uid is string => Boolean(uid)
+        )
+      )
+    );
     const newTeam: Team = {
       id: teamId,
       name: team.name,
@@ -67,7 +81,8 @@ export const teamService = {
       status: "ACTIVE",
       inviteCode,
       inviteUrl,
-      members: team.members || [],
+      members: initialMembers,
+      memberIds,
     };
 
     // Save to Firestore
@@ -213,52 +228,80 @@ export const teamService = {
       avatar?: string;
     }
   ): Promise<{ team: Team; isNewMember: boolean }> {
+    const currentUid = auth.currentUser?.uid;
+    if (!currentUid) {
+      throw new Error("Please sign in to join this squad.");
+    }
+    if (player.userId && player.userId !== currentUid) {
+      throw new Error("Authenticated user mismatch. Please sign in again.");
+    }
+
     const team = await this.getByInviteCode(inviteCode);
     if (!team) {
       throw new Error(`Invalid or expired squad invite code: "${inviteCode}"`);
     }
 
     const currentMembers = team.members || [];
-    const existingIndex = currentMembers.findIndex(
-      (m) => (m.userId && m.userId === player.userId) || m.name.toLowerCase() === player.name.toLowerCase()
-    );
+    const existingMemberIds = team.memberIds || [];
+    const isAlreadyInMembers = currentMembers.some((m) => m.userId === currentUid);
 
-    if (existingIndex >= 0) {
-      // User is already a member
+    if (isAlreadyInMembers) {
+      // Ensure user is also synced into team chat even if already on roster
+      const chatParticipantIds = Array.from(
+        new Set(
+          [team.captainId, ...currentMembers.map((m) => m.userId), currentUid].filter(
+            (uid): uid is string => Boolean(uid)
+          )
+        )
+      );
+      await chatService.createTeamConversation(team.id, team.name, chatParticipantIds);
       return { team, isNewMember: false };
     }
 
+    const now = new Date().toISOString();
     const newMember: TeamMember = {
-      id: `m_${player.userId || Date.now()}`,
-      userId: player.userId,
+      id: `m_${currentUid}`,
+      userId: currentUid,
       name: player.name,
       contact: player.contact || "",
       isCaptain: false,
       role: "player",
       hasPaid: false,
-      avatar: player.avatar || "",
-      joinedAt: new Date().toISOString(),
+      avatar: sanitizeAvatar(player.avatar),
+      joinedAt: now,
       status: "active",
       paymentStatus: "pending",
     };
 
     const updatedMembers = [...currentMembers, newMember];
+    const updatedMemberIds = Array.from(new Set([...existingMemberIds, currentUid]));
     const updatedTeam: Team = {
       ...team,
       members: updatedMembers,
-      updatedAt: new Date().toISOString(),
+      memberIds: updatedMemberIds,
+      updatedAt: now,
     };
 
-    // Update in Firestore
-    try {
-      const docRef = doc(db, COLLECTION_NAME, team.id);
-      await setDoc(docRef, updatedTeam, { merge: true });
-    } catch (error) {
-      console.warn("Firestore join team save error:", error);
-    }
+    // Update only changed fields in Firestore; surface errors cleanly
+    const docRef = doc(db, COLLECTION_NAME, team.id);
+    await updateDoc(docRef, {
+      members: updatedMembers,
+      memberIds: arrayUnion(currentUid),
+      updatedAt: now,
+    });
 
-    // Update local cache
+    // Update local cache only after Firestore succeeds
     this.saveToLocalCache(updatedTeam);
+
+    // Add joined player to the team conversation
+    const chatParticipantIds = Array.from(
+      new Set(
+        [team.captainId, ...updatedMembers.map((m) => m.userId), currentUid].filter(
+          (uid): uid is string => Boolean(uid)
+        )
+      )
+    );
+    await chatService.createTeamConversation(team.id, team.name, chatParticipantIds);
 
     // Announce to Community Feed
     communityActivityService

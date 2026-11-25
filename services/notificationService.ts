@@ -14,6 +14,7 @@ import {
   onSnapshot,
   doc 
 } from 'firebase/firestore';
+import { FEATURES } from '../config/features';
 
 export interface UpcomingMatchItem {
   id: string;
@@ -117,63 +118,65 @@ export const notificationService = {
       }
 
       // 2. Check team matches where user is a participant
-      try {
-        const playersQuery = query(
-          collectionGroup(db, 'matchPlayers'),
-          where('userId', '==', userId)
-        );
-        
-        const playersSnap = await getDocs(playersQuery);
-        
-        // Fetch each actual Match document
-        const matchPromises = playersSnap.docs.map(async (docSnap) => {
-          const mp = docSnap.data() as MatchPlayer;
-          if (mp.status === 'joined' || mp.status === 'invited') {
-            const matchRef = doc(db, 'matches', mp.matchId);
-            try {
-              const matchDoc = await getDoc(matchRef);
-              if (matchDoc.exists()) {
-                const m = matchDoc.data() as Match;
-                if (m.status !== 'Cancelled' && m.status !== 'Completed' && isUpcoming(m.date, m.time)) {
-                  const pitchId = m.pitchId || '';
-                  const pitch = pitchId ? await getPitchDetails(pitchId) : null;
-                  const mapUrl = getMapUrl(
-                    m.pitchName || 'Unknown Turf',
-                    pitch?.location,
-                    pitch?.fullAddress,
-                    pitch?.coordinates
-                  );
+      if (FEATURES.matchInvites) {
+        try {
+          const playersQuery = query(
+            collectionGroup(db, 'matchPlayers'),
+            where('userId', '==', userId)
+          );
+          
+          const playersSnap = await getDocs(playersQuery);
+          
+          // Fetch each actual Match document
+          const matchPromises = playersSnap.docs.map(async (docSnap) => {
+            const mp = docSnap.data() as MatchPlayer;
+            if (mp.status === 'joined' || mp.status === 'invited') {
+              const matchRef = doc(db, 'matches', mp.matchId);
+              try {
+                const matchDoc = await getDoc(matchRef);
+                if (matchDoc.exists()) {
+                  const m = matchDoc.data() as Match;
+                  if (m.status !== 'Cancelled' && m.status !== 'Completed' && isUpcoming(m.date, m.time)) {
+                    const pitchId = m.pitchId || '';
+                    const pitch = pitchId ? await getPitchDetails(pitchId) : null;
+                    const mapUrl = getMapUrl(
+                      m.pitchName || 'Unknown Turf',
+                      pitch?.location,
+                      pitch?.fullAddress,
+                      pitch?.coordinates
+                    );
 
-                  // Deduplicate if the match was somehow also a direct booking, though IDs differ
-                  upcoming.push({
-                    id: m.id,
-                    title: m.title || 'Team Match',
-                    date: m.date,
-                    time: m.time,
-                    turfName: m.pitchName || 'Unknown Turf',
-                    source: 'match',
-                    pitchId,
-                    mapUrl
-                  });
+                    // Deduplicate if the match was somehow also a direct booking, though IDs differ
+                    upcoming.push({
+                      id: m.id,
+                      title: m.title || 'Team Match',
+                      date: m.date,
+                      time: m.time,
+                      turfName: m.pitchName || 'Unknown Turf',
+                      source: 'match',
+                      pitchId,
+                      mapUrl
+                    });
+                  }
                 }
+              } catch (err) {
+                console.error(`Permission error on match doc read ${mp.matchId}:`, err);
               }
-            } catch (err) {
-              console.error(`Permission error on match doc read ${mp.matchId}:`, err);
             }
-          }
-        });
-        
-        await Promise.all(matchPromises);
-      } catch (err) {
-        console.error("Permission error on matchPlayers collectionGroup query:", err);
-        console.warn(
-          "COLLECTION_GROUP QUERY NOTICE:\n" +
-          "If you are seeing 'Missing or insufficient permissions' here, make sure your Firestore Security Rules contain the recursive wildcard rule for matchPlayers:\n\n" +
-          "match /{path=**}/matchPlayers/{playerId} {\n" +
-          "  allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid || isAdmin());\n" +
-          "}\n\n" +
-          "Since Firebase is configured manually, copy and paste the rules from firestore.rules into your Firebase console at https://console.firebase.google.com/"
-        );
+          });
+          
+          await Promise.all(matchPromises);
+        } catch (err) {
+          console.error("Permission error on matchPlayers collectionGroup query:", err);
+          console.warn(
+            "COLLECTION_GROUP QUERY NOTICE:\n" +
+            "If you are seeing 'Missing or insufficient permissions' here, make sure your Firestore Security Rules contain the recursive wildcard rule for matchPlayers:\n\n" +
+            "match /{path=**}/matchPlayers/{playerId} {\n" +
+            "  allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid || isAdmin());\n" +
+            "}\n\n" +
+            "Since Firebase is configured manually, copy and paste the rules from firestore.rules into your Firebase console at https://console.firebase.google.com/"
+          );
+        }
       }
       
       // Sort by soonest

@@ -324,10 +324,10 @@ export const OwnerProfile: React.FC = () => {
         {/* Quick Portal Navigation Shortcuts */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
           <button
-            onClick={() => navigate('/owner?tab=Dashboard')}
+            onClick={() => navigate('/owner?tab=Today')}
             className="p-3.5 bg-surface-card rounded-xl border border-border-subtle hover:border-border-prominent text-center transition-all cursor-pointer shadow-xs"
           >
-            <span className="text-xs font-bold text-text-primary block">Overview</span>
+            <span className="text-xs font-bold text-text-primary block">Today</span>
             <span className="text-[10px] text-text-tertiary">Live Slots</span>
           </button>
           <button

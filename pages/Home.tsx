@@ -26,7 +26,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { Layout } from "../components/Layout";
 import { useUser } from "../context/UserContext";
 import { useInteractiveWalkthrough } from "../context/InteractiveWalkthroughContext";
-import { OwnerOverview } from "../components/owner/OwnerOverview";
 import { useNavigate, Navigate } from "react-router-dom";
 import { pitchService } from "../services/pitchService";
 import { bookingService } from "../services/bookingService";
@@ -34,7 +33,6 @@ import { Pitch, Booking } from "../types/firebase";
 import { PitchStatus, BookingStatus } from "../types";
 import { NoPitchesCard } from "../components/home/NoPitchesCard";
 import { Skeleton, PitchCardSkeleton } from "../components/ui/Skeleton";
-import { FirstTimeUserTourModal } from "../components/onboarding/FirstTimeUserTourModal";
 import { SmartDashboard } from "../components/dashboard/SmartDashboard";
 import { MatchdayDateStrip } from "../components/home/MatchdayDateStrip";
 import { FootballPitchCard } from "../components/home/FootballPitchCard";
@@ -42,7 +40,9 @@ import { MatchdayBanner } from "../components/home/MatchdayBanner";
 import { TournamentBanner } from "../components/home/TournamentBanner";
 import { QuickBookingModal } from "../components/home/QuickBookingModal";
 import { ActivityFeed } from "../components/home/ActivityFeed";
+import { FirstMatchChecklist } from "../components/onboarding/FirstMatchChecklist";
 import { calculateHaversineDistanceKm, getPitchCoordinates, formatDistanceKm } from "../utils/distance";
+import { FEATURES } from "../config/features";
 
 // Kampala Neighborhood Hubs
 const KAMPALA_HUBS = [
@@ -83,6 +83,7 @@ const SORT_OPTIONS: { id: SortOptionId; label: string; shortLabel: string }[] = 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
   const { userProfile, user, role, isAdmin, isOwner, loading } = useUser();
+  const showCommunityFeed = FEATURES.squads || FEATURES.tournaments || FEATURES.matchInvites;
 
   // Selected Matchday date (default: today)
   const [selectedDate, setSelectedDate] = useState<string>(() => {
@@ -155,9 +156,6 @@ export const Home: React.FC = () => {
   const [quickBookingSlot, setQuickBookingSlot] = useState<string>("19:00");
   const [showQuickBookingModal, setShowQuickBookingModal] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
-
-  // Tour modal
-  const [showTourModal, setShowTourModal] = useState(false);
 
   // Favorites state
   const [favorites, setFavorites] = useState<Record<string, boolean>>(() => {
@@ -596,6 +594,8 @@ export const Home: React.FC = () => {
             />
           </div>
 
+          <FirstMatchChecklist />
+
           {/* 3. DUAL-COLUMN MATCHDAY DASHBOARD GRID */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             {/* PRIMARY COLUMN: DISCOVERY & BOOKING (8 cols on desktop) */}
@@ -643,18 +643,20 @@ export const Home: React.FC = () => {
                   </div>
 
                   {/* Community Pulse Pop-up Trigger - Clean Sole Action */}
-                  <div className="shrink-0">
-                    <button
-                      id="open-community-activity-btn"
-                      type="button"
-                      onClick={() => setShowActivityModal(true)}
-                      className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl border border-border-subtle hover:border-primary-lime/40 bg-surface-card hover:bg-surface-raised flex items-center gap-2 text-xs font-bold text-text-secondary hover:text-text-primary transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
-                      title="View live community match results and updates"
-                    >
-                      <Radio size={14} className="text-primary-lime animate-pulse shrink-0" />
-                      <span className="font-bold">Pulse</span>
-                    </button>
-                  </div>
+                  {showCommunityFeed && (
+                    <div className="shrink-0">
+                      <button
+                        id="open-community-activity-btn"
+                        type="button"
+                        onClick={() => setShowActivityModal(true)}
+                        className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl border border-border-subtle hover:border-primary-lime/40 bg-surface-card hover:bg-surface-raised flex items-center gap-2 text-xs font-bold text-text-secondary hover:text-text-primary transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
+                        title="View live community match results and updates"
+                      >
+                        <Radio size={14} className="text-primary-lime animate-pulse shrink-0" />
+                        <span className="font-bold">Pulse</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Available Pitches Grid (Continuous, Uninterrupted Discovery) */}
@@ -721,28 +723,30 @@ export const Home: React.FC = () => {
               />
 
               {/* Compact Community Pulse Snapshot Trigger */}
-              <div className="bg-surface-card rounded-2xl border border-border-subtle p-4 shadow-xs space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
-                  <div className="flex items-center gap-2">
-                    <Radio size={14} className="text-primary-lime animate-pulse" />
-                    <h4 className="font-display text-xs font-bold uppercase tracking-wider text-text-primary">
-                      Community Activity
-                    </h4>
+              {showCommunityFeed && (
+                <div className="bg-surface-card rounded-2xl border border-border-subtle p-4 shadow-xs space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                    <div className="flex items-center gap-2">
+                      <Radio size={14} className="text-primary-lime animate-pulse" />
+                      <h4 className="font-display text-xs font-bold uppercase tracking-wider text-text-primary">
+                        Community Activity
+                      </h4>
+                    </div>
+                    <span className="text-[10px] text-text-tertiary font-medium">Live scores</span>
                   </div>
-                  <span className="text-[10px] text-text-tertiary font-medium">Live scores</span>
+                  <p className="text-xs text-text-secondary leading-relaxed">
+                    Real-time matchday results, upcoming bookings, and team updates across Kampala pitches.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowActivityModal(true)}
+                    className="w-full py-2.5 rounded-xl bg-surface-raised hover:bg-border-subtle border border-border-subtle text-xs font-bold text-text-primary flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-95"
+                  >
+                    <span>Open Community Feed</span>
+                    <ChevronRight size={14} />
+                  </button>
                 </div>
-                <p className="text-xs text-text-secondary leading-relaxed">
-                  Real-time matchday results, upcoming bookings, and team updates across Kampala pitches.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowActivityModal(true)}
-                  className="w-full py-2.5 rounded-xl bg-surface-raised hover:bg-border-subtle border border-border-subtle text-xs font-bold text-text-primary flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-95"
-                >
-                  <span>Open Community Feed</span>
-                  <ChevronRight size={14} />
-                </button>
-              </div>
+              )}
             </div>
           </div>
 
@@ -904,15 +908,8 @@ export const Home: React.FC = () => {
           </div>
         )}
 
-        {/* First Time User Tour Modal */}
-        <FirstTimeUserTourModal
-          isOpen={showTourModal}
-          onClose={() => setShowTourModal(false)}
-          role={role?.toLowerCase() || "player"}
-        />
-
         {/* Live Community Activity Pop-up Modal */}
-        {showActivityModal && (
+        {showCommunityFeed && showActivityModal && (
           <div
             id="community-activity-modal-backdrop"
             className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn"
@@ -956,11 +953,7 @@ export const Home: React.FC = () => {
     <Layout>
       {(() => {
         if (isOwner || role === "OWNER" || role === "owner") {
-          return (
-            <div className="p-4">
-              <OwnerOverview />
-            </div>
-          );
+          return <Navigate to="/owner?tab=Today" replace />;
         }
         return (
           <>

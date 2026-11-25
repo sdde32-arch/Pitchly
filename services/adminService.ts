@@ -511,12 +511,12 @@ export const adminService = {
 
       if (!snap.empty) {
         await updateDoc(snap.docs[0].ref, {
-          status: "RELEASED",
+          status: "released",
           updatedAt: serverTimestamp(),
         });
       } else {
         await updateDoc(doc(db, "slotLocks", slotLockId), {
-          status: "RELEASED",
+          status: "released",
           updatedAt: serverTimestamp(),
         });
       }

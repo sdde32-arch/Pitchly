@@ -1,7 +1,9 @@
 import React from "react";
 import {
   Home,
+  Compass,
   Calendar,
+  MessageSquare,
   Users,
   User,
   LayoutDashboard,
@@ -11,6 +13,7 @@ import {
   MoreHorizontal,
   LucideIcon,
 } from "lucide-react";
+import { FEATURES } from "../../config/features";
 
 export interface MobileNavItem {
   id: string;
@@ -26,6 +29,7 @@ interface MobileBottomNavProps {
   pathname: string;
   search: string;
   showOwnerMoreMenu: boolean;
+  ownerWaitingCount?: number;
   onNavigate: (target: string) => void;
   onToggleOwnerMore: () => void;
   onCloseOwnerMore: () => void;
@@ -39,19 +43,41 @@ const PLAYER_MOBILE_TABS: MobileNavItem[] = [
     icon: Home,
     matchPaths: ["/home"],
   },
+  ...(FEATURES.squads
+    ? [
+        {
+          id: "teams",
+          label: "Teams",
+          path: "/teams",
+          icon: Users,
+          matchPaths: ["/teams", "/join-team"],
+        },
+      ]
+    : [
+        {
+          id: "explore",
+          label: "Explore",
+          path: "/explore-map",
+          icon: Compass,
+          matchPaths: ["/explore-map"],
+        },
+      ]),
   {
     id: "bookings",
     label: "Bookings",
     path: "/bookings",
     icon: Calendar,
-    matchPaths: ["/bookings", "/match-summary"],
+    matchPaths:
+      FEATURES.matchInvites && FEATURES.squads
+        ? ["/bookings", "/match-summary"]
+        : ["/bookings"],
   },
   {
-    id: "teams",
-    label: "Teams",
-    path: "/teams",
-    icon: Users,
-    matchPaths: ["/teams", "/join-team"],
+    id: "messages",
+    label: "Messages",
+    path: "/chat",
+    icon: MessageSquare,
+    matchPaths: ["/chat"],
   },
   {
     id: "profile",
@@ -65,9 +91,9 @@ const PLAYER_MOBILE_TABS: MobileNavItem[] = [
 const OWNER_MOBILE_TABS: MobileNavItem[] = [
   {
     id: "owner-overview",
-    label: "Overview",
+    label: "Today",
     path: "/owner",
-    search: "tab=Dashboard",
+    search: "tab=Today",
     icon: LayoutDashboard,
   },
   {
@@ -98,13 +124,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   pathname,
   search,
   showOwnerMoreMenu,
+  ownerWaitingCount = 0,
   onNavigate,
   onToggleOwnerMore,
   onCloseOwnerMore,
 }) => {
   const isTabActive = (item: MobileNavItem): boolean => {
     if (item.search) {
-      if (item.search === "tab=Dashboard" && pathname === "/owner" && !search.includes("tab=")) {
+      if (item.search === "tab=Today" && pathname === "/owner" && !search.includes("tab=")) {
         return true;
       }
       return pathname === item.path && search.includes(item.search);
@@ -141,7 +168,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     >
       <div
         className={`max-w-lg mx-auto h-16 px-2 grid items-center gap-1 ${
-          isOwner ? "grid-cols-5" : "grid-cols-4"
+          isOwner || tabs.length === 5 ? "grid-cols-5" : "grid-cols-4"
         }`}
       >
         {tabs.map((item) => {
@@ -173,6 +200,14 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                 className="shrink-0"
                 aria-hidden={true}
               />
+              {isOwner && item.id === "owner-overview" && ownerWaitingCount > 0 && (
+                <span
+                  aria-label={`${ownerWaitingCount} waiting for approval`}
+                  className="absolute top-1 right-2 min-w-[20px] h-5 px-1 rounded-full bg-[#EF4444] text-white text-[11px] font-extrabold leading-none flex items-center justify-center tabular-nums shadow-sm"
+                >
+                  {ownerWaitingCount > 99 ? "99+" : ownerWaitingCount}
+                </span>
+              )}
               <span
                 className={`mt-1 text-[11px] leading-tight tracking-tight whitespace-nowrap ${
                   active ? "font-bold" : "font-medium"

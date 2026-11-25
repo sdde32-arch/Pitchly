@@ -48,9 +48,17 @@ export const WelcomeBack: React.FC = () => {
   if (!lastUser) {
     return (
       <div className="flex flex-col h-screen w-full items-center justify-center bg-app-base gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-3xl font-black text-white font-display">Pitchly</span>
-          <span className="w-2 h-2 rounded-full bg-primary-lime animate-pulse" />
+        <div className="flex items-center justify-center">
+          <img
+            src="/icon-light-192.png"
+            alt="Pitchly"
+            className="block dark:hidden w-24 h-24 object-contain"
+          />
+          <img
+            src="/icon-192.png"
+            alt="Pitchly"
+            className="hidden dark:block w-24 h-24 object-contain"
+          />
         </div>
         <div className="w-6 h-6 border-2 border-primary-lime/20 border-t-primary-lime rounded-full animate-spin" />
       </div>
