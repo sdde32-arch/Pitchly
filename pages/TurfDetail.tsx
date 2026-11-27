@@ -52,6 +52,7 @@ import { TipCard } from "../components/onboarding/TipCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBooking } from "../context/BookingContext";
 import { useUser } from "../context/UserContext";
+import { useChatUnread } from "../context/ChatUnreadContext";
 import { chatService } from "../services/chatService";
 import { pitchService } from "../services/pitchService";
 import { bookingService } from "../services/bookingService";
@@ -320,6 +321,7 @@ export const TurfDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, userProfile, isOwner, isAdmin, updateProfile } = useUser();
+  const { markRead } = useChatUnread();
   const viewedPitchRecordedRef = useRef(false);
 
   useEffect(() => {
@@ -793,7 +795,7 @@ export const TurfDetail: React.FC = () => {
     phone: managerPhone,
     image: managerImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(managerName || turf?.name || "Pitch")}&background=22C55E&color=fff&bold=true`,
     bio: managerBio || `Direct operations and on-ground management for ${turf?.name || "this pitch"}.`,
-    ownerId: ownerId || "owner_facility_default"
+    ownerId: ownerId
   };
 
   const handleSendMessageToOwner = async () => {
@@ -805,9 +807,13 @@ export const TurfDetail: React.FC = () => {
       showToast("Please enter a message.", "error");
       return;
     }
+    const targetOwnerId = (currentManager.ownerId || turf?.ownerId || "").trim();
+    if (!targetOwnerId) {
+      showToast("This pitch cannot receive messages right now.", "error");
+      return;
+    }
     setIsSendingMessage(true);
     try {
-      const targetOwnerId = currentManager.ownerId || turf?.ownerId || "owner_facility_default";
       const senderName = userProfile?.name || user.displayName || user.email?.split("@")[0] || "Player";
       const senderAvatar = user.photoURL || (userProfile as any)?.avatar || "";
 
@@ -820,12 +826,24 @@ export const TurfDetail: React.FC = () => {
           participantDetails: {
             [user.uid]: {
               name: senderName,
-              avatar: senderAvatar,
+              avatar:
+                typeof senderAvatar === "string" &&
+                senderAvatar.trim().startsWith("https://") &&
+                !senderAvatar.includes("ui-avatars.com")
+                  ? senderAvatar.trim()
+                  : "",
               role: "Player"
             },
             [targetOwnerId]: {
               name: currentManager.name,
-              avatar: currentManager.image,
+              avatar:
+                typeof managerImage === "string" &&
+                managerImage.trim().length > 0 &&
+                typeof currentManager.image === "string" &&
+                currentManager.image.trim().startsWith("https://") &&
+                !currentManager.image.includes("ui-avatars.com")
+                  ? currentManager.image.trim()
+                  : "",
               role: "Pitch Manager"
             }
           }
@@ -839,13 +857,14 @@ export const TurfDetail: React.FC = () => {
         senderName,
         senderAvatar
       );
+      void markRead(convId);
 
       setActiveConversationId(convId);
       setMessageSentSuccess(true);
-      showToast("Message delivered to pitch owner's inbox!", "success");
+      showToast("Message sent", "success");
     } catch (err: any) {
       console.error("Failed to send message to owner:", err);
-      showToast("Failed to deliver message. Please try again.", "error");
+      showToast("Message not sent. Please try again.", "error");
     } finally {
       setIsSendingMessage(false);
     }
@@ -2183,14 +2202,13 @@ export const TurfDetail: React.FC = () => {
                         e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentManager.name)}&background=22C55E&color=fff&bold=true`;
                       }}
                     />
-                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-surface-card" />
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
                       <h3 className="text-sm sm:text-base font-extrabold text-text-primary">
                         {currentManager.name}
                       </h3>
-                      <div className="w-3.5 h-3.5 rounded-full bg-primary-lime text-accent-text flex items-center justify-center shrink-0">
+                      <div className="w-3.5 h-3.5 rounded-full bg-cta-bg text-cta-text flex items-center justify-center shrink-0">
                         <Check size={8} strokeWidth={4} />
                       </div>
                     </div>
@@ -2201,8 +2219,10 @@ export const TurfDetail: React.FC = () => {
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => setShowMessageModal(false)}
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-text-tertiary hover:text-text-primary bg-surface-raised hover:bg-border-subtle cursor-pointer"
+                  aria-label="Close message dialog"
+                  className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-text-secondary hover:text-text-primary bg-surface-raised hover:bg-border-subtle cursor-pointer"
                 >
                   <X size={16} />
                 </button>
@@ -2210,34 +2230,36 @@ export const TurfDetail: React.FC = () => {
 
               {messageSentSuccess ? (
                 <div className="py-6 text-center space-y-3">
-                  <div className="w-14 h-14 rounded-full bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] flex items-center justify-center mx-auto">
+                  <div className="w-14 h-14 rounded-full bg-status-success-tint border border-status-success text-status-success flex items-center justify-center mx-auto">
                     <CheckCircle2 size={28} />
                   </div>
                   <div>
                     <h4 className="text-base font-extrabold text-text-primary">
-                      Message Delivered to Manager!
+                      Message sent
                     </h4>
                     <p className="text-xs text-text-secondary max-w-xs mx-auto mt-1">
-                      Your message has been sent directly to {currentManager.name}'s manager inbox.
+                      Your message was sent to {currentManager.name}. Replies appear in Messages.
                     </p>
                   </div>
 
                   <div className="flex items-center justify-center gap-2 pt-2">
                     {activeConversationId && (
                       <button
+                        type="button"
                         onClick={() => {
                           setShowMessageModal(false);
                           navigate(`/chat/${activeConversationId}`);
                         }}
-                        className="px-4 py-2 bg-primary-lime text-accent-text font-black rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                        className="min-h-[44px] px-4 py-2.5 bg-cta-bg hover:bg-cta-bg-hover text-cta-text font-black rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transition-colors"
                       >
                         <MessageSquare size={13} />
-                        <span>Open Live Chat</span>
+                        <span>Open chat</span>
                       </button>
                     )}
                     <button
+                      type="button"
                       onClick={() => setShowMessageModal(false)}
-                      className="px-4 py-2 bg-surface-raised text-text-secondary hover:text-text-primary rounded-xl text-xs font-bold cursor-pointer"
+                      className="min-h-[44px] px-4 py-2.5 bg-surface-raised text-text-secondary hover:text-text-primary rounded-xl text-xs font-bold cursor-pointer"
                     >
                       Done
                     </button>
@@ -2246,7 +2268,7 @@ export const TurfDetail: React.FC = () => {
               ) : (
                 <div className="space-y-4">
                   <div>
-                    <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-2">
+                    <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-2">
                       Quick Matchday Inquiries
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
@@ -2268,9 +2290,9 @@ export const TurfDetail: React.FC = () => {
                           key={promptText}
                           type="button"
                           onClick={() => setMessageText(promptText)}
-                          className={`text-left p-2.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
+                          className={`min-h-[44px] text-left p-2.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
                             messageText === promptText
-                              ? "bg-primary-lime/10 border-primary-lime text-primary-lime"
+                              ? "bg-surface-raised border-border-prominent text-text-primary"
                               : "bg-surface-raised border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-prominent"
                           }`}
                         >
@@ -2281,18 +2303,19 @@ export const TurfDetail: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider block mb-1.5">
+                    <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1.5">
                       Your Message
                     </label>
                     <textarea
                       value={messageText}
+                      maxLength={500}
                       onChange={(e) => setMessageText(e.target.value)}
                       placeholder={`Write a direct inquiry to ${currentManager.name}...`}
                       rows={4}
-                      className="w-full bg-surface-raised border border-border-subtle focus:border-primary-lime rounded-2xl p-3 text-xs text-text-primary placeholder:text-text-tertiary outline-none resize-none leading-relaxed transition-all"
+                      className="w-full bg-surface-raised border border-border-subtle focus:border-border-prominent rounded-2xl p-3 text-xs text-text-primary placeholder:text-text-secondary outline-none resize-none leading-relaxed transition-all"
                     />
-                    <div className="flex items-center justify-between text-[11px] text-text-tertiary mt-1 px-1">
-                      <span>Delivered directly to manager dashboard inbox</span>
+                    <div className="flex items-center justify-between text-[11px] text-text-secondary mt-1 px-1">
+                      <span>Sent to the pitch manager's inbox</span>
                       <span>{messageText.length}/500</span>
                     </div>
                   </div>
@@ -2301,7 +2324,7 @@ export const TurfDetail: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowMessageModal(false)}
-                      className="px-4 py-2.5 bg-surface-raised hover:bg-border-subtle text-text-secondary hover:text-text-primary rounded-xl text-xs font-bold transition-all cursor-pointer"
+                      className="min-h-[44px] px-4 py-2.5 bg-surface-raised hover:bg-border-subtle text-text-secondary hover:text-text-primary rounded-xl text-xs font-bold transition-all cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -2310,7 +2333,7 @@ export const TurfDetail: React.FC = () => {
                       type="button"
                       disabled={isSendingMessage || !messageText.trim()}
                       onClick={handleSendMessageToOwner}
-                      className="px-5 py-2.5 bg-primary-lime hover:bg-[#96E600] text-accent-text font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-primary-lime/20 cursor-pointer active:scale-95 disabled:opacity-50 transition-all"
+                      className="min-h-[44px] px-5 py-2.5 bg-cta-bg hover:bg-cta-bg-hover text-cta-text font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95 disabled:opacity-50 transition-all"
                     >
                       {isSendingMessage ? (
                         <Loader2 size={14} className="animate-spin" />

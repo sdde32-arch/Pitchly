@@ -148,17 +148,51 @@ export const BookingManager: React.FC = () => {
 
   const handleChatPlayer = async (booking: Booking) => {
     if (!user) return;
-    const targetPlayerId = booking.playerId || (booking as any).userId;
+    const targetPlayerId = (booking.playerId || booking.userId || "").trim();
     if (!targetPlayerId) {
-      navigate('/owner?tab=Messages');
+      setToast({
+        type: "error",
+        title: "Message unavailable",
+        message: "This booking is not linked to a player account.",
+      });
       return;
     }
+    const turfName = booking.pitchName || booking.turfName || "";
+    const pitchId = booking.pitchId || booking.turfId || "";
+    const playerName = booking.userName || "";
+    const ownerName = user.displayName || "";
     try {
-      await chatService.getOrCreateDirectConversation(user.uid, targetPlayerId);
-      navigate('/owner?tab=Messages');
+      const convId = await chatService.getOrCreateDirectConversation(
+        user.uid,
+        targetPlayerId,
+        {
+          ...(turfName ? { turfName } : {}),
+          ...(pitchId ? { pitchId } : {}),
+          participantDetails: {
+            [targetPlayerId]: {
+              ...(playerName ? { name: playerName } : {}),
+              role: "Player",
+            },
+            ...(ownerName
+              ? {
+                  [user.uid]: {
+                    name: ownerName,
+                    ...(user.photoURL ? { avatar: user.photoURL } : {}),
+                    role: "Pitch manager",
+                  },
+                }
+              : {}),
+          },
+        }
+      );
+      navigate(`/owner?tab=Messages&conv=${encodeURIComponent(convId)}`);
     } catch (err) {
-      console.warn("Failed to create direct conversation, navigating to inbox:", err);
-      navigate('/owner?tab=Messages');
+      console.error("Failed to create direct conversation:", err);
+      setToast({
+        type: "error",
+        title: "Could not open messages",
+        message: "Please check your connection and try again.",
+      });
     }
   };
 

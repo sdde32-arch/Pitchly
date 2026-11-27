@@ -90,29 +90,49 @@ export const Bookings: React.FC = () => {
       navigate('/auth');
       return;
     }
-    const targetOwnerId = b.ownerId || "owner_facility_default";
+    const targetOwnerId = typeof b.ownerId === "string" ? b.ownerId.trim() : "";
+    if (!targetOwnerId) {
+      setFeedbackToast({
+        type: "error",
+        message: "This pitch owner cannot be messaged right now.",
+      });
+      setTimeout(() => setFeedbackToast(null), 4000);
+      return;
+    }
+    const turfName = b.pitchName || b.turfName || "";
+    const pitchId = b.pitchId || b.turfId || "";
     try {
       const convId = await chatService.getOrCreateDirectConversation(
         user.uid,
         targetOwnerId,
         {
-          turfName: b.pitchName || b.turfName || "Sports Ground",
-          pitchId: b.pitchId || b.turfId,
+          ...(turfName ? { turfName } : {}),
+          ...(pitchId ? { pitchId } : {}),
           participantDetails: {
             [user.uid]: {
               name: userProfile?.name || user.displayName || "Player",
-              avatar: user.photoURL || ""
+              avatar: userProfile?.avatar || user.photoURL || "",
+              role: "Player",
             },
-            [targetOwnerId]: {
-              name: b.managerName || "Pitch Manager",
-              role: "Owner"
-            }
-          }
+            ...(b.managerName
+              ? {
+                  [targetOwnerId]: {
+                    name: b.managerName,
+                    role: "Pitch manager",
+                  },
+                }
+              : {}),
+          },
         }
       );
       navigate(`/chat/${convId}`);
     } catch (e) {
       console.error("Failed to start chat with owner:", e);
+      setFeedbackToast({
+        type: "error",
+        message: "Could not open messages right now. Please try again.",
+      });
+      setTimeout(() => setFeedbackToast(null), 4000);
     }
   };
 

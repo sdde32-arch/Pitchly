@@ -396,8 +396,13 @@ export interface Conversation {
   participants: string[];
   type: 'DIRECT' | 'TEAM' | 'GROUP';
   name?: string;
+  turfName?: string;
+  pitchId?: string;
+  participantDetails?: Record<string, { name?: string; avatar?: string; role?: string }>;
   lastMessage?: string;
   lastMessageAt?: string;
+  lastMessageSenderName?: string;
+  lastMessageSenderAvatar?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -152,9 +152,8 @@ export const FinanceManager: React.FC = () => {
               Direct Settlement Ledger & Revenue Telemetry
             </h2>
             <p className="text-xs text-text-secondary leading-relaxed">
-              Pitchly holds <strong>zero customer funds in escrow</strong>. All player payments are transferred directly
-              to your registered MTN Mobile Money, Airtel Money account, or paid in cash at your venue. You maintain 100%
-              instant control of all match revenues.
+              Players pay your MTN Mobile Money number, Airtel Money number, or in cash at your venue directly. Pitchly
+              records the booking amounts and payment statuses shown below.
             </p>
           </div>
 
@@ -163,7 +162,7 @@ export const FinanceManager: React.FC = () => {
             className="px-4 py-2.5 bg-surface-raised hover:bg-border-subtle border border-border-subtle text-text-primary font-bold text-xs rounded-xl flex items-center justify-center gap-2 shrink-0 transition-all cursor-pointer active:scale-95"
           >
             <Building size={14} className="text-primary-lime" />
-            <span>Update Payout Numbers</span>
+            <span>Payment Numbers</span>
             <ChevronRight size={14} className="text-text-tertiary" />
           </button>
         </div>

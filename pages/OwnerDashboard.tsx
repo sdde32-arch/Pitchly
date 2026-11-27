@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useInteractiveWalkthrough } from "../context/InteractiveWalkthroughContext";
 import { useUser } from "../context/UserContext";
+import { useChatUnread } from "../context/ChatUnreadContext";
 import { bookingService } from "../services/bookingService";
 import { Booking } from "../types/firebase";
 
@@ -72,6 +73,7 @@ export const OwnerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { openWalkthrough } = useInteractiveWalkthrough();
   const { user, userProfile, loading: authLoading } = useUser();
+  const { unreadCount } = useChatUnread();
   const ownerId = userProfile?.id || user?.uid || "";
 
   const queryParams = new URLSearchParams(location.search);
@@ -305,13 +307,13 @@ export const OwnerDashboard: React.FC = () => {
     },
     Finances: {
       label: "Finances",
-      title: "Revenue & MoMo Payouts",
-      desc: "Track completed matches, MTN & Airtel MoMo payouts, and statements."
+      title: "Revenue & Payments",
+      desc: "Track bookings and the amounts players have paid."
     },
     Staff: {
       label: "Staff",
-      title: "Pitch Marshals & Ground Staff",
-      desc: "Manage venue staff, assign pitch roles, and grant booking permissions."
+      title: "Staff & Caretakers",
+      desc: "Keep a list of your staff, their phone numbers and roles."
     },
     Settings: {
       label: "Settings",
@@ -426,6 +428,7 @@ export const OwnerDashboard: React.FC = () => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
                   const showWaitingBadge = tab.id === "Today" && waitingCount > 0;
+                  const showUnreadBadge = tab.id === "Messages" && unreadCount > 0;
                   return (
                     <button
                       key={tab.id}
@@ -446,9 +449,17 @@ export const OwnerDashboard: React.FC = () => {
                       {showWaitingBadge && (
                         <span
                           aria-label={`${waitingCount} waiting for approval`}
-                          className="ml-0.5 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#EF4444] text-white text-xs font-extrabold tabular-nums leading-none"
+                          className="ml-0.5 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#B91C1C] border border-white/70 text-white text-xs font-extrabold tabular-nums leading-none"
                         >
                           {waitingCount > 99 ? "99+" : waitingCount}
+                        </span>
+                      )}
+                      {showUnreadBadge && (
+                        <span
+                          aria-label={`${unreadCount} unread conversations`}
+                          className="ml-0.5 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#B91C1C] border border-white/70 text-white text-xs font-extrabold tabular-nums leading-none"
+                        >
+                          {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                       )}
                     </button>

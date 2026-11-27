@@ -63,11 +63,61 @@ export const chatService = {
     if (existing) {
       if (extraMeta) {
         try {
-          const cleanParticipantDetails = sanitizeParticipantDetails(extraMeta.participantDetails);
+          const existingData = existing.data() as Partial<Conversation>;
+          const existingDetails =
+            existingData.participantDetails && typeof existingData.participantDetails === 'object'
+              ? existingData.participantDetails
+              : {};
+
+          const mergedParticipantDetails: {
+            [uid: string]: { name?: string; avatar?: string; role?: string };
+          } = {};
+
+          for (const [uid, existingEntry] of Object.entries(existingDetails)) {
+            if (existingEntry && typeof existingEntry === 'object') {
+              mergedParticipantDetails[uid] = { ...existingEntry };
+            }
+          }
+
+          if (extraMeta.participantDetails && typeof extraMeta.participantDetails === 'object') {
+            for (const [uid, incomingEntry] of Object.entries(extraMeta.participantDetails)) {
+              if (!incomingEntry || typeof incomingEntry !== 'object') continue;
+
+              const mergedEntry = mergedParticipantDetails[uid]
+                ? { ...mergedParticipantDetails[uid] }
+                : {};
+
+              if (typeof incomingEntry.name === 'string' && incomingEntry.name.trim().length > 0) {
+                mergedEntry.name = incomingEntry.name.trim();
+              }
+
+              if (typeof incomingEntry.avatar === 'string' && incomingEntry.avatar.trim().length > 0) {
+                const safeAvatar = sanitizeAvatar(incomingEntry.avatar.trim());
+                if (safeAvatar.length > 0) {
+                  mergedEntry.avatar = safeAvatar;
+                }
+              }
+
+              if (typeof incomingEntry.role === 'string' && incomingEntry.role.trim().length > 0) {
+                mergedEntry.role = incomingEntry.role.trim();
+              }
+
+              if (Object.keys(mergedEntry).length > 0) {
+                mergedParticipantDetails[uid] = mergedEntry;
+              }
+            }
+          }
+
+          const incomingTurfName =
+            typeof extraMeta.turfName === 'string' ? extraMeta.turfName.trim() : '';
+          const incomingPitchId =
+            typeof extraMeta.pitchId === 'string' ? extraMeta.pitchId.trim() : '';
+          const hasParticipantDetails = Object.keys(mergedParticipantDetails).length > 0;
+
           await updateDoc(doc(db, 'conversations', existing.id), {
-            ...(extraMeta.turfName ? { turfName: extraMeta.turfName } : {}),
-            ...(extraMeta.pitchId ? { pitchId: extraMeta.pitchId } : {}),
-            ...(cleanParticipantDetails ? { participantDetails: cleanParticipantDetails } : {}),
+            ...(incomingTurfName ? { turfName: incomingTurfName } : {}),
+            ...(incomingPitchId ? { pitchId: incomingPitchId } : {}),
+            ...(hasParticipantDetails ? { participantDetails: mergedParticipantDetails } : {}),
             updatedAt: new Date().toISOString()
           });
         } catch (e) {
@@ -152,30 +202,50 @@ export const chatService = {
   },
 
   // Subscribe to user's conversations
-  subscribeToUserConversations(userId: string, callback: (convs: Conversation[]) => void) {
+  subscribeToUserConversations(
+    userId: string,
+    callback: (convs: Conversation[]) => void,
+    onError?: (error: Error) => void
+  ) {
     const q = query(
       collection(db, 'conversations'),
       where('participants', 'array-contains', userId),
       orderBy('updatedAt', 'desc')
     );
 
-    return onSnapshot(q, (snapshot) => {
-      const convs = snapshot.docs.map(doc => doc.data() as Conversation);
-      callback(convs);
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const convs = snapshot.docs.map(doc => doc.data() as Conversation);
+        callback(convs);
+      },
+      (error) => {
+        if (onError) onError(error);
+      }
+    );
   },
 
   // Subscribe to messages in a conversation
-  subscribeToMessages(conversationId: string, callback: (msgs: Message[]) => void) {
+  subscribeToMessages(
+    conversationId: string,
+    callback: (msgs: Message[]) => void,
+    onError?: (error: Error) => void
+  ) {
     const q = query(
       collection(db, `conversations/${conversationId}/messages`),
       orderBy('createdAt', 'asc')
     );
 
-    return onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => doc.data() as Message);
-      callback(msgs);
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const msgs = snapshot.docs.map(doc => doc.data() as Message);
+        callback(msgs);
+      },
+      (error) => {
+        if (onError) onError(error);
+      }
+    );
   },
 
   // Send a message

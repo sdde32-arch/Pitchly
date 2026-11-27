@@ -52,6 +52,8 @@ export interface UserProfileData {
     viewedPitch?: boolean;
     tipsSeen?: Record<string, boolean>;
   };
+  chatReadAt?: Record<string, string>;
+  chatReadBaselineAt?: string;
   avatarId?: string;
   createdAt?: string;
 }
@@ -140,6 +142,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
               hasCompletedOnboarding: typeof data.hasCompletedOnboarding === "boolean" ? data.hasCompletedOnboarding : undefined,
               onboardingCompletedAt: data.onboardingCompletedAt,
               onboarding: data.onboarding,
+              chatReadAt: data.chatReadAt,
+              chatReadBaselineAt: data.chatReadBaselineAt,
               avatarId: data.avatarId || fallbackAvatarId,
             };
             setUserProfile(profile);
@@ -232,7 +236,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
     // 3. Update local state and cache only after persistent write succeeds
     setUserProfile((prev) => {
       if (!prev) return null;
-      const updated = { ...prev, ...sanitizedData };
+      const updated = {
+        ...prev,
+        ...sanitizedData,
+        ...(sanitizedData.chatReadAt
+          ? { chatReadAt: { ...prev.chatReadAt, ...sanitizedData.chatReadAt } }
+          : {}),
+      };
       try {
         localStorage.setItem("pitchly_last_user", JSON.stringify(updated));
       } catch (e) {}

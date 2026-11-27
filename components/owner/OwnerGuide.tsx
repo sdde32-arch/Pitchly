@@ -49,7 +49,7 @@ const OWNER_GUIDE_LESSONS: GuideLesson[] = [
     goal: "Review a waiting booking and confirm or cancel it.",
     steps: [
       "Find the slot marked WAITING FOR YOUR OK on Today and check the payment code or tap See proof to view the player's receipt.",
-      "Check your own Mobile Money balance, then tap Confirm to lock in the booking and notify the player.",
+      "Check that the money has arrived in your own Mobile Money account. A screenshot alone is not proof of payment. Then tap Confirm to lock in the booking and notify the player.",
       "Tap Decline, then tap Yes, cancel to cancel the booking without entering a reason and notify the player.",
     ],
     goodToKnow: "The Today decline sheet does not ask for a reason; it saves a default decline note and alerts the player.",

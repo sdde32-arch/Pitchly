@@ -29,6 +29,7 @@ import {
 import { FEATURES } from "../config/features";
 import { MobileBottomNav } from "./layout/MobileBottomNav";
 import { useUser } from "../context/UserContext";
+import { useChatUnread } from "../context/ChatUnreadContext";
 import { useInteractiveWalkthrough } from "../context/InteractiveWalkthroughContext";
 import { PlayerAvatar } from "./PlayerAvatars";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -89,6 +90,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, ownerWaitingCount = 0 
     switchRole,
   } = useUser();
   const { openWalkthrough } = useInteractiveWalkthrough();
+  const { unreadCount } = useChatUnread();
   const [showOnboarding, setShowOnboarding] = React.useState(false);
   const [slotNotifs, setSlotNotifs] = React.useState<any[]>([]);
   const [activeSubs, setActiveSubs] = React.useState<any[]>([]);
@@ -379,6 +381,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, ownerWaitingCount = 0 
       icon: CalendarCheck,
     },
     {
+      path: "/owner",
+      search: "tab=Messages",
+      label: "Messages",
+      icon: MessageSquare,
+    },
+    {
       path: "/owner/pitches",
       search: "",
       label: "Facilities",
@@ -544,9 +552,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, ownerWaitingCount = 0 
                       {isOwner && link.search === "tab=Today" && ownerWaitingCount > 0 ? (
                         <span
                           aria-label={`${ownerWaitingCount} waiting for approval`}
-                          className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#EF4444] text-white text-xs font-extrabold tabular-nums leading-none"
+                          className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#B91C1C] text-white text-xs font-extrabold tabular-nums leading-none"
                         >
                           {ownerWaitingCount > 99 ? "99+" : ownerWaitingCount}
+                        </span>
+                      ) : (link.path === "/chat" || (isOwner && link.search === "tab=Messages")) && unreadCount > 0 ? (
+                        <span
+                          aria-label={`${unreadCount} unread conversations`}
+                          className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#B91C1C] text-white text-xs font-extrabold tabular-nums leading-none"
+                        >
+                          {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                       ) : active ? (
                         <div className="ml-auto w-1.5 h-1.5 bg-nav-active-text rounded-full shadow-[0_0_8px_#A8FF00]" />
@@ -837,7 +852,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, ownerWaitingCount = 0 
                       setShowOwnerMoreMenu(false);
                       navigate("/owner?tab=Messages");
                     }}
-                    className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-nav-border hover:border-nav-active-text/40 text-left transition-colors cursor-pointer active:scale-98"
+                    className="relative flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-nav-border hover:border-nav-active-text/40 text-left transition-colors cursor-pointer active:scale-98"
                   >
                     <div className="w-8 h-8 rounded-lg bg-nav-owner-tint text-nav-owner flex items-center justify-center shrink-0">
                       <MessageSquare size={16} />
@@ -846,6 +861,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, ownerWaitingCount = 0 
                       <p className="text-xs font-bold text-nav-text truncate">Messages</p>
                       <p className="text-[10px] text-nav-text-muted truncate">Player chats</p>
                     </div>
+                    {unreadCount > 0 && (
+                      <span
+                        aria-label={`${unreadCount} unread conversations`}
+                        className="absolute top-2 right-2 min-w-[20px] h-5 px-1.5 rounded-full bg-[#B91C1C] text-white text-[11px] font-extrabold leading-none flex items-center justify-center tabular-nums shadow-sm"
+                      >
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
                   </button>
 
                   <button

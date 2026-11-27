@@ -14,6 +14,7 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { FEATURES } from "../../config/features";
+import { useChatUnread } from "../../context/ChatUnreadContext";
 
 export interface MobileNavItem {
   id: string;
@@ -129,6 +130,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onToggleOwnerMore,
   onCloseOwnerMore,
 }) => {
+  const { unreadCount } = useChatUnread();
   const isTabActive = (item: MobileNavItem): boolean => {
     if (item.search) {
       if (item.search === "tab=Today" && pathname === "/owner" && !search.includes("tab=")) {
@@ -203,9 +205,17 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               {isOwner && item.id === "owner-overview" && ownerWaitingCount > 0 && (
                 <span
                   aria-label={`${ownerWaitingCount} waiting for approval`}
-                  className="absolute top-1 right-2 min-w-[20px] h-5 px-1 rounded-full bg-[#EF4444] text-white text-[11px] font-extrabold leading-none flex items-center justify-center tabular-nums shadow-sm"
+                  className="absolute top-1 right-2 min-w-[20px] h-5 px-1 rounded-full bg-[#B91C1C] text-white text-[11px] font-extrabold leading-none flex items-center justify-center tabular-nums shadow-sm"
                 >
                   {ownerWaitingCount > 99 ? "99+" : ownerWaitingCount}
+                </span>
+              )}
+              {!isOwner && item.id === "messages" && unreadCount > 0 && (
+                <span
+                  aria-label={`${unreadCount} unread conversations`}
+                  className="absolute top-1 right-2 min-w-[20px] h-5 px-1 rounded-full bg-[#B91C1C] text-white text-[11px] font-extrabold leading-none flex items-center justify-center tabular-nums shadow-sm"
+                >
+                  {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}
               <span
@@ -223,7 +233,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           <button
             id="mobile-nav-owner-more"
             type="button"
-            aria-label="More owner options"
+            aria-label={
+              unreadCount > 0 && !showOwnerMoreMenu
+                ? "More owner options, unread messages"
+                : "More owner options"
+            }
             aria-expanded={showOwnerMoreMenu}
             aria-haspopup="dialog"
             onClick={onToggleOwnerMore}
@@ -239,12 +253,20 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                 className="absolute top-0.5 w-6 h-0.5 rounded-full bg-nav-active-text"
               />
             )}
-            <MoreHorizontal
-              size={21}
-              strokeWidth={showOwnerMoreMenu ? 2.4 : 1.85}
-              className="shrink-0"
-              aria-hidden={true}
-            />
+            <span className="relative inline-flex items-center justify-center shrink-0">
+              <MoreHorizontal
+                size={21}
+                strokeWidth={showOwnerMoreMenu ? 2.4 : 1.85}
+                className="shrink-0"
+                aria-hidden={true}
+              />
+              {unreadCount > 0 && !showOwnerMoreMenu && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-0.5 -right-1 w-2.5 h-2.5 rounded-full bg-[#B91C1C] border border-white/70"
+                />
+              )}
+            </span>
             <span
               className={`mt-1 text-[11px] leading-tight tracking-tight whitespace-nowrap ${
                 showOwnerMoreMenu ? "font-bold" : "font-medium"

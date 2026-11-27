@@ -6,6 +6,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './ThemeContext';
 import { BookingProvider } from './context/BookingContext';
 import { UserProvider, useUser } from './context/UserContext';
+import { ChatUnreadProvider } from './context/ChatUnreadContext';
 import { PWAProvider } from './context/PWAContext';
 import { InteractiveWalkthroughProvider } from './context/InteractiveWalkthroughContext';
 import { InteractiveWalkthroughOverlay } from './components/onboarding/InteractiveWalkthroughOverlay';
@@ -354,34 +355,36 @@ const App: React.FC = () => {
           <ThemeProvider>
             <ProviderLifecycleTracker name="UserProvider">
               <UserProvider>
-                <ProviderLifecycleTracker name="BookingProvider">
-                  <BookingProvider>
-                    <ProviderLifecycleTracker name="MatchReminderProvider">
-                      <MatchReminderProvider>
-                        <ProviderLifecycleTracker name="PWAProvider">
-                          <PWAProvider>
-                            <HashRouter
-                              future={{
-                                v7_startTransition: true,
-                                v7_relativeSplatPath: true,
-                              }}
-                            >
-                              <ProviderLifecycleTracker name="InteractiveWalkthroughProvider">
-                                <InteractiveWalkthroughProvider>
-                                  <AnimatedRoutes />
-                                  <InteractiveWalkthroughOverlay />
-                                  <MatchReminderToast />
-                                  <OfflineIndicator />
-                                  <Analytics />
-                                </InteractiveWalkthroughProvider>
-                              </ProviderLifecycleTracker>
-                            </HashRouter>
-                          </PWAProvider>
-                        </ProviderLifecycleTracker>
-                      </MatchReminderProvider>
-                    </ProviderLifecycleTracker>
-                  </BookingProvider>
-                </ProviderLifecycleTracker>
+                <ChatUnreadProvider>
+                  <ProviderLifecycleTracker name="BookingProvider">
+                    <BookingProvider>
+                      <ProviderLifecycleTracker name="MatchReminderProvider">
+                        <MatchReminderProvider>
+                          <ProviderLifecycleTracker name="PWAProvider">
+                            <PWAProvider>
+                              <HashRouter
+                                future={{
+                                  v7_startTransition: true,
+                                  v7_relativeSplatPath: true,
+                                }}
+                              >
+                                <ProviderLifecycleTracker name="InteractiveWalkthroughProvider">
+                                  <InteractiveWalkthroughProvider>
+                                    <AnimatedRoutes />
+                                    <InteractiveWalkthroughOverlay />
+                                    <MatchReminderToast />
+                                    <OfflineIndicator />
+                                    <Analytics />
+                                  </InteractiveWalkthroughProvider>
+                                </ProviderLifecycleTracker>
+                              </HashRouter>
+                            </PWAProvider>
+                          </ProviderLifecycleTracker>
+                        </MatchReminderProvider>
+                      </ProviderLifecycleTracker>
+                    </BookingProvider>
+                  </ProviderLifecycleTracker>
+                </ChatUnreadProvider>
               </UserProvider>
             </ProviderLifecycleTracker>
           </ThemeProvider>

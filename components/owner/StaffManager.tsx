@@ -70,14 +70,14 @@ export const StaffManager: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#A78BFA]/10 text-[#A78BFA] border border-[#A78BFA]/30 uppercase tracking-wider">
-              Access & Operations
+              Staff Roster
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-text-primary tracking-tight mt-1">
             Staff & Caretaker Roster
           </h1>
           <p className="text-xs text-text-secondary">
-            Assign on-ground staff to check in players and verify walk-in cash payments.
+            Keep a list of your caretakers and managers with their phone numbers.
           </p>
         </div>
 
@@ -99,7 +99,7 @@ export const StaffManager: React.FC = () => {
               No staff members registered
             </p>
             <p className="text-xs text-text-secondary max-w-sm mx-auto">
-              Add facility managers or pitch caretakers to help monitor daily game operations.
+              Add your caretakers and managers to keep their phone numbers in one place.
             </p>
           </div>
         )}
@@ -216,8 +216,8 @@ export const StaffManager: React.FC = () => {
                   onChange={e => setNewStaff({ ...newStaff, role: e.target.value })} 
                   className="w-full bg-surface-raised border border-border-subtle rounded-lg px-3 h-10 text-xs font-bold text-text-primary outline-none focus:border-border-prominent"
                 >
-                  <option value="CARETAKER">Caretaker (Slot Locks & Check-ins)</option>
-                  <option value="MANAGER">Manager (Full Facility Oversight)</option>
+                  <option value="CARETAKER">Caretaker</option>
+                  <option value="MANAGER">Manager</option>
                 </select>
               </div>
 
